@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="peach">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f4d7c7">
+  <title>学程 · 你的长期伙伴</title>
+  <link rel="stylesheet" href="/companion-v3.css">
+</head>
+<body>
+  <!-- THESIS: 一个融入生活的私人行动伙伴。单一日程流，不使用聊天机器人或管理后台布局。 -->
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="identity"><a href="/" aria-label="学程首页"><i>程</i><span>学程</span></a><b data-assistant-name>小程</b></div>
+      <nav aria-label="主要功能" role="tablist">
+        <button class="tab active" id="today-tab" data-tab="chat" role="tab" aria-selected="true" aria-controls="today-panel">今天</button>
+        <button class="tab" id="path-tab" data-tab="map" role="tab" aria-selected="false" aria-controls="path-panel">路径 <i id="map-change">2</i></button>
+      </nav>
+      <button class="assistant-button" id="assistant-details-button"><span class="presence"></span><span>小程</span></button>
+    </header>
+
+    <main>
+      <section class="panel today-panel active" id="today-panel" data-panel="chat" role="tabpanel" aria-labelledby="today-tab">
+        <header class="day-heading">
+          <div class="date-line"><p id="current-date"></p><p class="local-state"><span></span>本机记录</p></div>
+          <h1>把今天过具体一点。</h1>
+          <p class="day-intro">下一件事已经准备好，到时间直接开始。</p>
+        </header>
+
+        <div class="daily-grid">
+          <section class="activity-column" aria-label="今天的安排">
+            <div class="section-heading"><h2>接下来</h2><span>时间、平台、内容与完成标准</span></div>
+            <div class="life-stream" id="life-stream" aria-live="polite"></div>
+          </section>
+
+          <aside class="reality-column">
+            <header><div><small>来自你的生活</small><h2>现实来源</h2></div><span>0 / 4</span></header>
+            <p>接入后，小程才能根据真实变化主动调整安排。</p>
+            <ul class="source-list">
+              <li><i class="source-mark note"></i><div><b>文件与笔记</b><span>优先接入</span></div><button data-open-connections>连接</button></li>
+              <li><i class="source-mark wechat"></i><div><b>微信内容</b><span>未接入</span></div><button data-open-connections>连接</button></li>
+              <li><i class="source-mark douyin"></i><div><b>抖音收藏</b><span>未接入</span></div><button data-open-connections>连接</button></li>
+              <li><i class="source-mark calendar"></i><div><b>日历</b><span>未接入</span></div><button data-open-connections>连接</button></li>
+            </ul>
+            <div class="honest-state"><b>当前边界</b><p>目前只依据这段对话工作，不会假装已经看见其他软件。</p></div>
+          </aside>
+        </div>
+
+        <form id="chat-form" class="input-dock">
+          <textarea id="chat-input" rows="1" aria-label="给助手发消息" placeholder="跟小程说句话，或者交代一件事……"></textarea>
+          <button class="voice" id="voice-button" type="button"><span></span><b>按住说话</b></button>
+          <button class="send" type="submit">发送</button>
+        </form>
+      </section>
+
+      <section class="panel path-panel" id="path-panel" data-panel="map" role="tabpanel" aria-labelledby="path-tab" hidden>
+        <header class="path-heading"><small>持续形成，而非一次生成</small><h1>我的路径</h1><p>从每天真实发生的事情里逐渐形成，随现实变化修正。</p></header>
+        <section class="direction-block"><span>当前方向</span><h2 id="map-direction">尚未形成</h2><p>来自最近的连续对话</p></section>
+        <ol class="path-steps">
+          <li class="done"><span>已完成</span><b>理解问题</b><p>完成相邻产品与教育框架研究</p></li>
+          <li class="now"><span>正在进行</span><b>让产品回到现实生活</b><p>建立连续生活动态与真实来源</p></li>
+          <li><span>下一步</span><b>接入真实能力</b><p>模型、记忆、数据来源与任务执行</p></li>
+          <li><span>阶段目标</span><b>形成可安装产品</b><p>Windows 安装包与可重签 IPA</p></li>
+        </ol>
+        <details class="framework"><summary>长期发展框架 <span>8 个观察方向</span></summary><div class="area-grid" id="area-grid"></div></details>
+      </section>
+    </main>
+
+    <dialog class="details-drawer" id="assistant-details" aria-labelledby="details-title">
+      <header><h1 id="details-title">小程</h1><button id="assistant-details-close" type="button">完成</button></header>
+      <label class="name-field">助手称呼<input id="assistant-name" value="小程" maxlength="12"></label>
+      <section class="connection-settings" id="connection-settings"><h2>现实来源</h2><p>连接器尚未实现。第一步优先支持文件与笔记，这里不会假装已经获得权限。</p></section>
+      <section><h2>正在替你做</h2><div id="task-list" class="record-list"></div></section>
+      <section><h2>它记得什么</h2><div id="memory-list" class="record-list"></div></section>
+      <section class="theme-settings" aria-labelledby="theme-title">
+        <h2 id="theme-title">界面氛围</h2>
+        <div class="theme-grid">
+          <button type="button" class="theme-choice peach" data-theme-option="peach"><i></i><span><b>杏桃</b><small>温暖明亮</small></span></button>
+          <button type="button" class="theme-choice sand" data-theme-option="sand"><i></i><span><b>砂岩</b><small>沉静自然</small></span></button>
+          <button type="button" class="theme-choice sage" data-theme-option="sage"><i></i><span><b>鼠尾草</b><small>松弛清新</small></span></button>
+          <button type="button" class="theme-choice plum" data-theme-option="plum"><i></i><span><b>梅紫</b><small>柔和深邃</small></span></button>
+        </div>
+      </section>
+      <button type="button" class="settings-link" id="settings-button" aria-expanded="false">主动联系 <b id="initiative-label">65%</b></button>
+      <section id="settings-section" class="settings-section" hidden>
+        <label for="initiative">主动程度</label>
+        <input id="initiative" type="range" min="0" max="1" step="0.05" value="0.65">
+        <div class="range-labels"><span>尽量安静</span><span>更主动</span></div>
+        <label class="quiet-hours">绝对安静时段 <span><input type="time" value="23:00"> — <input type="time" value="08:00"></span></label>
+        <p>主动程度不会扩大工具权限，安静时段始终优先。</p>
+      </section>
+    </dialog>
+  </div>
+  <script type="module" src="/companion.js"></script>
+</body>
+</html>

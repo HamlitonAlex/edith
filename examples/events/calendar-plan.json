@@ -1,0 +1,16 @@
+{
+  "event_id": "demo-calendar-20260905-0900",
+  "occurred_at": "2026-09-05T09:00:00+08:00",
+  "source": {
+    "type": "calendar",
+    "name": "示例家庭日历"
+  },
+  "actor": "parent",
+  "kind": "plan",
+  "content": {
+    "summary": "计划进行一次动物主题英语活动"
+  },
+  "visibility": "shared",
+  "consent_scope": "calendar.events.read",
+  "goal_hint": "spoken-english"
+}

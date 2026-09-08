@@ -1,0 +1,16 @@
+{
+  "event_id": "demo-shortcut-20260905-1302",
+  "occurred_at": "2026-09-05T13:02:00+08:00",
+  "source": {
+    "type": "ios_shortcut",
+    "name": "说一句"
+  },
+  "actor": "self",
+  "kind": "self_report",
+  "content": {
+    "summary": "内容听懂一半，例题还是不会自己做"
+  },
+  "visibility": "private",
+  "consent_scope": "explicit.voice.capture",
+  "goal_hint": "data-analysis"
+}

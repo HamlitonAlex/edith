@@ -1,0 +1,20 @@
+{
+  "name": "xuecheng-ambient-learning-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/serve.mjs",
+    "build:mobile": "node scripts/build-mobile.mjs",
+    "mobile:sync": "npm run build:mobile && cap sync ios",
+    "mobile:open": "cap open ios",
+    "test": "node --test packages/event-schema/test/*.test.js apps/web/test/*.test.js && node scripts/test-server.mjs"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.1",
+    "@capacitor/ios": "^8.5.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.1"
+  }
+}

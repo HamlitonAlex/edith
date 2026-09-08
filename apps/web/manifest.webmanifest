@@ -1,0 +1,20 @@
+{
+  "name": "学程 · 你的长期伙伴",
+  "short_name": "学程",
+  "description": "会长期了解你、主动联系并陪你规划每天时间的私人生活教育伙伴",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f8d7a7",
+  "theme_color": "#f6c56a",
+  "icons": [
+    {
+      "src": "./assets/companion-default.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

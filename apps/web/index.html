@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="学程：把日历、学习行为和一句话整理成可追溯的生活学习地图。"
+    />
+    <title>学程 · 生活学习事件原型</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+
+    <header class="site-header">
+      <a class="wordmark" href="#top" aria-label="学程首页">
+        <span class="wordmark-mark" aria-hidden="true">学</span>
+        <span>
+          <strong>学程</strong>
+          <small>生活学习助手 · 原型 01</small>
+        </span>
+      </a>
+      <div class="header-note">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        虚构数据 · 本地运行
+      </div>
+    </header>
+
+    <main id="main">
+      <section class="daily-entry" id="top" aria-labelledby="daily-title">
+        <div class="daily-copy">
+          <p class="folio">日常入口 / DAILY</p>
+          <h1 id="daily-title">想到什么，<br />直接说。</h1>
+          <p class="daily-intro">
+            你不需要先判断它是记录、问题还是计划。说刚才发生了什么，系统先替你放好；有必要时再来问你。
+          </p>
+
+          <form class="capture-form" id="capture-form">
+            <label for="capture-input">像平时说话一样</label>
+            <textarea id="capture-input" rows="2" placeholder="例如：今天太累了，英语没来得及学……"></textarea>
+            <div class="capture-actions">
+              <button class="voice-button" id="capture-voice" type="button"><span aria-hidden="true">●</span> 按一下说话</button>
+              <button class="capture-submit" type="submit">记下这句话</button>
+            </div>
+          </form>
+
+          <div class="sample-phrases" aria-label="试一条日常表达">
+            <span>不知道说什么？试一句：</span>
+            <button type="button" data-sample="今天太累了，英语没来得及学">今天没学</button>
+            <button type="button" data-sample="孩子刚才自己拿地图查了路线">孩子刚才查了地图</button>
+            <button type="button" data-sample="把这篇文章先存到数据分析">把文章先存着</button>
+          </div>
+
+          <div class="capture-reply" id="capture-reply" hidden aria-live="polite"></div>
+        </div>
+
+        <aside class="daily-glance" aria-label="今天的助手状态">
+          <p class="kicker">今天需要你处理</p>
+          <p class="decision-count"><strong id="daily-decision-count">0</strong><span>件事</span></p>
+          <p class="glance-copy">没有重要变化时，助手保持安静。生活记录会在后台形成候选事件。</p>
+          <ul>
+            <li><span>日历</span> 已同步一项计划</li>
+            <li><span>课程</span> 已收到一项行为信号</li>
+            <li><span>语音</span> 等你想说时再说</li>
+          </ul>
+          <a class="deep-link" href="#deep-view">想深入时，再看学习地图 ↓</a>
+        </aside>
+      </section>
+
+      <section class="hero" id="deep-view" aria-labelledby="scenario-title">
+        <div class="hero-copy">
+          <p class="folio" id="scenario-mode"></p>
+          <h2 id="scenario-title"></h2>
+          <p class="hero-summary" id="scenario-summary"></p>
+          <div class="hero-meta" aria-label="场景信息">
+            <span id="scenario-date"></span>
+            <span id="scenario-people"></span>
+            <span id="scenario-level"></span>
+          </div>
+        </div>
+
+        <div class="hero-illustration" aria-hidden="true">
+          <svg viewBox="0 0 360 260" role="img">
+            <path class="line-main" d="M18 218C92 205 74 102 154 108s45 91 121 65c39-13 35-67 68-91" />
+            <path class="line-soft" d="M151 109c-9-35 8-68 31-86M155 109c28-24 57-27 81-20M272 174c-1-34 14-57 42-70" />
+            <circle cx="18" cy="218" r="7" />
+            <circle cx="154" cy="108" r="7" />
+            <circle cx="275" cy="173" r="7" />
+            <circle class="accent-dot" cx="343" cy="82" r="10" />
+            <text x="6" y="246">生活信号</text>
+            <text x="119" y="96">理解</text>
+            <text x="247" y="202">选择</text>
+            <text x="292" y="66">下一步</text>
+          </svg>
+          <p>记录事实，保留疑问，再决定下一步。</p>
+        </div>
+      </section>
+
+      <nav class="scenario-nav" aria-label="切换演示场景">
+        <span class="scenario-nav-label">选择一段生活</span>
+        <div id="scenario-switcher" class="scenario-switcher"></div>
+      </nav>
+
+      <div id="validation-errors" class="validation-errors" hidden></div>
+
+      <section class="workspace" aria-label="生活学习工作台">
+        <div class="timeline-column">
+          <header class="section-heading">
+            <div>
+              <p class="kicker">今天 · 自动整理</p>
+              <h2>发生了什么</h2>
+            </div>
+            <p>每条记录都保留来源。播放、安排和人的感受不会混成同一件事。</p>
+          </header>
+
+          <ol id="timeline" class="timeline"></ol>
+
+          <section id="inference-panel" class="inference-panel" aria-labelledby="inference-title"></section>
+        </div>
+
+        <aside class="plan-column" aria-label="当前学习地图">
+          <div class="plan-sticky">
+            <div class="map-header">
+              <div>
+                <p class="kicker">当前学习地图</p>
+                <h2>方向与下一步</h2>
+              </div>
+              <span class="version-stamp" id="plan-version"></span>
+            </div>
+
+            <dl class="map-definition">
+              <div>
+                <dt>方向</dt>
+                <dd id="plan-direction"></dd>
+              </div>
+              <div>
+                <dt>现实条件</dt>
+                <dd id="plan-constraint"></dd>
+              </div>
+            </dl>
+
+            <div class="stage-path" id="stage-path" aria-label="学习阶段"></div>
+
+            <section class="actions-section" aria-labelledby="actions-title">
+              <h3 id="actions-title">目前采用的行动</h3>
+              <ul id="current-actions"></ul>
+            </section>
+
+            <section id="adjustment-panel" class="adjustment-panel" aria-labelledby="adjustment-title"></section>
+
+            <button class="reset-button" id="reset-demo" type="button">重置这段演示</button>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p>这是一份产品行为原型。它演示信息如何被理解，不声称已经验证学习效果。</p>
+      <p class="footer-signature">Xuecheng / field note 001</p>
+    </footer>
+
+    <div id="status-announcer" class="sr-only" aria-live="polite"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>

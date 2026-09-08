@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="从目标、起点与现实约束生成可执行、可修订的个人或家庭教育方案。" />
+    <title>学程 · 教育方案系统</title>
+    <link rel="stylesheet" href="/planner.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">学程 <span>PLAN OS</span></a>
+      <div class="top-actions"><span>本地保存 · 方案可导出</span><a href="/prototype">查看研究原型</a></div>
+    </header>
+    <main>
+      <section class="intro">
+        <p class="eyebrow">教育方案系统 / MVP</p>
+        <h1>不是给你一堆建议，<br />而是交付一份能执行的方案。</h1>
+        <p class="lede">从真实目标、当前起点和每周时间出发，生成阶段路径、近期行动、掌握证据与风险。条件变化后，只修改受影响的部分，并保留旧版本。</p>
+        <div class="system-chain" aria-label="方案系统流程"><span>建档</span><i>→</i><span>方案初稿</span><i>→</i><span>采用执行</span><i>→</i><span>复盘修订</span></div>
+      </section>
+      <section class="workspace" aria-labelledby="brief-title">
+        <form class="brief-panel" id="brief-form" novalidate>
+          <div class="section-heading"><p class="step">01 / 建立方案</p><h2 id="brief-title">先说清楚五件事</h2><button type="button" class="text-button" id="fill-example">填入个人示例</button></div>
+          <fieldset class="mode-choice">
+            <legend>这份方案为谁制定？</legend>
+            <label><input type="radio" name="mode" value="personal" checked /><span><strong>个人方案</strong><small>由本人决定目标与取舍</small></span></label>
+            <label><input type="radio" name="mode" value="family" /><span><strong>家庭方案</strong><small>保留孩子与家长的不同意见</small></span></label>
+          </fieldset>
+          <div class="field-grid">
+            <label class="field"><span id="learner-label">你的称呼（选填）</span><input name="learnerName" placeholder="例如：Alex" /><em data-error="learnerName"></em></label>
+            <label class="field"><span>每周真实可用时间</span><div class="number-field"><input name="weeklyMinutes" type="number" min="20" max="3000" value="120" required /><b>分钟</b></div><em data-error="weeklyMinutes"></em></label>
+          </div>
+          <label class="field"><span>希望最终能够独立完成什么？</span><textarea name="goal" rows="2" placeholder="不要只写‘学好英语’，可以写‘能向别人介绍自己的项目’" required></textarea><em data-error="goal"></em></label>
+          <label class="field"><span>目前已经能做到什么，哪里容易卡住？</span><textarea name="currentState" rows="2" placeholder="可以不准确，第一项任务会用于校准" required></textarea><em data-error="currentState"></em></label>
+          <label class="field"><span>不可忽略的现实限制</span><input name="constraints" placeholder="例如：工作日加班；不增加培训班；家长只能陪一次" /></label>
+          <label class="field"><span>愿意使用的兴趣、材料或真实场景</span><input name="interests" placeholder="例如：自己的工作数据、动物、旅行、视频创作" /></label>
+          <fieldset class="voice-choice" id="voice-choice" hidden><legend>孩子是否已经表达愿意尝试这个目标？</legend><label><input type="radio" name="learnerVoice" value="confirmed" /><span>已经确认</span></label><label><input type="radio" name="learnerVoice" value="unconfirmed" checked /><span>尚未确认</span></label></fieldset>
+          <button class="primary" type="submit">生成方案讨论稿</button>
+          <p class="form-note">当前版本在设备本地生成，不上传真实资料。它提供结构化初稿，不替代教师、心理或医疗判断。</p>
+        </form>
+        <section class="empty-plan" id="empty-plan" aria-live="polite"><p class="step">02 / 方案交付</p><div class="empty-mark">空</div><h2>这里将出现一份完整方案</h2><p>不是聊天记录。你会看到方向、起点、阶段路径、本周行动、掌握证据、假设与风险。</p></section>
+        <article class="plan-sheet" id="plan-sheet" hidden aria-labelledby="plan-title">
+          <header class="plan-header"><div><p class="step">02 / 方案交付</p><p class="status" id="plan-status"></p></div><div class="plan-actions"><button type="button" class="secondary" id="export-plan">导出 Markdown</button><button type="button" class="primary" id="adopt-plan">采用这份方案</button></div></header>
+          <h2 id="plan-title"></h2><p class="direction" id="plan-direction"></p><div class="plan-facts" id="plan-facts"></div>
+          <section><p class="step">阶段路径</p><div class="stage-list" id="plan-stages"></div></section>
+          <section class="two-column"><div><p class="step">近期行动</p><ol id="plan-actions-list"></ol></div><div><p class="step">怎样才算真的会了</p><ul id="plan-evidence"></ul></div></section>
+          <section class="assumption-box"><p class="step">仍需验证的假设与风险</p><ul id="plan-risks"></ul></section>
+          <section class="revision-box" id="revision-box" hidden><div><p class="step">03 / 条件变化</p><h3>现实时间变了？只修订受影响的行动。</h3></div><form id="revision-form"><label>新的每周时间 <input id="revision-minutes" type="number" min="20" max="3000" required /> 分钟</label><button class="secondary" type="submit">生成并采用新版本</button></form></section>
+        </article>
+      </section>
+    </main>
+    <div class="toast" id="toast" hidden role="status"></div>
+    <script type="module" src="/planner.js"></script>
+  </body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "event_id": "demo-android-20260905-1226",
+  "occurred_at": "2026-09-05T12:26:00+08:00",
+  "source": {
+    "type": "android_usage_stats",
+    "name": "Android 使用统计示例"
+  },
+  "actor": "self",
+  "kind": "behavior",
+  "content": {
+    "summary": "选定课程应用在前台出现了 31 分钟"
+  },
+  "visibility": "private",
+  "consent_scope": "android.usage.selected_apps",
+  "goal_hint": "data-analysis"
+}

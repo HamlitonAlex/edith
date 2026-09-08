@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 3,
+  "title": "学程 iPhone Design System",
+  "northStar": "长期关系中的具体行动",
+  "primarySurface": "iPhone",
+  "screens": [
+    "对话",
+    "今天",
+    "路径",
+    "我们"
+  ],
+  "themes": {
+    "apricot": [
+      "#f2d5c3",
+      "#fff9f4",
+      "#a94434"
+    ],
+    "sage": [
+      "#cddfce",
+      "#f8fcf7",
+      "#41694f"
+    ],
+    "plum": [
+      "#dcc7d5",
+      "#fff8fc",
+      "#75465e"
+    ]
+  },
+  "avatar": {
+    "default": "/assets/companion-default.png",
+    "customizable": true,
+    "localOnly": true
+  },
+  "rules": [
+    "对话是首页",
+    "建议先进入对话再进入今天",
+    "任务包含时间、平台、动作、内容、完成标准和入口",
+    "未实现的数据来源没有连接按钮",
+    "移动端全屏，桌面端只作为手机预览"
+  ]
+}
