@@ -1,4 +1,38 @@
 workflows:
+  ios-simulator-preview:
+    name: 学程 iPhone · 浏览器交互预览
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      node: 22
+      xcode: latest
+      vars:
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+    scripts:
+      - name: 安装项目依赖
+        script: npm ci
+      - name: 生成并同步 iPhone 页面
+        script: npm run mobile:sync
+      - name: 运行网页与数据结构测试
+        script: npm test
+      - name: 编译 iPhone 模拟器应用
+        script: |
+          xcodebuild \
+            -project "$CM_BUILD_DIR/$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$CM_BUILD_DIR/build/ios/SimulatorDerivedData" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+    artifacts:
+      - build/ios/SimulatorDerivedData/Build/Products/Debug-iphonesimulator/*.app
+      - build/ios/SimulatorDerivedData/Logs/Build/*.xcactivitylog
+
   ios-unsigned:
     name: 学程 iOS · 无签名验证
     max_build_duration: 60
@@ -31,4 +65,3 @@ workflows:
     artifacts:
       - build/ios/DerivedData/Build/Products/Debug-iphoneos/*.app
       - build/ios/DerivedData/Logs/Build/*.xcactivitylog
-
