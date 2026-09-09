@@ -7,7 +7,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
-  <link rel="apple-touch-icon" href="./assets/companion-default.png">
+  <link rel="apple-touch-icon" href="./assets/xuecheng-mark.png">
   <link rel="manifest" href="./manifest.webmanifest">
   <title>学程 · 小程</title>
   <link rel="stylesheet" href="./iphone.css">
@@ -18,7 +18,7 @@
 
     <section class="screen active chat-screen" data-screen="chat">
       <header class="companion-header">
-        <button class="avatar-button" data-open-screen="us" aria-label="打开小程设置"><img data-avatar src="./assets/companion-default.png" alt="小程的形象"><span></span></button>
+        <button class="avatar-button" data-open-screen="us" aria-label="打开小程设置"><img data-avatar src="./assets/xuecheng-mark.svg" alt="学程图标"><span></span></button>
         <div><small>在你身边</small><h1 data-name>小程</h1></div>
         <button class="quiet-action" data-open-screen="today">今天 <b>3</b></button>
       </header>
@@ -26,29 +26,30 @@
       <div class="conversation" id="conversation" aria-live="polite">
         <div class="day-divider"><span>今天</span></div>
         <article class="message companion-message">
-          <img data-avatar src="./assets/companion-default.png" alt="">
+          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
           <div><p>早上好。我把你最近说的“想让这个项目真正进入生活”记下来了。</p><time>08:12</time></div>
         </article>
         <article class="message companion-message">
-          <img data-avatar src="./assets/companion-default.png" alt="">
+          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
           <div><p>我想挑战你一下：今天先别继续扩大功能。18:00 用半小时补一块通识，再回来判断这个产品到底应该怎样引导一个人。</p></div>
         </article>
-        <article class="plan-proposal">
-          <header><span>我替你安排的下一件事</span><time>18:00–18:30</time></header>
-          <div class="platform-line"><i>哔</i><span>哔哩哔哩 · 通识</span></div>
-          <h2>看《世界历史速成课 #1：农业革命》前 11 分钟</h2>
+        <article class="plan-proposal" id="agent-proposal">
+          <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
+          <div class="platform-line"><i>程</i><span id="proposal-platform">哔哩哔哩 · 通识</span></div>
+          <h2 id="proposal-title">看《世界历史速成课 #1：农业革命》前 11 分钟</h2>
           <dl class="task-detail-list">
-            <div><dt>怎么做</dt><dd>戴耳机完整观看，不倍速；暂停时只记一句疑问。</dd></div>
-            <div><dt>做到什么算完成</dt><dd>用自己的话告诉我：农业革命的一个收益和一个代价。</dd></div>
+            <div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why">它会把今天的小行动连接到你的长期方向。</dd></div>
+            <div><dt>怎么做</dt><dd id="proposal-instructions">戴耳机完整观看，不倍速；暂停时只记一句疑问。</dd></div>
+            <div><dt>做到什么算完成</dt><dd id="proposal-completion">用自己的话告诉我：农业革命的一个收益和一个代价。</dd></div>
           </dl>
           <div class="plan-actions">
-            <a href="https://www.bilibili.com/video/BV1fSr7YoEJ7/" target="_blank" rel="noreferrer">打开哔哩哔哩</a>
+            <a id="proposal-resource" href="https://www.bilibili.com/video/BV1fSr7YoEJ7/" target="_blank" rel="noreferrer">打开学习资料</a>
             <button id="adopt-plan" type="button">接受这个安排</button>
           </div>
         </article>
         <article class="message user-message"><div><p>可以，不过晚上如果太累就提醒我换成轻一点的内容。</p><time>08:16</time></div></article>
         <article class="message companion-message">
-          <img data-avatar src="./assets/companion-default.png" alt="">
+          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
           <div><p>好。我不会把没完成理解成你不够坚持。17:45 我先问你的精力，再决定维持、缩短还是改到明天。</p><time>08:16</time></div>
         </article>
         <div id="dynamic-messages"></div>
@@ -84,7 +85,12 @@
 
     <section class="screen us-screen" data-screen="us" hidden>
       <header class="profile-hero">
-        <div class="profile-identity"><img data-avatar src="./assets/companion-default.png" alt="小程的默认形象"><span>默认伙伴形象</span></div>
+        <div class="profile-identity">
+          <button class="profile-avatar-picker" id="avatar-trigger" type="button" aria-label="更换伙伴图片"><img data-avatar src="./assets/xuecheng-mark.svg" alt="当前伙伴图片"><span>更换</span></button>
+          <input id="avatar-input" type="file" accept="image/*" hidden>
+          <p>默认使用学程图标，也可以换成你喜欢的图片。</p>
+          <button class="reset-avatar" id="reset-avatar" type="button" hidden>恢复默认图标</button>
+        </div>
         <small>你的长期伙伴</small><input id="companion-name" value="小程" maxlength="12" aria-label="伙伴名字">
         <p id="relationship-copy">她会像一位了解你的朋友，也会在需要时挑战你。</p>
       </header>
@@ -93,8 +99,54 @@
         <button type="button" data-role="guide">引路人</button><button type="button" data-role="friend">朋友</button><button type="button" data-role="family">家人</button><button type="button" data-role="partner">伴侣式伙伴</button>
       </div></section>
       <section class="preference-section"><label for="initiative">主动找你的程度 <b id="initiative-value">65%</b></label><input id="initiative" type="range" min="0" max="1" step=".05" value=".65"><div class="range-labels"><span>只在重要时出现</span><span>经常来找我</span></div></section>
-      <section class="preference-section"><h2>界面氛围</h2><p class="section-hint">整个背景、重点任务和按钮会一起变化。</p><div class="theme-options"><button type="button" data-theme-option="citrus"><i></i>橙光</button><button type="button" data-theme-option="meadow"><i></i>草木</button><button type="button" data-theme-option="berry"><i></i>莓果</button><button type="button" data-theme-option="dusk"><i></i>暮光</button></div></section>
+      <section class="preference-section"><h2>界面氛围</h2><p class="section-hint">不是换一个按钮颜色，而是让整个空间一起变化。</p><div class="theme-options">
+        <button type="button" data-theme-option="citrus"><span class="theme-preview" aria-hidden="true"></span><span><b>橘光</b><small>明亮温暖</small></span></button>
+        <button type="button" data-theme-option="meadow"><span class="theme-preview" aria-hidden="true"></span><span><b>草木</b><small>安静自然</small></span></button>
+        <button type="button" data-theme-option="berry"><span class="theme-preview" aria-hidden="true"></span><span><b>陶莓</b><small>亲近柔和</small></span></button>
+        <button type="button" data-theme-option="dusk"><span class="theme-preview" aria-hidden="true"></span><span><b>暮色</b><small>沉静专注</small></span></button>
+      </div></section>
       <section class="preference-section sources"><h2>生活来源</h2><p>文件与笔记、微信、抖音收藏、日历</p><span>尚未接入 · 功能开发中</span></section>
+      <button class="settings-entry" type="button" data-open-screen="settings">
+        <span class="settings-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7z"/></svg></span>
+        <span><b>系统设置</b><small>使用方案、模型、同步与通知</small></span>
+        <svg class="settings-entry-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+      </button>
+    </section>
+
+    <section class="screen settings-screen" data-screen="settings" hidden>
+      <header class="settings-header">
+        <button type="button" data-open-screen="us" aria-label="返回我们"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+        <div><small>学程</small><h1>设置</h1></div>
+      </header>
+      <section class="settings-section" aria-labelledby="plan-title">
+        <div class="settings-title"><div><small>01</small><h2 id="plan-title">使用方案</h2></div><span>决定能力范围</span></div>
+        <div class="plan-options">
+          <button type="button" data-plan-option="community" aria-pressed="true"><span><b>社区开源版</b><small>本地优先 · 自备 API · 完整基础能力</small></span><em>当前使用</em></button>
+          <button type="button" data-plan-option="cloud" aria-pressed="false"><span><b>托管伙伴版</b><small>托管模型 · 加密同步 · 主动提醒</small></span><em>可切换</em></button>
+          <button type="button" data-plan-option="family" aria-pressed="false"><span><b>家庭协作版</b><small>多人档案 · 家庭共同计划</small></span><em>规划中</em></button>
+        </div>
+        <p class="settings-note">这里先展示能力差异；正式定价会在服务稳定后再确定。</p>
+      </section>
+      <section class="settings-section" aria-labelledby="model-title">
+        <div class="settings-title"><div><small>02</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">托管 · 高能力优先</span></div>
+        <label class="setting-field" for="model-mode"><span><b>连接方式</b><small>日常默认不需要管理密钥</small></span><select id="model-mode"><option value="managed">托管智能选择（推荐）</option><option value="byok">使用自己的 API Key</option><option value="local">连接本地模型</option></select></label>
+        <label class="setting-field" for="model-provider"><span><b>模型厂商</b><small>也可以交给学程自动选择</small></span><select id="model-provider"><option value="auto">智能选择</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="deepseek">DeepSeek</option><option value="qwen">通义千问</option><option value="glm">智谱 GLM</option><option value="kimi">Kimi</option></select></label>
+        <label class="setting-field" for="model-profile"><span><b>能力倾向</b><small>影响质量、速度与调用成本</small></span><select id="model-profile"><option value="capable">高能力优先</option><option value="balanced">质量与速度平衡</option><option value="fast">低延迟优先</option></select></label>
+        <div class="secure-key-note" id="secure-key-note" hidden><div><b>安全连接 API Key</b><small>正式版会存进 iPhone 钥匙串或 Windows 凭据库；网页演示不会接收密钥。</small></div><button type="button" id="connect-key">了解接入方式</button></div>
+        <p class="settings-note" id="local-model-note" hidden>本地模式适合隐私敏感或离线使用；如果模型运行在 Windows 上，电脑需要保持在线。</p>
+      </section>
+      <section class="settings-section" aria-labelledby="data-title">
+        <div class="settings-title"><div><small>03</small><h2 id="data-title">数据与同步</h2></div><span>本地保存优先</span></div>
+        <div class="setting-row"><span><b>设备本地保存</b><small>对话、偏好与路径首先保存在设备</small></span><span class="fixed-state">始终开启</span></div>
+        <label class="setting-row" for="sync-enabled"><span><b>自动加密同步</b><small>在 iPhone 与 Windows 之间保持一致</small></span><input class="switch" id="sync-enabled" type="checkbox" checked></label>
+        <p class="settings-note">云端同步将在正式服务接入后生效，并可随时关闭。</p>
+      </section>
+      <section class="settings-section" aria-labelledby="notify-title">
+        <div class="settings-title"><div><small>04</small><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
+        <div class="quiet-times"><label for="quiet-start"><span>从</span><input id="quiet-start" type="time" value="23:00"></label><label for="quiet-end"><span>到</span><input id="quiet-end" type="time" value="07:30"></label></div>
+        <label class="setting-row" for="urgent-override"><span><b>重要事情可以覆盖安静时段</b><small>由紧迫度判断；每一次打扰都会说明原因</small></span><input class="switch" id="urgent-override" type="checkbox" checked></label>
+      </section>
+      <p class="settings-footer">设置会保存在这台设备上。真正的账户、付款与密钥托管尚未接入。</p>
     </section>
 
     <nav class="bottom-nav" aria-label="主要页面">

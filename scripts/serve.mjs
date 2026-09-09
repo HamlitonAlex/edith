@@ -42,7 +42,7 @@ function routePath(pathname) {
   if (["/app.js", "/styles.css", "/planner.js", "/planner.css", "/companion.js", "/companion.css", "/companion-v2.css", "/companion-v3.css", "/iphone.js", "/iphone.css", "/manifest.webmanifest", "/sw.js"].includes(decoded)) {
     return { root: webRoot, relative: decoded.slice(1) };
   }
-  if (decoded.startsWith("/data/") || decoded.startsWith("/lib/") || decoded.startsWith("/assets/")) {
+  if (decoded.startsWith("/data/") || decoded.startsWith("/lib/") || decoded.startsWith("/assets/") || decoded.startsWith("/agent/")) {
     return { root: webRoot, relative: decoded.slice(1) };
   }
   if (decoded.startsWith("/packages/event-schema/")) {

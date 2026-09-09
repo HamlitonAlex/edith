@@ -22,11 +22,43 @@ test("daily work names the platform, action, content and completion", () => {
   assert.match(html, /data-task-chat=/);
 });
 
-test("controls are wired and the avatar remains the default", () => {
-  assert.doesNotMatch(html, /avatar-input/);
+test("the product mark is the default and the user can replace it locally", () => {
+  assert.match(html, /xuecheng-mark\.svg/);
+  assert.match(html, /id="avatar-input"[^>]*accept="image\/\*"/);
   assert.match(js, /addEventListener\("click"/);
   assert.match(js, /avatar: defaultAvatar/);
+  assert.match(js, /new FileReader\(\)/);
+  assert.match(js, /node\.src = state\.avatar/);
   assert.match(css, /touch-action:manipulation/);
+});
+
+test("theme choices preview complete palettes instead of generic dot icons", () => {
+  assert.match(html, /class="theme-preview"/);
+  assert.match(html, /明亮温暖/);
+  assert.match(html, /安静自然/);
+  assert.doesNotMatch(html, /<i><\/i>/);
+});
+
+test("small supporting text keeps AA contrast on every theme canvas", () => {
+  const luminance = hex => {
+    const channels = hex.slice(1).match(/../g).map(value => Number.parseInt(value, 16) / 255)
+      .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+    return 0.2126 * channels[0] + 0.7152 * channels[1] + 0.0722 * channels[2];
+  };
+  const contrast = (foreground, background) => {
+    const values = [luminance(foreground), luminance(background)].sort((a, b) => b - a);
+    return (values[0] + 0.05) / (values[1] + 0.05);
+  };
+  const themeBlocks = [...css.matchAll(/(?::root|:root\[data-theme="[^"]+"\])\{([^}]+)\}/g)];
+  assert.equal(themeBlocks.length, 4);
+  for (const [, block] of themeBlocks) {
+    const canvas = block.match(/--canvas:(#[0-9a-f]{6})/i)?.[1];
+    const muted = block.match(/--muted:(#[0-9a-f]{6})/i)?.[1];
+    const faint = block.match(/--faint:(#[0-9a-f]{6})/i)?.[1];
+    assert.ok(canvas && muted && faint);
+    assert.ok(contrast(muted, canvas) >= 4.5);
+    assert.ok(contrast(faint, canvas) >= 4.5);
+  }
 });
 
 test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport", () => {
@@ -45,4 +77,17 @@ test("navigation and new messages use purposeful reduced-motion-safe transitions
   assert.match(js, /nextScreen\.animate/);
   assert.match(js, /Promise\.allSettled/);
   assert.match(js, /reduceMotion\.matches/);
+});
+
+test("settings separates plans, model choice, sync and quiet hours", () => {
+  assert.match(html, /data-screen="settings"/);
+  assert.match(html, /data-plan-option="community"/);
+  assert.match(html, /id="model-mode"/);
+  assert.match(html, /id="model-provider"/);
+  assert.match(html, /id="sync-enabled"/);
+  assert.match(html, /id="quiet-start"/);
+  assert.match(html, /id="agent-proposal"/);
+  assert.match(js, /modelMode: "managed"/);
+  assert.match(js, /name === "settings" \? "us" : name/);
+  assert.doesNotMatch(html, /type="password"/);
 });

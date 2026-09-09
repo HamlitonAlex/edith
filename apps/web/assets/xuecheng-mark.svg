@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">学程产品图标</title>
+  <desc id="desc">一条从草木色起点走向橘色晨光的路径</desc>
+  <defs>
+    <linearGradient id="paper" x1="72" y1="54" x2="446" y2="474" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFF8E7"/>
+      <stop offset="1" stop-color="#F5D49A"/>
+    </linearGradient>
+    <linearGradient id="route" x1="128" y1="388" x2="385" y2="123" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#496B50"/>
+      <stop offset=".56" stop-color="#A34A32"/>
+      <stop offset="1" stop-color="#E9852E"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#paper)"/>
+  <circle cx="442" cy="64" r="126" fill="#FFB12F" opacity=".2"/>
+  <circle cx="60" cy="458" r="118" fill="#78956E" opacity=".16"/>
+  <path d="M130 386c69-9 61-83 121-101 56-17 54-91 127-153" fill="none" stroke="url(#route)" stroke-width="42" stroke-linecap="round"/>
+  <path d="M130 386c69-9 61-83 121-101 56-17 54-91 127-153" fill="none" stroke="#FFF8E7" stroke-width="10" stroke-linecap="round" opacity=".82"/>
+  <circle cx="130" cy="386" r="38" fill="#496B50"/>
+  <circle cx="130" cy="386" r="14" fill="#FFF8E7"/>
+  <circle cx="378" cy="132" r="44" fill="#E9852E"/>
+  <circle cx="378" cy="132" r="17" fill="#FFF8E7"/>
+</svg>

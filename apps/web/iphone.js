@@ -1,8 +1,12 @@
+import { createAgentState, hydrateAgentState, runAgentTurn } from "./agent/index.js";
+
 const storageKey = "xuecheng:iphone:v2";
-const defaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "citrus", role: "guide", initiative: .65, avatar: defaultAvatar, messages: [], planAdopted: false };
+const agentStorageKey = "xuecheng:agent:v1";
+const defaultAvatar = "./assets/xuecheng-mark.svg";
+const legacyDefaultAvatar = "./assets/companion-default.png";
+const defaults = { name: "小程", theme: "citrus", role: "guide", initiative: .65, avatar: defaultAvatar, messages: [], planAdopted: false, plan: "community", modelMode: "managed", provider: "auto", modelProfile: "capable", syncEnabled: true, quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
 const legacyThemes = { apricot: "citrus", sage: "meadow", plum: "berry" };
-const themeColors = { citrus: "#f6c56a", meadow: "#dce8bd", berry: "#efc9cf", dusk: "#d9c9e8" };
+const themeColors = { citrus: "#f1bd68", meadow: "#cbd9ae", berry: "#e1b4bc", dusk: "#c8b8d3" };
 const roleCopy = {
   guide: "她会像一位了解你的引路人，给建议，也会指出你正在回避的问题。",
   friend: "她会像一个长期了解你的朋友，先理解你，再陪你把事情想清楚。",
@@ -13,14 +17,16 @@ const roleCopy = {
 const $ = selector => document.querySelector(selector);
 let toastTimer;
 let state = load();
-const screenOrder = ["chat", "today", "path", "us"];
+let agentState = loadAgent();
+const screenOrder = ["chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
 
 function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(storageKey) || localStorage.getItem("xuecheng:iphone:v1") || "{}");
-    return { ...defaults, ...saved, theme: legacyThemes[saved.theme] || saved.theme || defaults.theme, avatar: defaultAvatar };
+    const savedAvatar = saved.avatar && saved.avatar !== legacyDefaultAvatar ? saved.avatar : defaultAvatar;
+    return { ...defaults, ...saved, theme: legacyThemes[saved.theme] || saved.theme || defaults.theme, avatar: savedAvatar };
   } catch {
     return { ...defaults };
   }
@@ -28,6 +34,15 @@ function load() {
 
 function save() {
   localStorage.setItem(storageKey, JSON.stringify(state));
+}
+
+function loadAgent() {
+  try { return hydrateAgentState(JSON.parse(localStorage.getItem(agentStorageKey) || "null")); }
+  catch { return createAgentState(); }
+}
+
+function saveAgent() {
+  localStorage.setItem(agentStorageKey, JSON.stringify(agentState));
 }
 
 function escapeHtml(value = "") {
@@ -46,19 +61,46 @@ function render() {
   document.documentElement.dataset.theme = state.theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[state.theme] || themeColors.citrus);
   document.querySelectorAll("[data-name]").forEach(node => { node.textContent = state.name; });
-  document.querySelectorAll("[data-avatar]").forEach(node => { node.src = defaultAvatar; });
+  document.querySelectorAll("[data-avatar]").forEach(node => { node.src = state.avatar; });
   $("#companion-name").value = state.name;
   $("#initiative").value = state.initiative;
   $("#initiative-value").textContent = `${Math.round(state.initiative * 100)}%`;
   $("#relationship-copy").textContent = roleCopy[state.role];
   document.querySelectorAll("[data-role]").forEach(button => button.classList.toggle("active", button.dataset.role === state.role));
   document.querySelectorAll("[data-theme-option]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.themeOption === state.theme)));
+  document.querySelectorAll("[data-plan-option]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.planOption === state.plan)));
+  $("#model-mode").value = state.modelMode;
+  $("#model-provider").value = state.provider;
+  $("#model-profile").value = state.modelProfile;
+  $("#sync-enabled").checked = state.syncEnabled;
+  $("#quiet-start").value = state.quietStart;
+  $("#quiet-end").value = state.quietEnd;
+  $("#urgent-override").checked = state.urgentOverride;
+  $("#secure-key-note").hidden = state.modelMode !== "byok";
+  $("#local-model-note").hidden = state.modelMode !== "local";
+  const modeLabel = state.modelMode === "managed" ? "托管" : state.modelMode === "byok" ? "自备密钥" : "本地";
+  const profileLabel = { capable: "高能力优先", balanced: "质量速度平衡", fast: "低延迟优先" }[state.modelProfile];
+  $("#model-summary").textContent = `${modeLabel} · ${profileLabel}`;
   $("#dynamic-messages").innerHTML = state.messages.map(message => message.role === "user"
     ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p><time>刚刚</time></div></article>`
-    : `<article class="message companion-message"><img src="${defaultAvatar}" alt=""><div><p>${escapeHtml(message.text)}</p><time>刚刚</time></div></article>`).join("");
+    : `<article class="message companion-message"><img src="${escapeHtml(state.avatar)}" alt=""><div><p>${escapeHtml(message.text)}</p><time>刚刚</time></div></article>`).join("");
+  $("#reset-avatar").hidden = state.avatar === defaultAvatar;
+  const action = agentState.next_recommended_action;
   const planButton = $("#adopt-plan");
-  planButton.textContent = state.planAdopted ? "已加入今天" : "接受这个安排";
-  planButton.disabled = state.planAdopted;
+  $("#agent-proposal").hidden = !action;
+  planButton.textContent = action?.status === "accepted" ? "正在进行" : "接受这个安排";
+  planButton.disabled = !action || action.status === "accepted";
+  if (action) {
+    $("#proposal-time").textContent = `${action.duration_minutes} 分钟`;
+    $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
+    $("#proposal-title").textContent = action.title;
+    $("#proposal-why").textContent = action.why_now;
+    $("#proposal-instructions").textContent = action.instructions;
+    $("#proposal-completion").textContent = action.completion_criteria;
+    const link = $("#proposal-resource");
+    link.hidden = !action.resource?.url;
+    if (action.resource?.url) link.href = action.resource.url;
+  }
 }
 
 function openScreen(name) {
@@ -108,7 +150,8 @@ function openScreen(name) {
     }
   }
   document.querySelectorAll("[data-nav]").forEach(button => {
-    const active = button.dataset.nav === name;
+    const navName = name === "settings" ? "us" : name;
+    const active = button.dataset.nav === navName;
     button.classList.toggle("active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
   });
@@ -136,7 +179,9 @@ $("#chat-form").addEventListener("submit", event => {
     return;
   }
   state.messages.push({ role: "user", text });
-  state.messages.push({ role: "assistant", text: "我先记下，不急着给结论。你希望我现在帮你做决定，还是先陪你把这件事想清楚？" });
+  const agentResult = runAgentTurn(agentState, text);
+  agentState = agentResult.state;
+  state.messages.push({ role: "assistant", text: agentResult.reply, kind: agentResult.kind });
   input.value = "";
   resizeComposer();
   save();
@@ -150,11 +195,18 @@ $("#chat-form").addEventListener("submit", event => {
 });
 
 $("#adopt-plan").addEventListener("click", () => {
+  if (!agentState.next_recommended_action) {
+    agentState = runAgentTurn(agentState, "请判断我现在最值得做的下一件事").state;
+  }
+  const result = runAgentTurn(agentState, "接受这个安排，现在开始");
+  agentState = result.state;
   state.planAdopted = true;
+  state.messages.push({ role: "assistant", text: result.reply, kind: result.kind });
   save();
+  saveAgent();
   render();
-  showToast("已经加入今天，17:45 我会先确认你的精力");
-  setTimeout(() => openScreen("today"), 550);
+  showToast("已经开始；完成后回来用自己的话告诉我结果");
+  setTimeout(() => openScreen("chat"), 350);
 });
 
 $("#companion-name").addEventListener("change", event => {
@@ -178,6 +230,47 @@ document.querySelectorAll("[data-theme-option]").forEach(button => button.addEve
   showToast(`已经换成“${button.textContent.trim()}”`);
 }));
 
+document.querySelectorAll("[data-plan-option]").forEach(button => button.addEventListener("click", () => {
+  if (button.dataset.planOption === "family") {
+    showToast("家庭协作版还在规划中，个人版会先做好");
+    return;
+  }
+  state.plan = button.dataset.planOption;
+  save();
+  saveAgent();
+  render();
+  showToast(state.plan === "cloud" ? "已选择托管伙伴版能力" : "已切回社区开源版");
+}));
+
+[["#model-mode", "modelMode"], ["#model-provider", "provider"], ["#model-profile", "modelProfile"]].forEach(([selector, key]) => {
+  $(selector).addEventListener("change", event => {
+    state[key] = event.target.value;
+    save();
+    render();
+    showToast("模型偏好已保存");
+  });
+});
+
+[["#sync-enabled", "syncEnabled"], ["#urgent-override", "urgentOverride"]].forEach(([selector, key]) => {
+  $(selector).addEventListener("change", event => {
+    state[key] = event.target.checked;
+    save();
+    render();
+    showToast("设置已保存");
+  });
+});
+
+[["#quiet-start", "quietStart"], ["#quiet-end", "quietEnd"]].forEach(([selector, key]) => {
+  $(selector).addEventListener("change", event => {
+    state[key] = event.target.value;
+    save();
+    render();
+    showToast(`安静时段：${state.quietStart}—${state.quietEnd}`);
+  });
+});
+
+$("#connect-key").addEventListener("click", () => showToast("正式版会调用系统安全存储，不会把密钥写进网页或聊天记录"));
+
 $("#initiative").addEventListener("input", event => {
   state.initiative = Number(event.target.value);
   save();
@@ -196,6 +289,36 @@ chatInput.addEventListener("focus", () => {
     window.scrollTo(0, 0);
     syncVisualViewport();
   });
+});
+
+const avatarInput = $("#avatar-input");
+$("#avatar-trigger").addEventListener("click", () => avatarInput.click());
+avatarInput.addEventListener("change", event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  if (!file.type.startsWith("image/")) {
+    showToast("请选择一张图片");
+    return;
+  }
+  if (file.size > 4 * 1024 * 1024) {
+    showToast("图片请控制在 4 MB 以内");
+    return;
+  }
+  const reader = new FileReader();
+  reader.addEventListener("load", () => {
+    state.avatar = String(reader.result);
+    save();
+    render();
+    showToast("伙伴图片已经换好");
+  });
+  reader.readAsDataURL(file);
+});
+$("#reset-avatar").addEventListener("click", () => {
+  state.avatar = defaultAvatar;
+  avatarInput.value = "";
+  save();
+  render();
+  showToast("已经恢复学程图标");
 });
 
 function syncVisualViewport() {
@@ -242,8 +365,12 @@ voiceButton.addEventListener("pointerdown", event => {
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 const initialScreen = new URLSearchParams(location.search).get("screen");
-if (["chat", "today", "path", "us"].includes(initialScreen)) openScreen(initialScreen);
+if (["chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
 syncVisualViewport();
 resizeComposer();
+if (!agentState.next_recommended_action) {
+  agentState = runAgentTurn(agentState, "请根据你已经知道的信息，判断我现在最值得做的下一件事").state;
+  saveAgent();
+}
 render();
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});

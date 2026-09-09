@@ -7,7 +7,7 @@ const web = resolve(root, "apps", "web");
 const dist = resolve(root, "dist");
 
 await rm(dist, { recursive: true, force: true });
-await mkdir(resolve(dist, "assets"), { recursive: true });
+await mkdir(dist, { recursive: true });
 
 await Promise.all([
   cp(resolve(web, "iphone.html"), resolve(dist, "index.html")),
@@ -15,7 +15,8 @@ await Promise.all([
   cp(resolve(web, "iphone.js"), resolve(dist, "iphone.js")),
   cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),
   cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
-  cp(resolve(web, "assets", "companion-default.png"), resolve(dist, "assets", "companion-default.png")),
+  cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
+  cp(resolve(web, "agent"), resolve(dist, "agent"), { recursive: true }),
 ]);
 
 console.log("Mobile web bundle created in dist/");
