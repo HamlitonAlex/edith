@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "build:web": "node scripts/build-mobile.mjs",
     "build:mobile": "node scripts/build-mobile.mjs",
     "mobile:sync": "npm run build:mobile && cap sync ios",
     "mobile:open": "cap open ios",

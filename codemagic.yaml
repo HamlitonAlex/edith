@@ -62,6 +62,16 @@ workflows:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             clean build
+      - name: 打包可供自签的 IPA
+        script: |
+          APP_PATH="$CM_BUILD_DIR/build/ios/DerivedData/Build/Products/Debug-iphoneos/App.app"
+          IPA_ROOT="$CM_BUILD_DIR/build/ios/UnsignedIPA"
+          rm -rf "$IPA_ROOT"
+          mkdir -p "$IPA_ROOT/Payload"
+          cp -R "$APP_PATH" "$IPA_ROOT/Payload/App.app"
+          cd "$IPA_ROOT"
+          /usr/bin/zip -qry "$CM_BUILD_DIR/build/ios/Xuecheng-unsigned.ipa" Payload
     artifacts:
+      - build/ios/Xuecheng-unsigned.ipa
       - build/ios/DerivedData/Build/Products/Debug-iphoneos/*.app
       - build/ios/DerivedData/Logs/Build/*.xcactivitylog
