@@ -38,7 +38,9 @@ button:active,a:active{transform:scale(.98)}button:disabled{cursor:default;opaci
 .phone:after{position:absolute;z-index:0;top:108px;right:-54px;width:170px;height:170px;border:36px solid color-mix(in srgb,var(--spark-soft) 38%,transparent);border-radius:50%;content:"";filter:blur(1px);opacity:.72;pointer-events:none}
 .statusbar{position:absolute;z-index:55;top:0;right:0;left:0;display:flex;justify-content:space-between;height:46px;padding:15px 24px 0;color:var(--ink);font-size:10px;font-weight:750;pointer-events:none}
 .screen{position:absolute;z-index:1;inset:0;padding:55px 20px 126px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;transform:translateZ(0)}.screen::-webkit-scrollbar{display:none}.screen[hidden]{display:none}.screen.active{display:block}
-.chat-screen{padding-inline:0;background:linear-gradient(180deg,transparent 62%,color-mix(in srgb,var(--surface) 26%,transparent))}
+.chat-screen{padding-inline:0;overflow:hidden;background:linear-gradient(180deg,transparent 62%,color-mix(in srgb,var(--surface) 26%,transparent))}
+.chat-screen.active{display:flex;flex-direction:column}
+.chat-screen .conversation{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch}.chat-screen .conversation::-webkit-scrollbar{display:none}
 .companion-header{position:sticky;z-index:20;top:-55px;display:flex;align-items:center;gap:11px;height:76px;padding:10px 20px;background:color-mix(in srgb,var(--canvas-soft) 72%,transparent);backdrop-filter:blur(18px) saturate(1.2)}
 .avatar-button{position:relative;width:46px;height:46px;padding:0;border:2px solid color-mix(in srgb,var(--surface) 72%,transparent);border-radius:50%;background:var(--surface);box-shadow:0 7px 18px rgba(66,36,19,.12)}
 .avatar-button img,.message>img,.profile-identity img{width:100%;height:100%;object-fit:cover}.avatar-button img{border-radius:50%}.avatar-button>span{position:absolute;right:-1px;bottom:1px;width:12px;height:12px;border:2px solid var(--canvas-soft);border-radius:50%;background:#45a269}
