@@ -191,6 +191,12 @@ function resizeComposer() {
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
 }
 chatInput.addEventListener("input", resizeComposer);
+chatInput.addEventListener("focus", () => {
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    syncVisualViewport();
+  });
+});
 
 function syncVisualViewport() {
   const viewportHeight = window.visualViewport?.height || window.innerHeight;
@@ -199,7 +205,10 @@ function syncVisualViewport() {
   document.documentElement.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
   const keyboardOpen = Boolean(window.visualViewport && focusedTextEntry && viewportHeight < viewportBaseline - 80);
   document.body.classList.toggle("keyboard-open", keyboardOpen);
-  if (keyboardOpen) requestAnimationFrame(() => chatInput.scrollIntoView({ block: "nearest" }));
+  if (keyboardOpen) requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    chatInput.scrollIntoView({ block: "nearest" });
+  });
 }
 window.visualViewport?.addEventListener("resize", syncVisualViewport);
 window.visualViewport?.addEventListener("scroll", syncVisualViewport);
