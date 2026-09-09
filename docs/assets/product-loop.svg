@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">学程真实生活闭环</title>
+  <desc id="desc">自然聊天形成理解，理解转化为具体安排，现实执行产生反馈，反馈更新长期路径。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff5df"/><stop offset=".5" stop-color="#ffe8d0"/><stop offset="1" stop-color="#f2eadf"/></linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff9f43"/><stop offset="1" stop-color="#ef5b3f"/></linearGradient>
+    <filter id="soft"><feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#5f3929" flood-opacity=".12"/></filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#b65d3d"/></marker>
+  </defs>
+  <rect width="1200" height="520" rx="40" fill="url(#bg)"/>
+  <circle cx="1050" cy="70" r="120" fill="#ffd05f" opacity=".28"/><circle cx="90" cy="460" r="150" fill="#be8cff" opacity=".12"/>
+  <text x="70" y="76" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="24" fill="#96553d">不是一次生成方案</text>
+  <text x="70" y="120" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="38" font-weight="700" fill="#2e2520">而是在生活里持续完成一个闭环</text>
+  <g filter="url(#soft)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+    <rect x="70" y="190" width="230" height="190" rx="28" fill="#fffaf2"/><circle cx="112" cy="238" r="20" fill="#ffb14d"/><text x="145" y="246" font-size="25" font-weight="700" fill="#302722">自然聊天</text><text x="105" y="298" font-size="19" fill="#76665d">说近况、困惑和想法</text><text x="105" y="330" font-size="19" fill="#76665d">不用填写一套问卷</text>
+    <rect x="350" y="190" width="230" height="190" rx="28" fill="#fffaf2"/><circle cx="392" cy="238" r="20" fill="#bf8cff"/><text x="425" y="246" font-size="25" font-weight="700" fill="#302722">形成判断</text><text x="385" y="298" font-size="19" fill="#76665d">结合习惯和长期记忆</text><text x="385" y="330" font-size="19" fill="#76665d">必要时挑战你的想法</text>
+    <rect x="630" y="190" width="230" height="190" rx="28" fill="#fffaf2"/><circle cx="672" cy="238" r="20" fill="#62c49a"/><text x="705" y="246" font-size="25" font-weight="700" fill="#302722">具体安排</text><text x="665" y="298" font-size="19" fill="#76665d">时间 · 平台 · 内容</text><text x="665" y="330" font-size="19" fill="#76665d">动作 · 完成标准</text>
+    <rect x="910" y="190" width="220" height="190" rx="28" fill="url(#accent)"/><circle cx="952" cy="238" r="20" fill="#fff" opacity=".9"/><text x="985" y="246" font-size="25" font-weight="700" fill="#fff">真实变化</text><text x="945" y="298" font-size="19" fill="#fff6ed">完成、忽略或调整</text><text x="945" y="330" font-size="19" fill="#fff6ed">再更新人生路径</text>
+  </g>
+  <g stroke="#b65d3d" stroke-width="4" fill="none" marker-end="url(#arrow)"><path d="M302 285H340"/><path d="M582 285H620"/><path d="M862 285H900"/><path d="M1018 392C1018 472 190 472 190 392"/></g>
+  <text x="600" y="463" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif" font-size="18" fill="#8f5b47">每一次反馈都会让下一次建议更贴近你，而不是复制同一套模板</text>
+</svg>
