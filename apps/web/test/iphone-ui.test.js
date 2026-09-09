@@ -28,3 +28,21 @@ test("controls are wired and the avatar remains the default", () => {
   assert.match(js, /avatar: defaultAvatar/);
   assert.match(css, /touch-action:manipulation/);
 });
+
+test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport", () => {
+  assert.match(css, /\.composer textarea\{[^}]*font-size:16px/);
+  assert.match(css, /--app-height:100dvh/);
+  assert.match(js, /window\.visualViewport/);
+  assert.match(js, /keyboard-open/);
+  assert.match(html, /interactive-widget=resizes-content/);
+  assert.match(html, /maximum-scale=1/);
+  assert.match(html, /user-scalable=no/);
+});
+
+test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
+  assert.match(css, /@keyframes message-enter/);
+  assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.match(js, /nextScreen\.animate/);
+  assert.match(js, /Promise\.allSettled/);
+  assert.match(js, /reduceMotion\.matches/);
+});

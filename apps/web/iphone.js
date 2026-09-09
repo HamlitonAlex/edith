@@ -13,6 +13,9 @@ const roleCopy = {
 const $ = selector => document.querySelector(selector);
 let toastTimer;
 let state = load();
+const screenOrder = ["chat", "today", "path", "us"];
+const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+let screenAnimations = [];
 
 function load() {
   try {
@@ -59,12 +62,51 @@ function render() {
 }
 
 function openScreen(name) {
+  const currentScreen = document.querySelector(".screen.active");
+  const currentName = currentScreen?.dataset.screen;
+  if (currentName === name) return;
+  const nextScreen = document.querySelector(`.screen[data-screen="${name}"]`);
+  const phone = $(".phone");
+  const direction = screenOrder.indexOf(name) < screenOrder.indexOf(currentName) ? -1 : 1;
+  phone.dataset.direction = direction < 0 ? "backward" : "forward";
+  screenAnimations.forEach(animation => animation.cancel());
+  screenAnimations = [];
   document.querySelectorAll(".screen").forEach(screen => {
-    const active = screen.dataset.screen === name;
-    screen.hidden = !active;
-    screen.classList.toggle("active", active);
-    if (active) screen.scrollTop = 0;
+    if (screen !== currentScreen && screen !== nextScreen) {
+      screen.hidden = true;
+      screen.classList.remove("active");
+      screen.style.removeProperty("z-index");
+    }
   });
+  nextScreen.hidden = false;
+  nextScreen.classList.add("active");
+  nextScreen.scrollTop = 0;
+  currentScreen?.classList.remove("active");
+  if (currentScreen && !reduceMotion.matches && typeof nextScreen.animate === "function") {
+    nextScreen.style.zIndex = "3";
+    currentScreen.style.zIndex = "2";
+    const incoming = nextScreen.animate([
+      { opacity: 0, transform: `translate3d(${direction * 22}px,0,0) scale(.995)` },
+      { opacity: 1, transform: "translate3d(0,0,0) scale(1)" }
+    ], { duration: 300, easing: "cubic-bezier(.22,1,.36,1)", fill: "both" });
+    const outgoing = currentScreen.animate([
+      { opacity: 1, transform: "translate3d(0,0,0)" },
+      { opacity: 0, transform: `translate3d(${direction * -8}px,0,0)` }
+    ], { duration: 190, easing: "cubic-bezier(.4,0,1,1)", fill: "both" });
+    screenAnimations = [incoming, outgoing];
+    Promise.allSettled(screenAnimations.map(animation => animation.finished)).then(() => {
+      if (!nextScreen.classList.contains("active")) return;
+      currentScreen.hidden = true;
+      currentScreen.classList.remove("active");
+      [currentScreen, nextScreen].forEach(screen => screen.style.removeProperty("z-index"));
+      screenAnimations = [];
+    });
+  } else {
+    if (currentScreen) {
+      currentScreen.hidden = true;
+      currentScreen.classList.remove("active");
+    }
+  }
   document.querySelectorAll("[data-nav]").forEach(button => {
     const active = button.dataset.nav === name;
     button.classList.toggle("active", active);
@@ -96,9 +138,15 @@ $("#chat-form").addEventListener("submit", event => {
   state.messages.push({ role: "user", text });
   state.messages.push({ role: "assistant", text: "我先记下，不急着给结论。你希望我现在帮你做决定，还是先陪你把这件事想清楚？" });
   input.value = "";
+  resizeComposer();
   save();
   render();
-  requestAnimationFrame(() => $("#dynamic-messages").scrollIntoView({ behavior: "smooth", block: "end" }));
+  const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
+  recent.forEach((message, index) => {
+    message.style.setProperty("--enter-delay", `${index * 70}ms`);
+    if (!reduceMotion.matches) message.classList.add("message-enter");
+  });
+  requestAnimationFrame(() => $("#dynamic-messages").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "end" }));
 });
 
 $("#adopt-plan").addEventListener("click", () => {
@@ -136,6 +184,32 @@ $("#initiative").addEventListener("input", event => {
   render();
 });
 
+const chatInput = $("#chat-input");
+let viewportBaseline = Math.max(window.innerHeight, window.visualViewport?.height || 0);
+function resizeComposer() {
+  chatInput.style.height = "auto";
+  chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
+}
+chatInput.addEventListener("input", resizeComposer);
+
+function syncVisualViewport() {
+  const viewportHeight = window.visualViewport?.height || window.innerHeight;
+  const focusedTextEntry = document.activeElement?.matches('input:not([type="range"]), textarea');
+  if (!focusedTextEntry) viewportBaseline = Math.max(viewportBaseline, viewportHeight);
+  document.documentElement.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
+  const keyboardOpen = Boolean(window.visualViewport && focusedTextEntry && viewportHeight < viewportBaseline - 80);
+  document.body.classList.toggle("keyboard-open", keyboardOpen);
+  if (keyboardOpen) requestAnimationFrame(() => chatInput.scrollIntoView({ block: "nearest" }));
+}
+window.visualViewport?.addEventListener("resize", syncVisualViewport);
+window.visualViewport?.addEventListener("scroll", syncVisualViewport);
+window.addEventListener("resize", syncVisualViewport);
+document.addEventListener("focusin", syncVisualViewport);
+document.addEventListener("focusout", () => {
+  requestAnimationFrame(syncVisualViewport);
+  window.scrollTo(0, 0);
+});
+
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const voiceButton = $("#voice-button");
 let recognition = null;
@@ -160,5 +234,7 @@ $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", mi
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 const initialScreen = new URLSearchParams(location.search).get("screen");
 if (["chat", "today", "path", "us"].includes(initialScreen)) openScreen(initialScreen);
+syncVisualViewport();
+resizeComposer();
 render();
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});
