@@ -17,10 +17,10 @@ test("iPhone UI offers six whole-surface themes", () => {
 });
 
 test("daily work names the platform, action, content and completion", () => {
-  assert.match(html, /哔哩哔哩 · BV1fSr7YoEJ7/);
-  assert.match(html, /<b>动作：<\/b>/);
-  assert.match(html, /<b>完成：<\/b>/);
-  assert.match(html, /data-task-chat=/);
+  assert.match(html, /id="today-agenda"/);
+  assert.match(html, /id="today-empty"/);
+  assert.match(js, /renderToday/);
+  assert.match(js, /做到什么算完成/);
 });
 
 test("the product mark is the default and the user can replace it locally", () => {
@@ -86,8 +86,10 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {
   assert.doesNotMatch(css, /--canvas:#e1b4bc|--canvas:#c8b8d3|--action:#a63755|--action:#744c85/);
-  assert.match(html, /class="plan-actions">\s*<button[^>]*id="adopt-plan"[\s\S]*?<a[^>]*id="proposal-resource"/);
-  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(html, /id="start-action"/);
+  assert.match(html, /id="discuss-action"/);
+  assert.doesNotMatch(html, /id="adopt-plan"|接受这个安排/);
+  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto/s);
   assert.match(refinementCss, /button:focus-visible/);
 });
 
@@ -99,15 +101,41 @@ test("navigation and new messages use purposeful reduced-motion-safe transitions
   assert.match(js, /reduceMotion\.matches/);
 });
 
-test("settings separates plans, model choice, sync and quiet hours", () => {
+test("settings keeps local mode honest and exposes real backup controls", () => {
   assert.match(html, /data-screen="settings"/);
-  assert.match(html, /data-plan-option="community"/);
-  assert.match(html, /id="model-mode"/);
-  assert.match(html, /id="model-provider"/);
-  assert.match(html, /id="sync-enabled"/);
+  assert.match(html, /本地个人版/);
+  assert.match(html, /id="export-backup"/);
+  assert.match(html, /id="import-backup"/);
+  assert.doesNotMatch(html, /data-plan-option=|id="sync-enabled"/);
   assert.match(html, /id="quiet-start"/);
   assert.match(html, /id="agent-proposal"/);
-  assert.match(js, /modelMode: "managed"/);
   assert.match(js, /name === "settings" \? "us" : name/);
-  assert.doesNotMatch(html, /type="password"/);
+});
+
+test("the companion identity is quiet, personal and gender configurable", () => {
+  assert.match(html, /class="companion-mark"/);
+  assert.doesNotMatch(html, /class="avatar-button"|class="quiet-action"/);
+  for (const gender of ["female", "male", "neutral"]) assert.match(html, new RegExp(`data-gender="${gender}"`));
+  assert.match(js, /gender: "female"/);
+  assert.match(js, /pronounFor/);
+});
+
+test("task interaction is concrete, negotiable and confirms external jumps", () => {
+  assert.match(html, /id="external-action-dialog"/);
+  assert.match(html, /id="confirm-external-action"/);
+  assert.match(js, /growth-trace/);
+  assert.doesNotMatch(html, />已完成<|>待开始</);
+  assert.match(js, /openExternalConfirmation/);
+  assert.match(js, /discussCurrentAction/);
+});
+
+test("the entire composer supports hold to talk", () => {
+  assert.match(js, /bindHoldToTalk\(\$\("#chat-form"\)\)/);
+  assert.match(js, /holdTimer/);
+  assert.match(js, /confidence/);
+});
+
+test("new users begin without fabricated personal history", () => {
+  assert.doesNotMatch(html, /早上好。我把你最近说的|可以，不过晚上如果太累/);
+  assert.doesNotMatch(js, /请根据你已经知道的信息，判断我现在最值得做的下一件事/);
 });

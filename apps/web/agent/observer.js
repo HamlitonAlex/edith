@@ -10,7 +10,7 @@ export function observe(rawText, now = new Date()) {
     text,
     signals: {
       asks_why: includesAny(text, ["为什么", "有啥用", "意义"]),
-      accepts: includesAny(text, ["接受", "可以", "开始吧", "就这个", "现在做"]),
+      accepts: includesAny(text, ["接受", "可以", "开始吧", "就这个", "现在做", "对", "没错", "准确"]),
       rejects: includesAny(text, ["不想做", "不要这个", "取消", "没必要"]),
       final_reject: includesAny(text, ["我决定取消", "还是取消", "仍然取消", "最终不做"]),
       delays: includesAny(text, ["明天", "推迟", "晚点", "改天"]),

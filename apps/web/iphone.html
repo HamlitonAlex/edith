@@ -26,21 +26,13 @@
 
     <section class="screen active chat-screen" data-screen="chat">
       <header class="companion-header">
-        <button class="avatar-button" data-open-screen="us" aria-label="打开小程设置"><img data-avatar src="./assets/xuecheng-mark.svg" alt="学程图标"><span></span></button>
+        <span class="companion-mark" aria-hidden="true"><img data-avatar src="./assets/xuecheng-mark.svg" alt=""></span>
         <div><small>在你身边</small><h1 data-name>小程</h1></div>
-        <button class="quiet-action" data-open-screen="today">今天 <b>3</b></button>
+        <button class="conversation-model" id="conversation-model" type="button" aria-label="切换当前对话模型">本地判断</button>
       </header>
 
       <div class="conversation" id="conversation" aria-live="polite">
-        <div class="day-divider"><span>今天</span></div>
-        <article class="message companion-message">
-          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
-          <div><p>早上好。我把你最近说的“想让这个项目真正进入生活”记下来了。</p><time>08:12</time></div>
-        </article>
-        <article class="message companion-message">
-          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
-          <div><p>我想挑战你一下：今天先别继续扩大功能。18:00 用半小时补一块通识，再回来判断这个产品到底应该怎样引导一个人。</p></div>
-        </article>
+        <div class="empty-conversation" id="empty-conversation"><b>先随便说一句。</b><p>不用填问卷。你说生活里正在发生什么，我会在对话中慢慢认识你。</p></div>
         <article class="plan-proposal" id="agent-proposal">
           <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
           <div class="platform-line">
@@ -54,44 +46,33 @@
             <div><dt>做到什么算完成</dt><dd id="proposal-completion">用自己的话告诉我：农业革命的一个收益和一个代价。</dd></div>
           </dl>
           <div class="plan-actions">
-            <button id="adopt-plan" type="button">接受这个安排</button>
-            <a id="proposal-resource" href="https://www.bilibili.com/video/BV1fSr7YoEJ7/" target="_blank" rel="noreferrer">先查看学习资料</a>
+            <button id="start-action" type="button">打开哔哩哔哩并开始</button>
+            <button id="discuss-action" type="button">和她讨论</button>
           </div>
-        </article>
-        <article class="message user-message"><div><p>可以，不过晚上如果太累就提醒我换成轻一点的内容。</p><time>08:16</time></div></article>
-        <article class="message companion-message">
-          <img data-avatar src="./assets/xuecheng-mark.svg" alt="">
-          <div><p>好。我不会把没完成理解成你不够坚持。17:45 我先问你的精力，再决定维持、缩短还是改到明天。</p><time>08:16</time></div>
         </article>
         <div id="dynamic-messages"></div>
       </div>
 
       <form class="composer" id="chat-form">
         <button class="voice-button" id="voice-button" type="button" aria-label="按住说话"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v3M9 20h6"/></svg></button>
-        <textarea id="chat-input" rows="1" placeholder="和她说说现在的想法……" aria-label="给小程发消息"></textarea>
+        <textarea id="chat-input" rows="1" placeholder="和她说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
         <button class="send-button" type="submit" aria-label="发送"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18V6M7.5 10.5 12 6l4.5 4.5"/></svg></button>
       </form>
     </section>
 
     <section class="screen today-screen" data-screen="today" hidden>
-      <header class="page-header"><small id="today-date">今天</small><h1>她替你理好的今天</h1><p>不是固定课表。每一项都会根据你的状态重新判断。</p></header>
-      <div class="energy-check"><div><span>傍晚精力确认</span><b>17:45 主动询问</b></div><button data-open-screen="chat">现在告诉她</button></div>
-      <ol class="agenda">
-        <li class="done"><time>09:00<small>25 分钟</small></time><div><small>Windows · VS Code · README.md</small><h2>把产品首页的核心行为写成一句话</h2><p><b>动作：</b>打开项目根目录的 README.md，只修改“产品方向”第一条。</p><p><b>完成：</b>这句话同时说清楚“谁、在什么场景、得到什么帮助”。</p></div><span>已完成</span></li>
-        <li class="next"><time>18:00<small>30 分钟</small></time><div><small>哔哩哔哩 · BV1fSr7YoEJ7</small><h2>看《农业革命》前 11 分钟</h2><p><b>动作：</b>不倍速观看；只记下一句让你意外的观点。</p><p><b>完成：</b>告诉小程一个收益、一个代价，以及你的疑问。</p><div class="agenda-actions"><a href="https://www.bilibili.com/video/BV1fSr7YoEJ7/" target="_blank" rel="noreferrer">前往哔哩哔哩</a><button type="button" data-task-chat="我看完《农业革命》了，想说说一个收益、一个代价和我的疑问。">完成后告诉她</button></div></div><span>下一项</span></li>
-        <li><time>21:30<small>8 分钟</small></time><div><small>学程 · 对话页 · 按住说话</small><h2>回答今天真正改变了什么</h2><p><b>动作：</b>回到对话页，按住说话回答“今天推进了什么、明天删掉什么”。</p><p><b>完成：</b>两问各说一句，不需要写总结。</p><button class="inline-task-button" type="button" data-task-chat="我们来复盘今天吧。你问我：今天推进了什么，明天应该删掉什么？">到时间和她聊</button></div><span>待开始</span></li>
-      </ol>
+      <header class="page-header"><small id="today-date">今天</small><h1><span data-pronoun>她</span>替你理好的今天</h1><p>不是固定课表。每一项都会根据你的状态重新判断。</p></header>
+      <div class="energy-check" id="energy-check"><div><span>傍晚精力确认</span><b>17:45 主动询问</b></div><button data-open-screen="chat">现在告诉<span data-pronoun>她</span></button></div>
+      <div class="empty-state" id="today-empty"><b>今天还没有替你下结论。</b><p>先聊聊你正在经历什么。信息不够时，学程不会用通用任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
+      <ol class="agenda" id="today-agenda"></ol>
     </section>
 
     <section class="screen path-screen" data-screen="path" hidden>
-      <header class="page-header"><small>她正在和你一起形成</small><h1>人生不是一张预制地图</h1><p>这里记录方向的变化，也保留她为什么这样建议。</p></header>
-      <section class="current-direction"><small>当前方向</small><h2>把私人教育伙伴做成真正可安装的产品</h2><p>不是为了堆功能，而是回应自己长期缺少引导的经历。</p></section>
-      <div class="path-list">
-        <article><i>01</i><div><b>项目制实践</b><p>正在进行 · 用真实产品反向训练判断力</p></div></article>
-        <article><i>02</i><div><b>未来能力</b><p>观察中 · AI 协作、产品判断与持续执行</p></div></article>
-        <article><i>03</i><div><b>通识结构</b><p>刚刚开始 · 从农业革命建立世界史坐标</p></div></article>
-      </div>
-      <button class="talk-about-path" data-open-screen="chat">和她聊聊这个方向</button>
+      <header class="page-header"><small><span data-pronoun>她</span>正在和你一起形成</small><h1>人生不是一张预制地图</h1><p>这里记录方向的变化，也保留<span data-pronoun>她</span>为什么这样建议。</p></header>
+      <div class="empty-state" id="path-empty"><b>方向会从对话里长出来。</b><p>在你确认之前，学程不会擅自给你贴目标或能力标签。</p></div>
+      <section class="current-direction" id="current-direction" hidden><small>当前确认的方向</small><h2 id="direction-title"></h2><p>这是现在的方向，不是永远不能改变的身份标签。</p></section>
+      <div class="path-list" id="path-list"></div>
+      <button class="talk-about-path" data-open-screen="chat">和<span data-pronoun>她</span>聊聊这个方向</button>
     </section>
 
     <section class="screen us-screen" data-screen="us" hidden>
@@ -106,7 +87,7 @@
         <p id="relationship-copy">她会像一位了解你的朋友，也会在需要时挑战你。</p>
       </header>
 
-      <section class="preference-section"><h2>你希望她更像谁</h2><div class="role-options">
+      <section class="preference-section"><h2>你希望<span data-pronoun>她</span>更像谁</h2><div class="role-options">
         <button type="button" data-role="guide">引路人</button><button type="button" data-role="friend">朋友</button><button type="button" data-role="family">家人</button><button type="button" data-role="partner">伴侣式伙伴</button>
       </div></section>
       <section class="preference-section"><label for="initiative">主动找你的程度 <b id="initiative-value">65%</b></label><input id="initiative" type="range" min="0" max="1" step=".05" value=".65"><div class="range-labels"><span>只在重要时出现</span><span>经常来找我</span></div></section>
@@ -118,11 +99,14 @@
         <button type="button" data-theme-option="elegant"><span class="theme-preview" aria-hidden="true"></span><span><b>雅纸</b><small>奶油 · 墨黑 · 淡金</small></span></button>
         <button type="button" data-theme-option="silver"><span class="theme-preview" aria-hidden="true"></span><span><b>银曜</b><small>黑曜 · 雾银 · 橙光</small></span></button>
       </div></section>
+      <section class="preference-section"><h2>伙伴呈现</h2><p class="section-hint">只调整称呼与表达，不套用性别刻板印象。</p><div class="gender-options role-options">
+        <button type="button" data-gender="female">女性 · 她</button><button type="button" data-gender="male">男性 · 他</button><button type="button" data-gender="neutral">中性 · TA</button>
+      </div></section>
       <section class="preference-section sources"><h2>生活来源</h2><p>文件与笔记、微信、抖音收藏、日历</p><span>尚未接入 · 功能开发中</span></section>
       <section class="preference-section sources"><h2>通识候选资源</h2><p>42 个来自你提供清单的创作者或系列</p><span>使用前逐条核验具体内容，不会照单全收</span></section>
       <button class="settings-entry" type="button" data-open-screen="settings">
         <span class="settings-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7z"/></svg></span>
-        <span><b>系统设置</b><small>使用方案、模型、同步与通知</small></span>
+        <span><b>系统设置</b><small>模型、本地数据与通知</small></span>
         <svg class="settings-entry-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
       </button>
     </section>
@@ -133,35 +117,34 @@
         <div><small>学程</small><h1>设置</h1></div>
       </header>
       <section class="settings-section" aria-labelledby="plan-title">
-        <div class="settings-title"><div><small>01</small><h2 id="plan-title">使用方案</h2></div><span>决定能力范围</span></div>
-        <div class="plan-options">
-          <button type="button" data-plan-option="community" aria-pressed="true"><span><b>社区开源版</b><small>本地优先 · 自备 API · 完整基础能力</small></span><em>当前使用</em></button>
-          <button type="button" data-plan-option="cloud" aria-pressed="false"><span><b>托管伙伴版</b><small>托管模型 · 加密同步 · 主动提醒</small></span><em>可切换</em></button>
-          <button type="button" data-plan-option="family" aria-pressed="false"><span><b>家庭协作版</b><small>多人档案 · 家庭共同计划</small></span><em>规划中</em></button>
-        </div>
-        <p class="settings-note">这里先展示能力差异；正式定价会在服务稳定后再确定。</p>
+        <div class="settings-title"><div><small>01</small><h2 id="plan-title">使用方式</h2></div><span>本地个人版</span></div>
+        <div class="setting-row"><span><b>一人一份长期记忆</b><small>对话、偏好、判断证据只保存在当前设备</small></span><span class="fixed-state">正在使用</span></div>
       </section>
       <section class="settings-section" aria-labelledby="model-title">
-        <div class="settings-title"><div><small>02</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">托管 · 高能力优先</span></div>
-        <label class="setting-field" for="model-mode"><span><b>连接方式</b><small>日常默认不需要管理密钥</small></span><select id="model-mode"><option value="managed">托管智能选择（推荐）</option><option value="byok">使用自己的 API Key</option><option value="local">连接本地模型</option></select></label>
-        <label class="setting-field" for="model-provider"><span><b>模型厂商</b><small>也可以交给学程自动选择</small></span><select id="model-provider"><option value="auto">智能选择</option><option value="openai">OpenAI</option><option value="anthropic">Anthropic</option><option value="google">Google Gemini</option><option value="deepseek">DeepSeek</option><option value="qwen">通义千问</option><option value="glm">智谱 GLM</option><option value="kimi">Kimi</option></select></label>
-        <label class="setting-field" for="model-profile"><span><b>能力倾向</b><small>影响质量、速度与调用成本</small></span><select id="model-profile"><option value="capable">高能力优先</option><option value="balanced">质量与速度平衡</option><option value="fast">低延迟优先</option></select></label>
-        <div class="secure-key-note" id="secure-key-note" hidden><div><b>安全连接 API Key</b><small>正式版会存进 iPhone 钥匙串或 Windows 凭据库；网页演示不会接收密钥。</small></div><button type="button" id="connect-key">了解接入方式</button></div>
-        <p class="settings-note" id="local-model-note" hidden>本地模式适合隐私敏感或离线使用；如果模型运行在 Windows 上，电脑需要保持在线。</p>
+        <div class="settings-title"><div><small>02</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
+        <p class="settings-note">当前版本先使用设备内的判断循环。云端厂商连接会在安全密钥存储接入后开放，不展示不能工作的入口。</p>
       </section>
       <section class="settings-section" aria-labelledby="data-title">
-        <div class="settings-title"><div><small>03</small><h2 id="data-title">数据与同步</h2></div><span>本地保存优先</span></div>
+        <div class="settings-title"><div><small>03</small><h2 id="data-title">数据与备份</h2></div><span>只在这里管理</span></div>
         <div class="setting-row"><span><b>设备本地保存</b><small>对话、偏好与路径首先保存在设备</small></span><span class="fixed-state">始终开启</span></div>
-        <label class="setting-row" for="sync-enabled"><span><b>自动加密同步</b><small>在 iPhone 与 Windows 之间保持一致</small></span><input class="switch" id="sync-enabled" type="checkbox" checked></label>
-        <p class="settings-note">云端同步将在正式服务接入后生效，并可随时关闭。</p>
+        <div class="backup-actions"><button type="button" id="export-backup">导出本地备份</button><button type="button" id="import-backup">从备份恢复</button><input type="file" id="backup-file" accept="application/json" hidden></div>
+        <p class="settings-note">备份包含你的对话、偏好和 Agent 对你的本地认识；恢复前会再次确认。</p>
       </section>
       <section class="settings-section" aria-labelledby="notify-title">
         <div class="settings-title"><div><small>04</small><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
         <div class="quiet-times"><label for="quiet-start"><span>从</span><input id="quiet-start" type="time" value="23:00"></label><label for="quiet-end"><span>到</span><input id="quiet-end" type="time" value="07:30"></label></div>
         <label class="setting-row" for="urgent-override"><span><b>重要事情可以覆盖安静时段</b><small>由紧迫度判断；每一次打扰都会说明原因</small></span><input class="switch" id="urgent-override" type="checkbox" checked></label>
       </section>
-      <p class="settings-footer">设置会保存在这台设备上。真正的账户、付款与密钥托管尚未接入。</p>
+      <p class="settings-footer">没有账户，也不会上传长期记忆。以后启用云端能力时，会重新向你说明数据边界。</p>
     </section>
+
+    <dialog class="action-dialog" id="external-action-dialog">
+      <form method="dialog"><small>将离开学程</small><h2>现在打开外部内容？</h2><p id="external-action-copy">回来后，我会自然地问你看到哪里、什么最有感觉。</p><div><button value="cancel">先不打开</button><button value="confirm" id="confirm-external-action">确认并打开</button></div></form>
+    </dialog>
+
+    <dialog class="action-dialog" id="model-dialog">
+      <form method="dialog"><small>只影响当前对话</small><h2>选择这次使用的模型</h2><p>目前只有本地判断可用。连接云端模型后会自动出现在这里。</p><button value="cancel">知道了</button></form>
+    </dialog>
 
     <nav class="bottom-nav" aria-label="主要页面">
       <button type="button" class="active" data-nav="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.8h14v9.7H11l-4.8 3.2.9-3.2H5z"/></svg><span>对话</span></button>

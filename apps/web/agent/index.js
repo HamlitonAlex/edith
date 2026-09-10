@@ -4,7 +4,7 @@ import { updateUserModel } from "./user-model.js";
 import { diagnose, decideNextAction, formatProposal } from "./planner.js";
 import { beginTutor, tutorReply } from "./tutor.js";
 import { evaluateCompletion } from "./evaluator.js";
-export { createAgentState, hydrateAgentState } from "./state.js";
+export { createAgentState, createKnownAgentState, hydrateAgentState } from "./state.js";
 export { GENERAL_KNOWLEDGE_RESOURCES, findResourceCandidates, canRecommendResource } from "./resource-catalog.js";
 
 const shorten = action => ({ ...action, duration_minutes: 10, status: "revised", instructions: `只完成最小版本：${action.instructions}` });
@@ -13,6 +13,19 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   const observation = observe(rawText, now);
   let state = updateUserModel(rememberObservation(current, observation), observation);
   let action = state.next_recommended_action;
+
+  const pendingGoal = state.pending_items.find(item => item.kind === "long_term_goal_inference" && item.status === "awaiting_confirmation");
+  if (pendingGoal && observation.signals.accepts) {
+    state.long_term_goals.push({ id: `goal-${now.getTime()}`, text: pendingGoal.text, confidence: 0.9, source: "用户确认" });
+    state.pending_items = state.pending_items.filter(item => item !== pendingGoal);
+    state.phase = "observe";
+    return { state, kind: "confirmation", reply: "好，我把它作为目前的长期方向记下了，但不会把它当成永远不能改变的标签。接下来我还需要慢慢了解：你现在离它最近的能力是什么，最容易卡住的又是什么？" };
+  }
+  if (!state.long_term_goals.length && /想|希望|目标|成为|以后|未来/.test(observation.text) && observation.text.length >= 8) {
+    state.pending_items.push({ kind: "long_term_goal_inference", text: observation.text, source: "conversation", confidence: 0.64, status: "awaiting_confirmation", created_at: observation.at });
+    state.phase = "observe";
+    return { state, kind: "confirmation", reply: `我先不擅自把它写成你的人生目标。我的理解是：“${observation.text}”是你现阶段想走的长期方向。这个理解准确吗？` };
+  }
 
   if (action && observation.signals.asks_why) {
     state.phase = "negotiate";

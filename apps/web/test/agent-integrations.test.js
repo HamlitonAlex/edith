@@ -1,11 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAgentState } from "../agent/state.js";
+import { createAgentState, createKnownAgentState } from "../agent/state.js";
 import { createModelContext, requestModelJudgment } from "../agent/model-gateway.js";
 import { createObsidianIndex, proposeObsidianWrite, searchObsidian } from "../agent/obsidian.js";
 
 test("model context contains evidence and principles without exposing unrelated storage", () => {
-  const context = createModelContext(createAgentState(), "我为什么现在要学这个？");
+  const context = createModelContext(createKnownAgentState(), "我为什么现在要学这个？");
   assert.match(context.long_term_goals[0].text, /私人教育伙伴/);
   assert.ok(context.principles.length >= 3);
   assert.equal(context.latest_message, "我为什么现在要学这个？");

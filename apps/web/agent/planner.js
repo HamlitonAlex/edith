@@ -48,6 +48,29 @@ export function diagnose(state) {
 
 export function decideNextAction(state, diagnosis) {
   if (!state.long_term_goals.length) return null;
+  const primaryGoal = state.long_term_goals[0];
+  if (primaryGoal.id !== "build-xuecheng") {
+    const available = state.today_context?.available_minutes;
+    return {
+      id: `clarify-goal-${Date.now()}`,
+      goal_id: primaryGoal.id,
+      skill_id: "self_direction",
+      title: `把“${primaryGoal.text}”讲成一个真实场景`,
+      duration_minutes: available ? Math.min(15, Math.max(8, available)) : 12,
+      platform: "学程 · 对话",
+      resource: null,
+      instructions: "我会一次问一个问题。先告诉我：如果这个方向真的开始发生，你的一天里最先会出现什么可观察的变化？",
+      completion_criteria: "能说出一个现实中看得见的变化，而不是只重复抽象目标。",
+      why_now: `你刚确认“${primaryGoal.text}”是当前长期方向，但我还不知道它在现实生活中长什么样。先把它落到一个场景，后面的学习安排才不会是通用模板。`,
+      judgment: "目前最重要的不是立刻塞入课程，而是先把长期方向和现实生活连接起来。",
+      counterpoint: "如果你今天已有明确、紧迫且与目标直接相关的任务，我会先帮助你处理那个任务。",
+      reconsider_if: "你告诉我今天已有更具体、更紧迫的现实安排",
+      evidence_required: ["现实场景", "可观察变化"],
+      proposed_at: new Date().toISOString(),
+      status: "proposed",
+      diagnosis: diagnosis.focus,
+    };
+  }
   const unfinished = ACTIONS.filter(candidate => !state.action_history.some(item => item.action_id === candidate.id && item.outcome === "verified"));
   const selected = unfinished.find(candidate => state.skills[candidate.skill_id]?.confidence < 0.5) || unfinished[0] || ACTIONS[1];
   const available = state.today_context?.available_minutes;

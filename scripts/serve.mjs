@@ -39,7 +39,7 @@ function routePath(pathname) {
   if (decoded === "/web-preview") return { root: webRoot, relative: "companion-v3.html" };
   if (decoded === "/planner") return { root: webRoot, relative: "planner.html" };
   if (decoded === "/prototype") return { root: webRoot, relative: "index.html" };
-  if (["/app.js", "/styles.css", "/planner.js", "/planner.css", "/companion.js", "/companion.css", "/companion-v2.css", "/companion-v3.css", "/iphone.js", "/iphone.css", "/iphone-refinement.css", "/manifest.webmanifest", "/sw.js"].includes(decoded)) {
+  if (["/app.js", "/styles.css", "/planner.js", "/planner.css", "/companion.js", "/companion.css", "/companion-v2.css", "/companion-v3.css", "/iphone.js", "/local-backup.js", "/iphone.css", "/iphone-refinement.css", "/manifest.webmanifest", "/sw.js"].includes(decoded)) {
     return { root: webRoot, relative: decoded.slice(1) };
   }
   if (decoded.startsWith("/data/") || decoded.startsWith("/lib/") || decoded.startsWith("/assets/") || decoded.startsWith("/agent/")) {

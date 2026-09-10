@@ -14,6 +14,7 @@ await Promise.all([
   cp(resolve(web, "iphone.css"), resolve(dist, "iphone.css")),
   cp(resolve(web, "iphone-refinement.css"), resolve(dist, "iphone-refinement.css")),
   cp(resolve(web, "iphone.js"), resolve(dist, "iphone.js")),
+  cp(resolve(web, "local-backup.js"), resolve(dist, "local-backup.js")),
   cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),
   cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
   cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
