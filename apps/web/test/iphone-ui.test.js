@@ -84,6 +84,13 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
   assert.match(refinementCss, /\.chat-screen\s*\{\s*background:\s*transparent/);
 });
 
+test("warm themes stay muted and the main proposal presents one primary decision", () => {
+  assert.doesNotMatch(css, /--canvas:#e1b4bc|--canvas:#c8b8d3|--action:#a63755|--action:#744c85/);
+  assert.match(html, /class="plan-actions">\s*<button[^>]*id="adopt-plan"[\s\S]*?<a[^>]*id="proposal-resource"/);
+  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*1fr/s);
+  assert.match(refinementCss, /button:focus-visible/);
+});
+
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
   assert.match(css, /@keyframes message-enter/);
   assert.match(css, /prefers-reduced-motion:reduce/);

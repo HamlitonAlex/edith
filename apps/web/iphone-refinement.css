@@ -166,3 +166,94 @@
     bottom: max(8px, env(safe-area-inset-bottom));
   }
 }
+
+/* Warmer low-chroma alternatives: intimate rather than sugary or synthetic. */
+.theme-options button:nth-child(3) .theme-preview {
+  background: linear-gradient(145deg, #f5e7df 0 58%, #7e4843 58% 78%, #c88755 78%);
+}
+
+.theme-options button:nth-child(4) .theme-preview {
+  background: linear-gradient(145deg, #eee8e8 0 58%, #56424f 58% 78%, #b67a52 78%);
+}
+
+/* One clear decision first; supporting actions stay nearby but visually quieter. */
+.plan-actions {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.plan-actions button,
+.plan-actions a {
+  width: 100%;
+  border-radius: 15px;
+}
+
+.plan-actions button {
+  min-height: 48px;
+  background: var(--surface);
+  color: var(--action-strong);
+}
+
+.plan-actions a {
+  min-height: 42px;
+  border: 1px solid color-mix(in srgb, var(--task-ink) 28%, transparent);
+  background: transparent;
+  color: var(--task-ink);
+}
+
+.plan-actions button:disabled {
+  opacity: .68;
+}
+
+.quiet-action,
+.energy-check,
+.talk-about-path,
+.settings-entry,
+.role-options button,
+.theme-options button {
+  box-shadow: none;
+}
+
+.theme-options button {
+  border-color: var(--line);
+  background: var(--surface);
+}
+
+.theme-options button[aria-pressed="true"] {
+  border-color: var(--action);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--action) 12%, transparent);
+}
+
+.talk-about-path {
+  min-height: 48px;
+  background: var(--action);
+  color: var(--surface);
+}
+
+button:focus-visible,
+a:focus-visible,
+select:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--action-strong);
+  outline-offset: 3px;
+}
+
+button:active,
+a:active {
+  transform: scale(.98);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .plan-actions button:hover,
+  .talk-about-path:hover {
+    filter: brightness(.98);
+  }
+
+  .plan-actions a:hover,
+  .theme-options button:hover,
+  .role-options button:hover {
+    background: color-mix(in srgb, var(--surface) 88%, var(--canvas-soft));
+  }
+}
