@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [html, css, js] = await Promise.all([
+const [html, css, refinementCss, js] = await Promise.all([
   readFile(new URL("../iphone.html", import.meta.url), "utf8"),
   readFile(new URL("../iphone.css", import.meta.url), "utf8"),
+  readFile(new URL("../iphone-refinement.css", import.meta.url), "utf8"),
   readFile(new URL("../iphone.js", import.meta.url), "utf8")
 ]);
 
@@ -67,8 +68,20 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(js, /window\.visualViewport/);
   assert.match(js, /keyboard-open/);
   assert.match(html, /interactive-widget=resizes-content/);
-  assert.match(html, /maximum-scale=1/);
-  assert.match(html, /user-scalable=no/);
+  assert.doesNotMatch(html, /maximum-scale=1/);
+  assert.doesNotMatch(html, /user-scalable=no/);
+});
+
+test("the active iPhone interface uses SVG marks instead of emoji or status glyphs", () => {
+  assert.match(html, /class="status-icons"[^>]*>[\s\S]*?<svg/);
+  assert.match(html, /class="platform-mark"[^>]*>[\s\S]*?<svg/);
+  assert.doesNotMatch(html, /●●●|⌁|▰|>程<|[\p{Extended_Pictographic}]/u);
+});
+
+test("bottom navigation is a floating rounded control layer over a quiet canvas", () => {
+  assert.match(refinementCss, /\.bottom-nav\s*\{[^}]*right:\s*12px[^}]*left:\s*12px[^}]*border-radius:\s*24px/s);
+  assert.match(refinementCss, /\.phone::after,[\s\S]*\.plan-proposal::after\s*\{\s*display:\s*none/);
+  assert.match(refinementCss, /\.chat-screen\s*\{\s*background:\s*transparent/);
 });
 
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
