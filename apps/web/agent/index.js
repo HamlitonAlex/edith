@@ -5,6 +5,7 @@ import { diagnose, decideNextAction, formatProposal } from "./planner.js";
 import { beginTutor, tutorReply } from "./tutor.js";
 import { evaluateCompletion } from "./evaluator.js";
 export { createAgentState, hydrateAgentState } from "./state.js";
+export { GENERAL_KNOWLEDGE_RESOURCES, findResourceCandidates, canRecommendResource } from "./resource-catalog.js";
 
 const shorten = action => ({ ...action, duration_minutes: 10, status: "revised", instructions: `只完成最小版本：${action.instructions}` });
 

@@ -8,8 +8,8 @@ const [html, css, js] = await Promise.all([
   readFile(new URL("../iphone.js", import.meta.url), "utf8")
 ]);
 
-test("iPhone UI offers four whole-surface themes", () => {
-  for (const theme of ["citrus", "meadow", "berry", "dusk"]) {
+test("iPhone UI offers six whole-surface themes", () => {
+  for (const theme of ["citrus", "meadow", "berry", "dusk", "elegant", "silver"]) {
     assert.match(html, new RegExp(`data-theme-option="${theme}"`));
     if (theme !== "citrus") assert.match(css, new RegExp(`data-theme="${theme}"`));
   }
@@ -50,7 +50,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
     return (values[0] + 0.05) / (values[1] + 0.05);
   };
   const themeBlocks = [...css.matchAll(/(?::root|:root\[data-theme="[^"]+"\])\{([^}]+)\}/g)];
-  assert.equal(themeBlocks.length, 4);
+  assert.equal(themeBlocks.length, 6);
   for (const [, block] of themeBlocks) {
     const canvas = block.match(/--canvas:(#[0-9a-f]{6})/i)?.[1];
     const muted = block.match(/--muted:(#[0-9a-f]{6})/i)?.[1];

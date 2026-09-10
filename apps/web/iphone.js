@@ -6,7 +6,7 @@ const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "citrus", role: "guide", initiative: .65, avatar: defaultAvatar, messages: [], planAdopted: false, plan: "community", modelMode: "managed", provider: "auto", modelProfile: "capable", syncEnabled: true, quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
 const legacyThemes = { apricot: "citrus", sage: "meadow", plum: "berry" };
-const themeColors = { citrus: "#f1bd68", meadow: "#cbd9ae", berry: "#e1b4bc", dusk: "#c8b8d3" };
+const themeColors = { citrus: "#f1bd68", meadow: "#cbd9ae", berry: "#e1b4bc", dusk: "#c8b8d3", elegant: "#f2eee5", silver: "#101111" };
 const roleCopy = {
   guide: "她会像一位了解你的引路人，给建议，也会指出你正在回避的问题。",
   friend: "她会像一个长期了解你的朋友，先理解你，再陪你把事情想清楚。",
