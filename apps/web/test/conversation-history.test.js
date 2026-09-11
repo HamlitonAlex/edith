@@ -51,9 +51,9 @@ test("legacy messages stay visible without inventing an exact time", () => {
 });
 
 test("new messages show useful day context and clock time", () => {
-  const now = new Date("2026-09-11T08:00:00+08:00");
-  const today = "2026-09-11T07:15:00+08:00";
-  const yesterday = "2026-09-10T20:05:00+08:00";
+  const now = new Date(2026, 8, 11, 8, 0);
+  const today = new Date(2026, 8, 11, 7, 15).toISOString();
+  const yesterday = new Date(2026, 8, 10, 20, 5).toISOString();
 
   assert.equal(conversationDayLabel(today, now), "今天");
   assert.equal(conversationDayLabel(yesterday, now), "昨天");
