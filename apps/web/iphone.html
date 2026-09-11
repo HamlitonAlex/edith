@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="zh-CN" data-theme="citrus">
+<html lang="zh-CN" data-theme="elegant">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f6c56a">
+  <meta name="theme-color" content="#faf6ee">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
@@ -15,6 +15,33 @@
 </head>
 <body>
   <main class="phone" aria-label="学程 iPhone 原型">
+    <section class="onboarding" id="onboarding" aria-label="初始设置" hidden>
+      <div class="onboarding-progress" aria-hidden="true"><i></i><i></i><i></i></div>
+      <article data-onboarding-step="partner">
+        <img class="onboarding-mark" src="./assets/xuecheng-mark.svg" alt="学程图标">
+        <small>先认识彼此</small>
+        <h1>你想怎么称呼我？</h1>
+        <p>不需要先填一份人生问卷。名字和形象只是我们开始说话的方式，以后随时能改。</p>
+        <label class="onboarding-field"><span>伙伴名字</span><input id="onboarding-name" value="小程" maxlength="12"></label>
+        <div class="onboarding-actions"><button type="button" data-onboarding-skip>以后再说</button><button type="button" data-onboarding-next>继续</button></div>
+      </article>
+      <article data-onboarding-step="relationship" hidden>
+        <small>相处方式</small>
+        <h1>我应该怎样陪你？</h1>
+        <p>这不是固定人设。相处越久，我越会从你的反馈里学会合适的分寸。</p>
+        <div class="role-options onboarding-roles"><button type="button" data-onboarding-role="guide">引路人</button><button type="button" data-onboarding-role="friend">朋友</button><button type="button" data-onboarding-role="family">家人</button><button type="button" data-onboarding-role="partner">亲密伙伴</button></div>
+        <label class="slider-field"><span>主动来找我的频率 <b id="onboarding-initiative-value">65%</b></span><input id="onboarding-initiative" type="range" min="0" max="1" step=".05" value=".65"></label>
+        <label class="slider-field"><span>提出不同意见的直接程度 <b id="onboarding-directness-value">55%</b></span><input id="onboarding-directness" type="range" min="0" max="1" step=".05" value=".55"></label>
+        <div class="onboarding-actions"><button type="button" data-onboarding-skip>跳过</button><button type="button" data-onboarding-next>继续</button></div>
+      </article>
+      <article data-onboarding-step="boundary" hidden>
+        <small>数据边界</small>
+        <h1>先把边界说清楚。</h1>
+        <p>长期记忆默认只保存在这台设备。只有你明确同意后，我才会把当次对话所需的信息交给你选择的云端模型。</p>
+        <label class="consent-card" for="cloud-consent"><span><b>允许使用云端模型</b><small>可随时在“资料与授权”中撤回</small></span><input class="switch" id="cloud-consent" type="checkbox"></label>
+        <div class="onboarding-actions"><button type="button" data-onboarding-skip>暂时只用本地</button><button type="button" data-onboarding-finish>开始聊天</button></div>
+      </article>
+    </section>
     <div class="statusbar">
       <span id="clock">9:41</span>
       <span class="status-icons" aria-hidden="true">
@@ -33,20 +60,20 @@
 
       <div class="conversation" id="conversation" aria-live="polite">
         <div class="empty-conversation" id="empty-conversation"><b>先随便说一句。</b><p>不用填问卷。你说生活里正在发生什么，我会在对话中慢慢认识你。</p></div>
-        <article class="plan-proposal" id="agent-proposal">
+        <article class="plan-proposal" id="agent-proposal" hidden>
           <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
           <div class="platform-line">
             <span class="platform-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 4 4 4 4-4M5 8.5h14a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7.5a2 2 0 0 1 2-2Z"/><path d="M9 13v2m6-2v2"/></svg></span>
-            <span id="proposal-platform">哔哩哔哩 · 通识</span>
+            <span id="proposal-platform"></span>
           </div>
-          <h2 id="proposal-title">看《世界历史速成课 #1：农业革命》前 11 分钟</h2>
+          <h2 id="proposal-title"></h2>
           <dl class="task-detail-list">
-            <div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why">它会把今天的小行动连接到你的长期方向。</dd></div>
-            <div><dt>怎么做</dt><dd id="proposal-instructions">戴耳机完整观看，不倍速；暂停时只记一句疑问。</dd></div>
-            <div><dt>做到什么算完成</dt><dd id="proposal-completion">用自己的话告诉我：农业革命的一个收益和一个代价。</dd></div>
+            <div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why"></dd></div>
+            <div><dt>怎么做</dt><dd id="proposal-instructions"></dd></div>
+            <div><dt>做到什么算完成</dt><dd id="proposal-completion"></dd></div>
           </dl>
           <div class="plan-actions">
-            <button id="start-action" type="button">打开哔哩哔哩并开始</button>
+            <button id="start-action" type="button">开始</button>
             <button id="discuss-action" type="button">和她讨论</button>
           </div>
         </article>
@@ -54,8 +81,10 @@
       </div>
 
       <form class="composer" id="chat-form">
-        <button class="voice-button" id="voice-button" type="button" aria-label="按住说话"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3.5" width="6" height="11" rx="3"/><path d="M6.5 11.5a5.5 5.5 0 0 0 11 0M12 17v3M9 20h6"/></svg></button>
-        <textarea id="chat-input" rows="1" placeholder="和她说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
+        <div class="attachment-preview" id="attachment-preview" hidden></div>
+        <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
+        <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
         <button class="send-button" type="submit" aria-label="发送"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18V6M7.5 10.5 12 6l4.5 4.5"/></svg></button>
       </form>
     </section>
@@ -102,8 +131,6 @@
       <section class="preference-section"><h2>伙伴呈现</h2><p class="section-hint">只调整称呼与表达，不套用性别刻板印象。</p><div class="gender-options role-options">
         <button type="button" data-gender="female">女性 · 她</button><button type="button" data-gender="male">男性 · 他</button><button type="button" data-gender="neutral">中性 · TA</button>
       </div></section>
-      <section class="preference-section sources"><h2>生活来源</h2><p>文件与笔记、微信、抖音收藏、日历</p><span>尚未接入 · 功能开发中</span></section>
-      <section class="preference-section sources"><h2>通识候选资源</h2><p>42 个来自你提供清单的创作者或系列</p><span>使用前逐条核验具体内容，不会照单全收</span></section>
       <button class="settings-entry" type="button" data-open-screen="settings">
         <span class="settings-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7z"/></svg></span>
         <span><b>系统设置</b><small>模型、本地数据与通知</small></span>
@@ -122,11 +149,21 @@
       </section>
       <section class="settings-section" aria-labelledby="model-title">
         <div class="settings-title"><div><small>02</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
-        <p class="settings-note">当前版本先使用设备内的判断循环。云端厂商连接会在安全密钥存储接入后开放，不展示不能工作的入口。</p>
+        <label class="setting-row" for="settings-cloud-consent"><span><b>允许当次对话使用云端模型</b><small>关闭后立即回到本地判断，不会发送新内容</small></span><input class="switch" id="settings-cloud-consent" type="checkbox"></label>
+        <label class="model-field"><span>厂商</span><select id="provider-select"></select></label>
+        <label class="model-field"><span>API 地址</span><input id="api-endpoint" type="url" autocomplete="url"></label>
+        <label class="model-field"><span>API Key</span><input id="api-key" type="password" autocomplete="off" placeholder="只在本次浏览器会话中保存"></label>
+        <div class="model-actions"><button type="button" id="test-model-connection">测试连接</button><button type="button" id="fetch-models">获取模型</button></div>
+        <label class="model-field"><span>模型</span><select id="model-select"><option value="">先获取模型</option></select></label>
+        <button class="primary-settings-action" type="button" id="save-model-config">保存并设为默认</button>
+        <p class="settings-note">当前测试版的 Key 只保留到本次页面或应用会话结束；不会写入长期记忆或备份。接入 iPhone 系统安全凭据前，不会长期保存密钥。</p>
       </section>
       <section class="settings-section" aria-labelledby="data-title">
-        <div class="settings-title"><div><small>03</small><h2 id="data-title">数据与备份</h2></div><span>只在这里管理</span></div>
+        <div class="settings-title"><div><small>03</small><h2 id="data-title">资料与授权</h2></div><span>只在这里管理</span></div>
         <div class="setting-row"><span><b>设备本地保存</b><small>对话、偏好与路径首先保存在设备</small></span><span class="fixed-state">始终开启</span></div>
+        <div class="source-row"><span><b>对话附件</b><small>照片、文本与文件只在你发送后进入当前对话</small></span><button type="button" data-open-screen="chat">去添加</button></div>
+        <div class="source-row"><span><b>日历</b><small id="calendar-summary">可导入标准 .ics 日历，在本地识别现实时间</small></span><button type="button" id="calendar-import">导入</button><input id="calendar-file" type="file" accept="text/calendar,.ics" hidden></div>
+        <div class="source-row"><span><b>已授权资料</b><small id="source-summary">目前没有长期引用的资料</small></span><button type="button" id="clear-sources">清除</button></div>
         <div class="backup-actions"><button type="button" id="export-backup">导出本地备份</button><button type="button" id="import-backup">从备份恢复</button><input type="file" id="backup-file" accept="application/json" hidden></div>
         <p class="settings-note">备份包含你的对话、偏好和 Agent 对你的本地认识；恢复前会再次确认。</p>
       </section>
@@ -143,7 +180,15 @@
     </dialog>
 
     <dialog class="action-dialog" id="model-dialog">
-      <form method="dialog"><small>只影响当前对话</small><h2>选择这次使用的模型</h2><p>目前只有本地判断可用。连接云端模型后会自动出现在这里。</p><button value="cancel">知道了</button></form>
+      <form method="dialog"><small>只影响当前对话</small><h2>选择这次使用的模型</h2><div id="conversation-model-options" class="dialog-options"></div><button value="cancel">收起</button></form>
+    </dialog>
+
+    <dialog class="action-dialog attachment-dialog" id="attachment-dialog">
+      <form method="dialog"><small>补充当前对话</small><h2>把现实里的内容带进来</h2><div class="attachment-options"><button value="camera" data-attachment-source="camera">拍照</button><button value="photo" data-attachment-source="photo">选择照片</button><button value="file" data-attachment-source="file">选择文件</button><button value="paste" data-attachment-source="paste">粘贴文字</button></div><button value="cancel">取消</button></form>
+    </dialog>
+
+    <dialog class="action-dialog" id="paste-dialog">
+      <form method="dialog"><small>补充当前对话</small><h2>粘贴一段文字</h2><textarea id="pasted-text" rows="7" placeholder="笔记、聊天内容、网页片段……"></textarea><div><button value="cancel">取消</button><button value="confirm" id="confirm-paste">加入对话</button></div></form>
     </dialog>
 
     <nav class="bottom-nav" aria-label="主要页面">

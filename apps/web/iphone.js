@@ -1,11 +1,12 @@
 import { createAgentState, hydrateAgentState, runAgentTurn } from "./agent/index.js";
 import { createEncryptedBackup, readEncryptedBackup } from "./local-backup.js";
+import { MODEL_PROVIDERS, fetchProviderModels, getProvider, requestProviderReply } from "./agent/model-providers.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "citrus", role: "guide", gender: "female", initiative: .65, avatar: defaultAvatar, messages: [], currentConversationModel: "local", quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
+const defaults = { name: "小程", theme: "elegant", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
 const legacyThemes = { apricot: "citrus", sage: "meadow", plum: "berry" };
 const themeColors = { citrus: "#fbe8bb", meadow: "#f0eee2", berry: "#f5e7df", dusk: "#eee8e8", elegant: "#faf6ee", silver: "#e1e7e4" };
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
@@ -20,6 +21,8 @@ const $ = selector => document.querySelector(selector);
 let toastTimer;
 let state = load();
 let agentState = loadAgent();
+let pendingAttachments = [];
+let onboardingIndex = 0;
 const screenOrder = ["chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
@@ -49,6 +52,43 @@ function saveAgent() {
 
 function escapeHtml(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function renderOnboarding() {
+  if (state.onboardingComplete) return;
+  const steps = [...document.querySelectorAll("[data-onboarding-step]")];
+  steps.forEach((step, index) => { step.hidden = index !== onboardingIndex; });
+  document.querySelectorAll(".onboarding-progress i").forEach((dot, index) => dot.classList.toggle("active", index === onboardingIndex));
+  document.querySelectorAll("[data-onboarding-role]").forEach(button => button.classList.toggle("active", button.dataset.onboardingRole === state.role));
+  $("#onboarding-name").value = state.name;
+  $("#onboarding-initiative").value = state.initiative;
+  $("#onboarding-directness").value = state.directness;
+  $("#onboarding-initiative-value").textContent = `${Math.round(state.initiative * 100)}%`;
+  $("#onboarding-directness-value").textContent = `${Math.round(state.directness * 100)}%`;
+}
+
+function renderAttachments() {
+  const preview = $("#attachment-preview");
+  preview.hidden = pendingAttachments.length === 0;
+  preview.innerHTML = pendingAttachments.map((item, index) => `<div class="attachment-chip">${item.type.startsWith("image/") ? `<img src="${item.dataUrl}" alt="">` : ""}<span>${escapeHtml(item.name)}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`).join("");
+  $(".send-button").classList.toggle("ready", Boolean($("#chat-input").value.trim() || pendingAttachments.length));
+}
+
+function renderModelControls() {
+  const providerSelect = $("#provider-select");
+  const config = state.modelConfig || { providerId: "openai", endpoint: getProvider("openai").baseUrl, model: "" };
+  if (!providerSelect.dataset.initialized) {
+    providerSelect.innerHTML = MODEL_PROVIDERS.map(provider => `<option value="${provider.id}">${escapeHtml(provider.name)}</option>`).join("");
+    providerSelect.value = config.providerId;
+    $("#api-endpoint").value = config.endpoint || getProvider(config.providerId).baseUrl;
+    $("#api-key").value = sessionStorage.getItem(`xuecheng:key:${config.providerId}`) || "";
+    providerSelect.dataset.initialized = "true";
+  }
+  const modelSelect = $("#model-select");
+  if (config.model && ![...modelSelect.options].some(option => option.value === config.model)) modelSelect.add(new Option(config.model, config.model));
+  if (config.model) modelSelect.value = config.model;
+  const options = [{ value: "local", label: "本地判断" }, ...(state.modelConfig?.model && state.cloudConsent ? [{ value: state.modelConfig.model, label: state.modelConfig.model }] : [])];
+  $("#conversation-model-options").innerHTML = options.map(option => `<button type="button" data-conversation-model="${escapeHtml(option.value)}" class="${state.currentConversationModel === option.value ? "active" : ""}">${escapeHtml(option.label)}</button>`).join("");
 }
 
 function showToast(message) {
@@ -93,11 +133,12 @@ function render() {
   $("#quiet-start").value = state.quietStart;
   $("#quiet-end").value = state.quietEnd;
   $("#urgent-override").checked = state.urgentOverride;
-  $("#model-summary").textContent = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
-  $("#conversation-model").textContent = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
+  const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
+  $("#model-summary").textContent = selectedModel;
+  $("#conversation-model").textContent = selectedModel;
   $("#dynamic-messages").innerHTML = state.messages.map(message => message.role === "user"
-    ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p><time>刚刚</time></div></article>`
-    : `<article class="message companion-message"><img src="${escapeHtml(state.avatar)}" alt=""><div><p>${escapeHtml(message.text)}</p><time>刚刚</time></div></article>`).join("");
+    ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>刚刚</time></div></article>`
+    : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>刚刚</time></div></article>`).join("");
   $("#empty-conversation").hidden = state.messages.length > 0 || Boolean(agentState.next_recommended_action);
   renderToday(pronoun);
   renderPath();
@@ -117,6 +158,14 @@ function render() {
     start.disabled = action.status === "accepted";
     $("#discuss-action").textContent = `和${pronoun}讨论`;
   }
+  $("#onboarding").hidden = state.onboardingComplete;
+  $("#settings-cloud-consent").checked = state.cloudConsent;
+  $("#cloud-consent").checked = state.cloudConsent;
+  $("#source-summary").textContent = state.sources.length ? `${state.sources.length} 项资料可被引用，可随时清除` : "目前没有长期引用的资料";
+  $("#calendar-summary").textContent = state.calendarEvents.length ? `已在本地读取 ${state.calendarEvents.length} 项日历安排` : "可导入标准 .ics 日历，在本地识别现实时间";
+  renderModelControls();
+  renderAttachments();
+  renderOnboarding();
 }
 
 function openScreen(name) {
@@ -185,22 +234,99 @@ document.querySelectorAll("[data-nav]").forEach(button => button.addEventListene
 document.querySelectorAll("[data-open-screen]").forEach(button => button.addEventListener("click", () => openScreen(button.dataset.openScreen)));
 document.querySelectorAll("[data-task-chat]").forEach(button => button.addEventListener("click", () => openTaskConversation(button.dataset.taskChat)));
 
-$("#chat-form").addEventListener("submit", event => {
+document.querySelectorAll("[data-onboarding-next]").forEach(button => button.addEventListener("click", () => {
+  state.name = $("#onboarding-name").value.trim() || "小程";
+  onboardingIndex = Math.min(2, onboardingIndex + 1);
+  save();
+  render();
+}));
+document.querySelectorAll("[data-onboarding-skip]").forEach(button => button.addEventListener("click", () => {
+  if (onboardingIndex < 2) onboardingIndex += 1;
+  else state.onboardingComplete = true;
+  save();
+  render();
+}));
+document.querySelectorAll("[data-onboarding-role]").forEach(button => button.addEventListener("click", () => {
+  state.role = button.dataset.onboardingRole;
+  renderOnboarding();
+}));
+[["#onboarding-initiative", "initiative", "#onboarding-initiative-value"], ["#onboarding-directness", "directness", "#onboarding-directness-value"]].forEach(([selector, key, output]) => {
+  $(selector).addEventListener("input", event => {
+    state[key] = Number(event.target.value);
+    $(output).textContent = `${Math.round(state[key] * 100)}%`;
+  });
+});
+$("#cloud-consent").addEventListener("change", event => { state.cloudConsent = event.target.checked; });
+$("[data-onboarding-finish]").addEventListener("click", () => {
+  state.name = $("#onboarding-name").value.trim() || "小程";
+  state.cloudConsent = $("#cloud-consent").checked;
+  state.onboardingComplete = true;
+  save();
+  render();
+  showToast("准备好了。先随便和我说一句吧");
+});
+
+const guideSystemPrompt = () => `你是学程中的${state.name}，一位会长期了解用户的私人教育引路人。你的任务不是生成课表，而是观察、判断、协商、陪伴执行和验收。自然交流；信息不足就只问最关键的一件事。每次最多提出一件下一步行动，必须具体说明做什么、多久、怎么做、完成标准、为什么现在值得。可以提出不同意见，但用户拥有最终决定权。不要声称看到了未提供的信息，不要暴露隐藏思维链。`;
+
+function modelMessages(latestText, attachments) {
+  const history = state.messages.slice(-12).map(message => ({ role: message.role, content: message.text }));
+  const attachmentText = attachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
+  const imageParts = attachments.filter(item => item.type.startsWith("image/")).map(item => ({ type: "image_url", image_url: { url: item.dataUrl } }));
+  const content = imageParts.length ? [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts] : `${latestText}${attachmentText}`;
+  if (history.at(-1)?.role === "user") history.pop();
+  return [...history, { role: "user", content }];
+}
+
+$("#chat-form").addEventListener("submit", async event => {
   event.preventDefault();
   const input = $("#chat-input");
   const text = input.value.trim();
-  if (!text) {
+  if (!text && !pendingAttachments.length) {
     showToast("先说一句你现在最想解决的事");
     input.focus();
     return;
   }
+  const submittedAttachments = pendingAttachments;
+  pendingAttachments = [];
   $("#agent-proposal").classList.remove("discussing");
-  state.messages.push({ role: "user", text });
-  const agentResult = runAgentTurn(agentState, text);
+  const userText = text || "请看看我发来的内容。";
+  state.messages.push({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+  const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
   agentState = agentResult.state;
-  state.messages.push({ role: "assistant", text: agentResult.reply, kind: agentResult.kind });
   input.value = "";
   resizeComposer();
+  save();
+  saveAgent();
+  render();
+  const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
+  let reply = agentResult.reply;
+  if (useCloud) {
+    const working = document.createElement("article");
+    working.className = "message companion-message work-state";
+    working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
+    $("#dynamic-messages").append(working);
+    working.scrollIntoView({ block: "end" });
+    try {
+      reply = await requestProviderReply({
+        ...state.modelConfig,
+        apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
+        system: guideSystemPrompt(),
+        messages: modelMessages(userText, submittedAttachments),
+      });
+    } catch (error) {
+      showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
+    } finally { working.remove(); }
+  }
+  state.messages.push({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+  if (submittedAttachments.length) {
+    state.pendingSourceNames = submittedAttachments.map(item => item.name);
+    state.messages.push({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
+  } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
+    state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
+    state.pendingSourceNames = [];
+  } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
+    state.pendingSourceNames = [];
+  }
   save();
   render();
   const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
@@ -319,7 +445,64 @@ document.querySelectorAll("[data-gender]").forEach(button => button.addEventList
   });
 });
 
-$("#conversation-model").addEventListener("click", () => $("#model-dialog").showModal());
+$("#conversation-model").addEventListener("click", () => {
+  renderModelControls();
+  $("#model-dialog").showModal();
+});
+$("#conversation-model-options").addEventListener("click", event => {
+  const button = event.target.closest("[data-conversation-model]");
+  if (!button) return;
+  state.currentConversationModel = button.dataset.conversationModel;
+  save();
+  render();
+  $("#model-dialog").close();
+  showToast("只切换了当前对话的模型");
+});
+
+$("#settings-cloud-consent").addEventListener("change", event => {
+  state.cloudConsent = event.target.checked;
+  if (!state.cloudConsent) state.currentConversationModel = "local";
+  save();
+  render();
+});
+$("#provider-select").addEventListener("change", event => {
+  const provider = getProvider(event.target.value);
+  $("#api-endpoint").value = provider.baseUrl;
+  $("#api-key").value = sessionStorage.getItem(`xuecheng:key:${provider.id}`) || "";
+  $("#model-select").innerHTML = '<option value="">先获取模型</option>';
+});
+
+function currentModelDraft() {
+  return { providerId: $("#provider-select").value, endpoint: $("#api-endpoint").value.trim(), apiKey: $("#api-key").value.trim(), model: $("#model-select").value };
+}
+
+async function loadModels(showSuccess = true) {
+  const draft = currentModelDraft();
+  if (!draft.apiKey && draft.providerId !== "ollama") throw new Error("请先填写 API Key");
+  const models = await fetchProviderModels(draft);
+  if (!models.length) throw new Error("连接成功，但没有找到可对话的模型");
+  $("#model-select").innerHTML = models.map(model => `<option value="${escapeHtml(model)}">${escapeHtml(model)}</option>`).join("");
+  if (showSuccess) showToast(`连接成功，找到 ${models.length} 个模型`);
+  return models;
+}
+
+$("#test-model-connection").addEventListener("click", async () => {
+  try { await loadModels(true); } catch (error) { showToast(error.message); }
+});
+$("#fetch-models").addEventListener("click", async () => {
+  try { await loadModels(true); } catch (error) { showToast(error.message); }
+});
+$("#save-model-config").addEventListener("click", () => {
+  const draft = currentModelDraft();
+  if (!state.cloudConsent) return showToast("请先明确允许当前对话使用云端模型");
+  if (!draft.model) return showToast("请先获取并选择一个模型");
+  sessionStorage.setItem(`xuecheng:key:${draft.providerId}`, draft.apiKey);
+  state.modelConfig = { providerId: draft.providerId, endpoint: draft.endpoint, model: draft.model };
+  state.currentConversationModel = draft.model;
+  save();
+  render();
+  showToast("模型已保存；Key 只在本次页面会话中保留");
+});
 
 $("#export-backup").addEventListener("click", async () => {
   const password = window.prompt("设置一个备份密码（恢复时需要）");
@@ -368,7 +551,7 @@ function resizeComposer() {
   chatInput.style.height = "auto";
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
 }
-chatInput.addEventListener("input", resizeComposer);
+chatInput.addEventListener("input", () => { resizeComposer(); renderAttachments(); });
 chatInput.addEventListener("focus", () => {
   requestAnimationFrame(() => {
     window.scrollTo(0, 0);
@@ -406,6 +589,79 @@ $("#reset-avatar").addEventListener("click", () => {
   showToast("已经恢复学程图标");
 });
 
+const attachmentInput = $("#attachment-input");
+$("#attachment-trigger").addEventListener("click", () => $("#attachment-dialog").showModal());
+document.querySelectorAll("[data-attachment-source]").forEach(button => button.addEventListener("click", () => {
+  const source = button.dataset.attachmentSource;
+  if (source === "paste") return setTimeout(() => $("#paste-dialog").showModal(), 0);
+  attachmentInput.accept = source === "photo" || source === "camera" ? "image/*" : "image/*,text/*,application/pdf";
+  if (source === "camera") attachmentInput.setAttribute("capture", "environment");
+  else attachmentInput.removeAttribute("capture");
+  setTimeout(() => attachmentInput.click(), 0);
+}));
+
+function readFileAttachment(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error(`无法读取 ${file.name}`));
+    reader.onload = () => resolve({ name: file.name, type: file.type || "application/octet-stream", dataUrl: String(reader.result), text: "" });
+    reader.readAsDataURL(file);
+  });
+}
+
+attachmentInput.addEventListener("change", async event => {
+  const files = [...(event.target.files || [])].slice(0, 4);
+  for (const file of files) {
+    if (file.size > 8 * 1024 * 1024) { showToast(`${file.name} 超过 8 MB，暂未加入`); continue; }
+    try {
+      const item = await readFileAttachment(file);
+      if (file.type.startsWith("text/") || /\.(md|txt|json|csv)$/i.test(file.name)) item.text = (await file.text()).slice(0, 100000);
+      pendingAttachments.push(item);
+    } catch (error) { showToast(error.message); }
+  }
+  event.target.value = "";
+  renderAttachments();
+});
+$("#attachment-preview").addEventListener("click", event => {
+  const button = event.target.closest("[data-remove-attachment]");
+  if (!button) return;
+  pendingAttachments.splice(Number(button.dataset.removeAttachment), 1);
+  renderAttachments();
+});
+$("#confirm-paste").addEventListener("click", event => {
+  const text = $("#pasted-text").value.trim();
+  if (!text) { event.preventDefault(); return showToast("先粘贴一点内容"); }
+  pendingAttachments.push({ name: "粘贴的文字", type: "text/plain", text, dataUrl: "" });
+  $("#pasted-text").value = "";
+  renderAttachments();
+});
+
+$("#calendar-import").addEventListener("click", () => $("#calendar-file").click());
+$("#calendar-file").addEventListener("change", async event => {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  const source = await file.text();
+  const events = [...source.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map(match => {
+    const block = match[1];
+    const summary = block.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "未命名安排";
+    const start = block.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "";
+    return { summary, start };
+  });
+  state.calendarEvents = events;
+  save();
+  render();
+  showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
+  event.target.value = "";
+});
+$("#clear-sources").addEventListener("click", () => {
+  if (!state.sources.length) return showToast("目前没有长期引用的资料");
+  if (!window.confirm("清除后，学程不会再把这些资料作为长期参考。确定吗？")) return;
+  state.sources = [];
+  save();
+  render();
+  showToast("长期资料引用已清除");
+});
+
 function syncVisualViewport() {
   const viewportHeight = window.visualViewport?.height || window.innerHeight;
   const focusedTextEntry = document.activeElement?.matches('input:not([type="range"]), textarea');
@@ -428,7 +684,6 @@ document.addEventListener("focusout", () => {
 });
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const voiceButton = $("#voice-button");
 let recognition = null;
 function bindHoldToTalk(surface) {
   let holdTimer = null;
@@ -442,7 +697,7 @@ function bindHoldToTalk(surface) {
     recognition?.stop();
   };
   surface.addEventListener("pointerdown", event => {
-    if (event.target.closest(".send-button")) return;
+    if (event.target.closest("button,input")) return;
     holdTimer = setTimeout(() => {
       if (!Recognition) {
         showToast("当前环境暂不支持语音，请先用文字告诉她");

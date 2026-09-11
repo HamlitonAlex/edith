@@ -37,7 +37,7 @@ test("theme choices preview complete palettes instead of generic dot icons", () 
   assert.match(html, /class="theme-preview"/);
   assert.match(html, /明亮温暖/);
   assert.match(html, /安静自然/);
-  assert.doesNotMatch(html, /<i><\/i>/);
+  assert.doesNotMatch(html, /theme-preview[^>]*>[\s\S]{0,80}<i>/);
 });
 
 test("small supporting text keeps AA contrast on every theme canvas", () => {
@@ -89,7 +89,7 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(html, /id="start-action"/);
   assert.match(html, /id="discuss-action"/);
   assert.doesNotMatch(html, /id="adopt-plan"|接受这个安排/);
-  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0, 1fr\) auto/s);
+  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/s);
   assert.match(refinementCss, /button:focus-visible/);
 });
 
@@ -101,12 +101,16 @@ test("navigation and new messages use purposeful reduced-motion-safe transitions
   assert.match(js, /reduceMotion\.matches/);
 });
 
-test("settings keeps local mode honest and exposes real backup controls", () => {
+test("settings exposes real BYOK and backup controls", () => {
   assert.match(html, /data-screen="settings"/);
   assert.match(html, /本地个人版/);
   assert.match(html, /id="export-backup"/);
   assert.match(html, /id="import-backup"/);
-  assert.doesNotMatch(html, /data-plan-option=|id="sync-enabled"/);
+  assert.match(html, /id="provider-select"/);
+  assert.match(html, /id="api-key"[^>]*type="password"/);
+  assert.match(html, /id="test-model-connection"/);
+  assert.match(html, /id="fetch-models"/);
+  assert.match(html, /id="save-model-config"/);
   assert.match(html, /id="quiet-start"/);
   assert.match(html, /id="agent-proposal"/);
   assert.match(js, /name === "settings" \? "us" : name/);
@@ -138,4 +142,29 @@ test("the entire composer supports hold to talk", () => {
 test("new users begin without fabricated personal history", () => {
   assert.doesNotMatch(html, /早上好。我把你最近说的|可以，不过晚上如果太累/);
   assert.doesNotMatch(js, /请根据你已经知道的信息，判断我现在最值得做的下一件事/);
+});
+
+test("first run is a skippable three-step conversation-led setup", () => {
+  assert.match(html, /id="onboarding"/);
+  for (const step of ["partner", "relationship", "boundary"]) assert.match(html, new RegExp(`data-onboarding-step="${step}"`));
+  assert.match(html, /data-onboarding-skip/);
+  assert.match(html, /id="cloud-consent"/);
+  assert.doesNotMatch(html, /哔哩哔哩 · 通识|农业革命|42 个来自/);
+});
+
+test("composer owns attachment capture and preview", () => {
+  assert.match(html, /id="attachment-trigger"/);
+  assert.match(html, /id="attachment-input"[^>]*accept="image\/\*,text\/\*,application\/pdf"/);
+  assert.match(html, /id="attachment-preview"/);
+  assert.match(html, /拍照|选择照片|选择文件|粘贴文字/);
+});
+
+test("assistant messages do not repeat an avatar", () => {
+  assert.doesNotMatch(js, /companion-message"><img/);
+});
+
+test("source permissions are real settings rather than development placeholders", () => {
+  assert.match(html, /资料与授权/);
+  assert.match(html, /id="calendar-file"/);
+  assert.doesNotMatch(html, /功能开发中|尚未接入/);
 });

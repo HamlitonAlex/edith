@@ -1,24 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
-  <title id="title">学程产品图标</title>
-  <desc id="desc">一条从草木色起点走向橘色晨光的路径</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+  <title id="title">学程</title>
   <defs>
-    <linearGradient id="paper" x1="72" y1="54" x2="446" y2="474" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FFF8E7"/>
-      <stop offset="1" stop-color="#F5D49A"/>
+    <linearGradient id="paper" x1="12" y1="8" x2="84" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffdf8"/>
+      <stop offset="1" stop-color="#eee4d2"/>
     </linearGradient>
-    <linearGradient id="route" x1="128" y1="388" x2="385" y2="123" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#496B50"/>
-      <stop offset=".56" stop-color="#A34A32"/>
-      <stop offset="1" stop-color="#E9852E"/>
+    <linearGradient id="light" x1="20" y1="77" x2="78" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8f4a32"/>
+      <stop offset=".72" stop-color="#b16d2c"/>
+      <stop offset="1" stop-color="#e5a63b"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="116" fill="url(#paper)"/>
-  <circle cx="442" cy="64" r="126" fill="#FFB12F" opacity=".2"/>
-  <circle cx="60" cy="458" r="118" fill="#78956E" opacity=".16"/>
-  <path d="M130 386c69-9 61-83 121-101 56-17 54-91 127-153" fill="none" stroke="url(#route)" stroke-width="42" stroke-linecap="round"/>
-  <path d="M130 386c69-9 61-83 121-101 56-17 54-91 127-153" fill="none" stroke="#FFF8E7" stroke-width="10" stroke-linecap="round" opacity=".82"/>
-  <circle cx="130" cy="386" r="38" fill="#496B50"/>
-  <circle cx="130" cy="386" r="14" fill="#FFF8E7"/>
-  <circle cx="378" cy="132" r="44" fill="#E9852E"/>
-  <circle cx="378" cy="132" r="17" fill="#FFF8E7"/>
+  <rect width="96" height="96" rx="27" fill="url(#paper)"/>
+  <path d="M20 22h24M32 15v30M20 38l12-10 12 10M32 32v19M20 51h24" fill="none" stroke="#29231d" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 19h24M57 19l-4 13h27l-4-13M55 33v17h23V33M55 42h23M51 56h31M55 56v20h23V56M55 66h23" fill="none" stroke="#29231d" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M18 78c19-2 31-10 40-21 7-8 13-19 21-34" fill="none" stroke="url(#light)" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="18" cy="78" r="4.5" fill="#fffdf8" stroke="#8f4a32" stroke-width="3"/>
+  <circle cx="79" cy="23" r="5" fill="#e5a63b" stroke="#fffdf8" stroke-width="2.5"/>
 </svg>
