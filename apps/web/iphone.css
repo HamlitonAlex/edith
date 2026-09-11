@@ -56,6 +56,7 @@ button:active,a:active{transform:scale(.98)}button:disabled{cursor:default;opaci
 .appearance-switch{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border:1px solid var(--line);border-radius:16px;background:var(--surface-strong)}
 .appearance-switch button{min-height:42px;border:0;border-radius:12px;background:transparent;color:var(--muted);font-size:10px;font-weight:700;transition:background-color .18s var(--ease-out-quart),color .18s var(--ease-out-quart),transform .12s var(--ease-out-quart)}
 .appearance-switch button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 3px 12px color-mix(in srgb,var(--ink) 10%,transparent)}
+.appearance-note{margin:-2px 0 12px}
 .role-options button.active{color:var(--on-action)}
 .conversation-day-divider{display:flex;align-items:center;gap:10px;margin:20px 0 18px;color:var(--faint);font-size:9px}.conversation-day-divider:before,.conversation-day-divider:after{height:1px;flex:1;background:var(--line);content:""}.conversation-day-divider span{flex:none}
 .task-detail-list dd{min-width:0;overflow-wrap:anywhere}

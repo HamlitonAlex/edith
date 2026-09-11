@@ -41,6 +41,7 @@ test("the product mark is the default and the user can replace it locally", () =
 test("appearance control is compact and keeps theme choice low effort", () => {
   assert.match(html, /class="appearance-switch"/);
   assert.doesNotMatch(html, /class="theme-preview"/);
+  assert.ok(html.indexOf('class="appearance-switch"') > html.indexOf('data-screen="settings"'));
 });
 
 test("small supporting text keeps AA contrast on every theme canvas", () => {

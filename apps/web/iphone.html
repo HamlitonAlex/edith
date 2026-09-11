@@ -120,10 +120,6 @@
         <button type="button" data-role="guide">引路人</button><button type="button" data-role="friend">朋友</button><button type="button" data-role="family">家人</button><button type="button" data-role="partner">伴侣式伙伴</button>
       </div></section>
       <section class="preference-section"><label for="initiative">主动找你的程度 <b id="initiative-value">65%</b></label><input id="initiative" type="range" min="0" max="1" step=".05" value=".65"><div class="range-labels"><span>只在重要时出现</span><span>经常来找我</span></div></section>
-      <section class="preference-section"><h2>界面氛围</h2><p class="section-hint">只改变空间明暗，学程的陶土与微光点缀保持不变。</p><div class="appearance-switch" role="group" aria-label="界面氛围">
-        <button type="button" data-theme-option="day">日间</button>
-        <button type="button" data-theme-option="night">夜间</button>
-      </div></section>
       <section class="preference-section"><h2>伙伴呈现</h2><p class="section-hint">只调整称呼与表达，不套用性别刻板印象。</p><div class="gender-options role-options">
         <button type="button" data-gender="female">女性 · 她</button><button type="button" data-gender="male">男性 · 他</button><button type="button" data-gender="neutral">中性 · TA</button>
       </div></section>
@@ -139,12 +135,17 @@
         <button type="button" data-open-screen="us" aria-label="返回我们"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
         <div><small>学程</small><h1>设置</h1></div>
       </header>
+      <section class="settings-section" aria-labelledby="appearance-title">
+        <div class="settings-title"><div><small>01</small><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
+        <p class="settings-note appearance-note">只改变空间明暗，学程的陶土与微光点缀保持不变。</p>
+        <div class="appearance-switch" role="group" aria-label="界面氛围"><button type="button" data-theme-option="day">日间</button><button type="button" data-theme-option="night">夜间</button></div>
+      </section>
       <section class="settings-section" aria-labelledby="plan-title">
-        <div class="settings-title"><div><small>01</small><h2 id="plan-title">使用方式</h2></div><span>本地个人版</span></div>
+        <div class="settings-title"><div><small>02</small><h2 id="plan-title">使用方式</h2></div><span>本地个人版</span></div>
         <div class="setting-row"><span><b>一人一份长期记忆</b><small>对话、偏好、判断证据只保存在当前设备</small></span><span class="fixed-state">正在使用</span></div>
       </section>
       <section class="settings-section" aria-labelledby="model-title">
-        <div class="settings-title"><div><small>02</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
+        <div class="settings-title"><div><small>03</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
         <label class="setting-row" for="settings-cloud-consent"><span><b>允许当次对话使用云端模型</b><small>关闭后立即回到本地判断，不会发送新内容</small></span><input class="switch" id="settings-cloud-consent" type="checkbox"></label>
         <label class="model-field"><span>厂商</span><select id="provider-select"></select></label>
         <label class="model-field"><span>API 地址</span><input id="api-endpoint" type="url" autocomplete="url"></label>
@@ -155,7 +156,7 @@
         <p class="settings-note">当前测试版的 Key 只保留到本次页面或应用会话结束；不会写入长期记忆或备份。接入 iPhone 系统安全凭据前，不会长期保存密钥。</p>
       </section>
       <section class="settings-section" aria-labelledby="data-title">
-        <div class="settings-title"><div><small>03</small><h2 id="data-title">资料与授权</h2></div><span>只在这里管理</span></div>
+        <div class="settings-title"><div><small>04</small><h2 id="data-title">资料与授权</h2></div><span>只在这里管理</span></div>
         <div class="setting-row"><span><b>设备本地保存</b><small>对话、偏好与路径首先保存在设备</small></span><span class="fixed-state">始终开启</span></div>
         <div class="source-row"><span><b>对话附件</b><small>照片、文本与文件只在你发送后进入当前对话</small></span><button type="button" data-open-screen="chat">去添加</button></div>
         <div class="source-row"><span><b>日历</b><small id="calendar-summary">可导入标准 .ics 日历，在本地识别现实时间</small></span><button type="button" id="calendar-import">导入</button><input id="calendar-file" type="file" accept="text/calendar,.ics" hidden></div>
@@ -164,7 +165,7 @@
         <p class="settings-note">备份包含你的对话、偏好和 Agent 对你的本地认识；恢复前会再次确认。</p>
       </section>
       <section class="settings-section" aria-labelledby="notify-title">
-        <div class="settings-title"><div><small>04</small><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
+        <div class="settings-title"><div><small>05</small><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
         <div class="quiet-times"><label for="quiet-start"><span>从</span><input id="quiet-start" type="time" value="23:00"></label><label for="quiet-end"><span>到</span><input id="quiet-end" type="time" value="07:30"></label></div>
         <label class="setting-row" for="urgent-override"><span><b>重要事情可以覆盖安静时段</b><small>由紧迫度判断；每一次打扰都会说明原因</small></span><input class="switch" id="urgent-override" type="checkbox" checked></label>
       </section>

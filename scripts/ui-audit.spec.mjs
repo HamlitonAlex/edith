@@ -51,6 +51,7 @@ test("all visible controls have a real response", async ({ page }) => {
   await expect(page.locator("#relationship-copy")).toContainText("他会");
   await page.locator('[data-role="friend"]').click();
   await expect(page.locator("#relationship-copy")).toContainText("朋友");
+  await page.locator('[data-open-screen="settings"]').click();
   await page.locator('[data-theme-option="night"]').click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "night");
   await page.reload();
@@ -58,7 +59,6 @@ test("all visible controls have a real response", async ({ page }) => {
   await expect(page.locator("#dynamic-messages")).toContainText("独立做出真正有人用的产品");
   await expect(page.locator(".conversation-day-divider")).toContainText("今天");
   await page.locator('[data-nav="us"]').click();
-
   await page.locator('[data-open-screen="settings"]').click();
   await expect(page.locator('[data-screen="settings"]')).toBeVisible();
   await page.locator("#provider-select").selectOption("deepseek");
