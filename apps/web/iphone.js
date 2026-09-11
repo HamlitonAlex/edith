@@ -1,14 +1,15 @@
 import { createAgentState, hydrateAgentState, runAgentTurn } from "./agent/index.js";
 import { createEncryptedBackup, readEncryptedBackup } from "./local-backup.js";
 import { MODEL_PROVIDERS, fetchProviderModels, getProvider, requestProviderReply } from "./agent/model-providers.js";
+import { conversationDayLabel, formatConversationTime, mergeStoredConversation } from "./lib/conversation-history.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "elegant", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
-const legacyThemes = { apricot: "citrus", sage: "meadow", plum: "berry" };
-const themeColors = { citrus: "#fbe8bb", meadow: "#f0eee2", berry: "#f5e7df", dusk: "#eee8e8", elegant: "#faf6ee", silver: "#e1e7e4" };
+const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
+const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
+const themeColors = { day: "#f7f2e9", night: "#171614" };
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
   guide: `${pronoun}会像一位了解你的引路人，给建议，也会指出你正在回避的问题。`,
@@ -29,7 +30,10 @@ let screenAnimations = [];
 
 function load() {
   try {
-    const saved = JSON.parse(localStorage.getItem(storageKey) || localStorage.getItem("xuecheng:iphone:v1") || "{}");
+    const current = JSON.parse(localStorage.getItem(storageKey) || "{}");
+    const legacy = JSON.parse(localStorage.getItem("xuecheng:iphone:v1") || "{}");
+    const saved = Object.keys(current).length ? current : legacy;
+    saved.messages = mergeStoredConversation(legacy.messages, current.messages);
     const savedAvatar = saved.avatar && saved.avatar !== legacyDefaultAvatar ? saved.avatar : defaultAvatar;
     return { ...defaults, ...saved, theme: legacyThemes[saved.theme] || saved.theme || defaults.theme, avatar: savedAvatar };
   } catch {
@@ -48,6 +52,10 @@ function loadAgent() {
 
 function saveAgent() {
   localStorage.setItem(agentStorageKey, JSON.stringify(agentState));
+}
+
+function addMessage(message) {
+  state.messages.push({ ...message, createdAt: new Date().toISOString() });
 }
 
 function escapeHtml(value = "") {
@@ -118,7 +126,7 @@ function renderPath() {
 function render() {
   const pronoun = pronounFor(state.gender);
   document.documentElement.dataset.theme = state.theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[state.theme] || themeColors.citrus);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[state.theme] || themeColors.day);
   document.querySelectorAll("[data-name]").forEach(node => { node.textContent = state.name; });
   document.querySelectorAll("[data-avatar]").forEach(node => { node.src = state.avatar; });
   $("#companion-name").value = state.name;
@@ -129,16 +137,28 @@ function render() {
   document.querySelectorAll("[data-gender]").forEach(button => button.classList.toggle("active", button.dataset.gender === state.gender));
   document.querySelectorAll("[data-pronoun]").forEach(node => { node.textContent = pronoun; });
   $("#chat-input").placeholder = `和${pronoun}说说现在的想法……`;
-  document.querySelectorAll("[data-theme-option]").forEach(button => button.setAttribute("aria-pressed", String(button.dataset.themeOption === state.theme)));
+  document.querySelectorAll("[data-theme-option]").forEach(button => {
+    const active = button.dataset.themeOption === state.theme;
+    button.setAttribute("aria-pressed", String(active));
+    button.classList.toggle("active", active);
+  });
   $("#quiet-start").value = state.quietStart;
   $("#quiet-end").value = state.quietEnd;
   $("#urgent-override").checked = state.urgentOverride;
   const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
   $("#model-summary").textContent = selectedModel;
   $("#conversation-model").textContent = selectedModel;
-  $("#dynamic-messages").innerHTML = state.messages.map(message => message.role === "user"
-    ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>刚刚</time></div></article>`
-    : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>刚刚</time></div></article>`).join("");
+  let previousDay = "";
+  $("#dynamic-messages").innerHTML = state.messages.map(message => {
+    const day = conversationDayLabel(message.createdAt);
+    const divider = day !== previousDay ? `<div class="conversation-day-divider"><span>${escapeHtml(day)}</span></div>` : "";
+    previousDay = day;
+    const time = formatConversationTime(message.createdAt);
+    const content = message.role === "user"
+      ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>${time}</time></div></article>`
+      : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
+    return divider + content;
+  }).join("");
   $("#empty-conversation").hidden = state.messages.length > 0 || Boolean(agentState.next_recommended_action);
   renderToday(pronoun);
   renderPath();
@@ -290,7 +310,7 @@ $("#chat-form").addEventListener("submit", async event => {
   pendingAttachments = [];
   $("#agent-proposal").classList.remove("discussing");
   const userText = text || "请看看我发来的内容。";
-  state.messages.push({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+  addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
   const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
   agentState = agentResult.state;
   input.value = "";
@@ -317,10 +337,10 @@ $("#chat-form").addEventListener("submit", async event => {
       showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
     } finally { working.remove(); }
   }
-  state.messages.push({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+  addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
   if (submittedAttachments.length) {
     state.pendingSourceNames = submittedAttachments.map(item => item.name);
-    state.messages.push({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
+    addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
   } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
     state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
     state.pendingSourceNames = [];
@@ -344,7 +364,7 @@ function acceptCurrentAction() {
   if (!agentState.next_recommended_action) return null;
   const result = runAgentTurn(agentState, "接受这个安排，现在开始");
   agentState = result.state;
-  state.messages.push({ role: "assistant", text: result.reply, kind: result.kind });
+  addMessage({ role: "assistant", text: result.reply, kind: result.kind });
   save();
   saveAgent();
   render();
@@ -360,7 +380,7 @@ function discussCurrentAction(prompt = "这个安排有些地方不适合我，�
   const action = agentState.next_recommended_action;
   openScreen("chat");
   $("#agent-proposal").classList.add("discussing");
-  state.messages.push({ role: "assistant", text: action ? `可以。先不急着执行。${action.title}这件事里，是时间、内容、方式，还是我对“为什么现在”的判断让你觉得不合适？` : "可以，我们一起调整。你最想先改变哪一部分？" });
+  addMessage({ role: "assistant", text: action ? `可以。先不急着执行。${action.title}这件事里，是时间、内容、方式，还是我对“为什么现在”的判断让你觉得不合适？` : "可以，我们一起调整。你最想先改变哪一部分？" });
   save();
   render();
   const input = $("#chat-input");
@@ -393,7 +413,7 @@ $("#confirm-external-action").addEventListener("click", () => {
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || !leftForExternalAction) return;
   leftForExternalAction = false;
-  state.messages.push({ role: "assistant", text: "你回来了。刚才看到哪里？不用总结，随口说一句最让你停顿或意外的地方就行。", kind: "follow-up" });
+  addMessage({ role: "assistant", text: "你回来了。刚才看到哪里？不用总结，随口说一句最让你停顿或意外的地方就行。", kind: "follow-up" });
   save();
   render();
   openScreen("chat");

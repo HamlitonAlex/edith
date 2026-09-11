@@ -9,11 +9,16 @@ const [html, css, refinementCss, js] = await Promise.all([
   readFile(new URL("../iphone.js", import.meta.url), "utf8")
 ]);
 
-test("iPhone UI offers six whole-surface themes", () => {
-  for (const theme of ["citrus", "meadow", "berry", "dusk", "elegant", "silver"]) {
+test("iPhone UI offers only a manual day and night atmosphere", () => {
+  for (const theme of ["day", "night"]) {
     assert.match(html, new RegExp(`data-theme-option="${theme}"`));
-    if (theme !== "citrus") assert.match(css, new RegExp(`data-theme="${theme}"`));
+    assert.match(css, new RegExp(`data-theme="${theme}"`));
   }
+  for (const retiredTheme of ["citrus", "meadow", "berry", "dusk", "elegant", "silver"]) {
+    assert.doesNotMatch(html, new RegExp(`data-theme-option="${retiredTheme}"`));
+  }
+  assert.match(html, /日间/);
+  assert.match(html, /夜间/);
 });
 
 test("daily work names the platform, action, content and completion", () => {
@@ -33,11 +38,9 @@ test("the product mark is the default and the user can replace it locally", () =
   assert.match(css, /touch-action:manipulation/);
 });
 
-test("theme choices preview complete palettes instead of generic dot icons", () => {
-  assert.match(html, /class="theme-preview"/);
-  assert.match(html, /明亮温暖/);
-  assert.match(html, /安静自然/);
-  assert.doesNotMatch(html, /theme-preview[^>]*>[\s\S]{0,80}<i>/);
+test("appearance control is compact and keeps theme choice low effort", () => {
+  assert.match(html, /class="appearance-switch"/);
+  assert.doesNotMatch(html, /class="theme-preview"/);
 });
 
 test("small supporting text keeps AA contrast on every theme canvas", () => {
@@ -51,7 +54,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
     return (values[0] + 0.05) / (values[1] + 0.05);
   };
   const themeBlocks = [...css.matchAll(/(?::root|:root\[data-theme="[^"]+"\])\{([^}]+)\}/g)];
-  assert.equal(themeBlocks.length, 6);
+  assert.equal(themeBlocks.length, 2);
   for (const [, block] of themeBlocks) {
     const canvas = block.match(/--canvas:(#[0-9a-f]{6})/i)?.[1];
     const muted = block.match(/--muted:(#[0-9a-f]{6})/i)?.[1];
@@ -60,6 +63,11 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
     assert.ok(contrast(muted, canvas) >= 4.5);
     assert.ok(contrast(faint, canvas) >= 4.5);
   }
+});
+
+test("shared brand actions keep readable text in both atmospheres", () => {
+  assert.match(css, /--on-action:#fff9f0/);
+  assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
 test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport", () => {
