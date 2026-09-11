@@ -15,7 +15,8 @@ const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest] = awai
 
 test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.doesNotMatch(markSvg, /<text\b|font-family=/i);
-  assert.match(markSvg, /data-mark="cheng"/);
+  assert.match(markSvg, /data-mark="path-companion"/);
+  assert.doesNotMatch(markSvg, /data-mark="cheng"/);
   assert.deepEqual(webIcon, iosIcon);
   assert.match(manifest, /"sizes": "1024x1024"/);
   assert.match(manifest, /"background_color": "#ebe9e6"/);
@@ -102,6 +103,8 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(html, /interactive-widget=resizes-content/);
   assert.doesNotMatch(html, /maximum-scale=1/);
   assert.doesNotMatch(html, /user-scalable=no/);
+  assert.match(refinementCss, /\.composer textarea:focus-visible\{outline:0\}/);
+  assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
 });
 
 test("the active iPhone interface uses SVG marks instead of emoji or status glyphs", () => {
@@ -114,6 +117,13 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
   assert.match(refinementCss, /\.bottom-nav\s*\{[^}]*right:\s*12px[^}]*left:\s*12px[^}]*border-radius:\s*24px/s);
   assert.match(refinementCss, /\.phone::after,[\s\S]*\.plan-proposal::after\s*\{\s*display:\s*none/);
   assert.match(refinementCss, /\.chat-screen\s*\{\s*background:\s*transparent/);
+  assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
+});
+
+test("real resources can appear as restrained image-led proposal cards", () => {
+  assert.match(html, /id="proposal-media"/);
+  assert.match(js, /action\.resource\?\.image/);
+  assert.match(refinementCss, /\.proposal-media\{/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {

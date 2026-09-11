@@ -6,7 +6,7 @@ const ACTIONS = [
     title: "看《世界历史速成课 #1：农业革命》前 11 分钟",
     duration_minutes: 20,
     platform: "哔哩哔哩",
-    resource: { title: "世界历史速成课 #1：农业革命", url: "https://www.bilibili.com/video/BV1fSr7YoEJ7/" },
+    resource: { title: "世界历史速成课 #1：农业革命", url: "https://www.bilibili.com/video/BV1fSr7YoEJ7/", image: "./assets/resource-agriculture.webp" },
     instructions: "不倍速观看；只观察技术变化后，谁获得了什么、又付出了什么。",
     completion_criteria: "不用复述定义，用自己的话说出一个收益、一个代价，以及它怎样改变了社会关系。",
     why_now: "你未来想做产品。如果只懂 AI，很容易把所有问题都理解成技术问题。农业革命是人类第一次大规模改变生产关系的案例，它能帮助你观察技术如何改变社会结构。今天不是为了背历史，而是为产品判断建立一个更宽的坐标。",

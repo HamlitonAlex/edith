@@ -166,6 +166,11 @@ function render() {
   const action = agentState.next_recommended_action;
   $("#agent-proposal").hidden = !action;
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));
+  const proposalMedia = $("#proposal-media");
+  const proposalImage = action && action.resource?.image;
+  proposalMedia.hidden = !proposalImage;
+  $("#proposal-image").src = proposalImage || "";
+  $("#proposal-image").alt = proposalImage ? `${action.resource.title} 的内容预览` : "";
   if (action) {
     $("#proposal-time").textContent = `${action.duration_minutes} 分钟`;
     $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
