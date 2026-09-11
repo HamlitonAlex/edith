@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest] = await Promise.all([
+const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest, planner, tutor, evaluator, infoPlist, buildScript] = await Promise.all([
   readFile(new URL("../iphone.html", import.meta.url), "utf8"),
   readFile(new URL("../iphone.css", import.meta.url), "utf8"),
   readFile(new URL("../iphone-refinement.css", import.meta.url), "utf8"),
@@ -10,7 +10,12 @@ const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest] = awai
   readFile(new URL("../assets/xuecheng-mark.svg", import.meta.url), "utf8"),
   readFile(new URL("../assets/xuecheng-mark.png", import.meta.url)),
   readFile(new URL("../../../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", import.meta.url)),
-  readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8")
+  readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8"),
+  readFile(new URL("../agent/planner.js", import.meta.url), "utf8"),
+  readFile(new URL("../agent/tutor.js", import.meta.url), "utf8"),
+  readFile(new URL("../agent/evaluator.js", import.meta.url), "utf8"),
+  readFile(new URL("../../../ios/App/App/Info.plist", import.meta.url), "utf8"),
+  readFile(new URL("../../../scripts/build-mobile.mjs", import.meta.url), "utf8")
 ]);
 
 test("web and iOS ship one font-independent 学程 brand mark", () => {
@@ -91,7 +96,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
 });
 
 test("shared brand actions keep readable text in both atmospheres", () => {
-  assert.match(css, /--on-action:#fff9f0/);
+  assert.match(css, /--on-action:#f8fbf7/);
   assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
@@ -120,10 +125,11 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
   assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
 });
 
-test("real resources can appear as restrained image-led proposal cards", () => {
-  assert.match(html, /id="proposal-media"/);
-  assert.match(js, /action\.resource\?\.image/);
-  assert.match(refinementCss, /\.proposal-media\{/);
+test("dynamic recommendations do not ship a fixed daily resource or cover", () => {
+  assert.doesNotMatch(html, /id="proposal-media"/);
+  assert.doesNotMatch(js, /proposalImage|resource\?\.image/);
+  for (const source of [planner, tutor, evaluator]) assert.doesNotMatch(source, /农业革命|世界历史速成课|BV1fSr7YoEJ7|build-xuecheng/);
+  assert.doesNotMatch(buildScript, /cp\(resolve\(web, "lib"\), resolve\(dist, "lib"\)/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {
@@ -177,8 +183,20 @@ test("task interaction is concrete, negotiable and confirms external jumps", () 
 
 test("the entire composer supports hold to talk", () => {
   assert.match(js, /bindHoldToTalk\(\$\("#chat-form"\)\)/);
+  assert.match(js, /bindDesktopSpaceToTalk/);
+  assert.match(js, /event\.code !== "Space"/);
+  assert.match(js, /document\.activeElement !== chatInput/);
   assert.match(js, /holdTimer/);
   assert.match(js, /confidence/);
+  assert.match(infoPlist, /NSSpeechRecognitionUsageDescription/);
+  assert.match(infoPlist, /NSMicrophoneUsageDescription/);
+});
+
+test("selected controls use botanical green and the tab bar has restrained depth", () => {
+  assert.match(css, /--action:#4f6d5b/);
+  assert.match(css, /--action-strong:#365342/);
+  assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
 });
 
 test("new users begin without fabricated personal history", () => {

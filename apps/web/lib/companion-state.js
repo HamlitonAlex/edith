@@ -13,38 +13,12 @@ export function createCompanionState() {
   return {
     assistantName: "小程",
     theme: "peach",
-    messages: [
-      { role: "assistant", text: "我已经明白一件重要的事：如果还要你每天打开应用、整理信息，它就没有真正融入生活。" },
-      { role: "assistant", text: "所以在文件、微信、抖音收藏和日历真正接入前，我不会把这里包装成“已经了解你”。现在我只依据我们说过的话继续搭建。" },
-    ],
-    areas: DEVELOPMENT_AREAS.map(([id, title, description]) => {
-      if (id === "projects") return { id, title, description, status: "active", note: "正在以真实开源产品作为第一个项目制目标" };
-      if (id === "future") return { id, title, description, status: "observing", note: "涉及 AI 协作、产品判断与持续执行" };
-      return { id, title, description, status: "background", note: "尚未形成判断" };
-    }),
-    memories: [
-      { key: "project-goal", confidence: 0.92, text: "希望完成并发布私人教育助手开源项目", source: "连续对话" },
-      { key: "usage-cost", confidence: 0.94, text: "不希望每天手工记录、打卡或维护复杂系统", source: "连续对话" },
-      { key: "initiative-preference", confidence: 0.9, text: "希望助手主动联系，但主动程度和安静时段必须可调", source: "连续对话" },
-    ],
-    tasks: [
-      { id: "market-research", status: "completed", title: "完成相邻产品体验研究", detail: "提炼出关系—行动—路径的产品顺序" },
-      { id: "redesign-home", status: "working", title: "把你说过的偏好整理成可纠正的工作方式", detail: "不要求问卷、每日打卡或重复输入" },
-    ],
-    schedule: [
-      {
-        id: "general-evening",
-        time: "18:00–18:30",
-        area: "通识",
-        platform: "哔哩哔哩",
-        action: "观看",
-        contentTitle: "世界历史速成课程 #1：农业革命",
-        contentUrl: "https://www.bilibili.com/video/BV1fSr7YoEJ7/",
-        completion: "看完 11 分钟视频，说出农业革命带来的一个收益和一个代价",
-        status: "ready",
-      },
-    ],
-    activeDirection: "把私人教育助手做成可安装的开源产品",
+    messages: [],
+    areas: DEVELOPMENT_AREAS.map(([id, title, description]) => ({ id, title, description, status: "background", note: "尚未形成判断" })),
+    memories: [],
+    tasks: [],
+    schedule: [],
+    activeDirection: "",
     initiative: 0.65,
   };
 }

@@ -4,7 +4,8 @@ import { readFile } from "node:fs/promises";
 
 const source = await readFile(new URL("../../../scripts/build-mobile.mjs", import.meta.url), "utf8");
 
-test("mobile bundle carries browser-side library modules", () => {
-  assert.match(source, /resolve\(web, "lib"\)/);
-  assert.match(source, /resolve\(dist, "lib"\)/);
+test("mobile bundle carries only the browser-side library module it uses", () => {
+  assert.match(source, /resolve\(web, "lib", "conversation-history\.js"\)/);
+  assert.match(source, /resolve\(dist, "lib", "conversation-history\.js"\)/);
+  assert.doesNotMatch(source, /cp\(resolve\(web, "lib"\), resolve\(dist, "lib"\)/);
 });

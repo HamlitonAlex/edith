@@ -166,11 +166,6 @@ function render() {
   const action = agentState.next_recommended_action;
   $("#agent-proposal").hidden = !action;
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));
-  const proposalMedia = $("#proposal-media");
-  const proposalImage = action && action.resource?.image;
-  proposalMedia.hidden = !proposalImage;
-  $("#proposal-image").src = proposalImage || "";
-  $("#proposal-image").alt = proposalImage ? `${action.resource.title} 的内容预览` : "";
   if (action) {
     $("#proposal-time").textContent = `${action.duration_minutes} 分钟`;
     $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
@@ -710,49 +705,113 @@ document.addEventListener("focusout", () => {
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition = null;
+function createVoiceController(surface) {
+  let confidence = 0;
+  let listening = false;
+  const start = () => {
+    if (listening) return true;
+    if (!Recognition) {
+      showToast("当前环境暂不支持语音，请先用文字告诉她");
+      return false;
+    }
+    listening = true;
+    confidence = 0;
+    surface.classList.add("listening");
+    chatInput.setAttribute("placeholder", "正在听，松开结束");
+    showToast("正在听，松开结束");
+    recognition = new Recognition();
+    recognition.lang = "zh-CN";
+    recognition.interimResults = false;
+    recognition.onresult = result => {
+      const best = result.results[0][0];
+      confidence = Number(best.confidence || 0);
+      chatInput.value = best.transcript;
+      resizeComposer();
+    };
+    recognition.onend = () => {
+      listening = false;
+      surface.classList.remove("listening");
+      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
+      if (chatInput.value.trim() && confidence >= .72) surface.requestSubmit();
+      else if (chatInput.value.trim()) showToast("我不太确定是否听准了，你看一眼再发送");
+    };
+    recognition.onerror = () => {
+      listening = false;
+      surface.classList.remove("listening");
+      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
+      showToast("没有听清，可以再长按一次");
+    };
+    recognition.start();
+    navigator.vibrate?.(18);
+    return true;
+  };
+  const stop = () => {
+    if (!listening) return;
+    recognition?.stop();
+  };
+  return { start, stop, isListening: () => listening };
+}
+
+const voiceController = createVoiceController($("#chat-form"));
 function bindHoldToTalk(surface) {
   let holdTimer = null;
   let holding = false;
-  let confidence = 0;
   const stop = () => {
     clearTimeout(holdTimer);
     holdTimer = null;
     if (!holding) return;
     holding = false;
-    recognition?.stop();
+    voiceController.stop();
   };
   surface.addEventListener("pointerdown", event => {
     if (event.target.closest("button,input")) return;
     holdTimer = setTimeout(() => {
-      if (!Recognition) {
-        showToast("当前环境暂不支持语音，请先用文字告诉她");
-        return;
-      }
-      holding = true;
-      surface.classList.add("listening");
-      showToast("正在听，松开结束");
-      recognition = new Recognition();
-      recognition.lang = "zh-CN";
-      recognition.interimResults = false;
-      recognition.onresult = result => {
-        const best = result.results[0][0];
-        confidence = Number(best.confidence || 0);
-        chatInput.value = best.transcript;
-        resizeComposer();
-      };
-      recognition.onend = () => {
-        surface.classList.remove("listening");
-        if (chatInput.value.trim() && confidence >= .72) surface.requestSubmit();
-        else if (chatInput.value.trim()) showToast("我不太确定是否听准了，你看一眼再发送");
-      };
-      recognition.onerror = () => { surface.classList.remove("listening"); showToast("没有听清，可以再长按一次"); };
-      recognition.start();
-      navigator.vibrate?.(18);
+      holding = voiceController.start();
     }, 360);
   });
   ["pointerup", "pointercancel", "pointerleave"].forEach(type => surface.addEventListener(type, stop));
 }
+
+function insertSpaceAtCursor(input) {
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  input.setRangeText(" ", start, end, "end");
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function bindDesktopSpaceToTalk(input) {
+  let holdTimer = null;
+  let holding = false;
+  input.addEventListener("keydown", event => {
+    if (event.code !== "Space" || document.activeElement !== chatInput || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
+    event.preventDefault();
+    if (event.repeat || holdTimer || holding) return;
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      holding = voiceController.start();
+    }, 360);
+  });
+  input.addEventListener("keyup", event => {
+    if (event.code !== "Space" || event.isComposing || event.ctrlKey || event.altKey || event.metaKey) return;
+    event.preventDefault();
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      insertSpaceAtCursor(input);
+    } else if (holding) {
+      holding = false;
+      voiceController.stop();
+    }
+  });
+  input.addEventListener("blur", () => {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding) voiceController.stop();
+    holding = false;
+  });
+}
 bindHoldToTalk($("#chat-form"));
+bindDesktopSpaceToTalk(chatInput);
 
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());

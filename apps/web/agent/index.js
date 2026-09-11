@@ -4,7 +4,7 @@ import { updateUserModel } from "./user-model.js";
 import { diagnose, decideNextAction, formatProposal } from "./planner.js";
 import { beginTutor, tutorReply } from "./tutor.js";
 import { evaluateCompletion } from "./evaluator.js";
-export { createAgentState, createKnownAgentState, hydrateAgentState } from "./state.js";
+export { createAgentState, hydrateAgentState } from "./state.js";
 export { GENERAL_KNOWLEDGE_RESOURCES, findResourceCandidates, canRecommendResource } from "./resource-catalog.js";
 
 const shorten = action => ({ ...action, duration_minutes: 10, status: "revised", instructions: `只完成最小版本：${action.instructions}` });
@@ -47,7 +47,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.phase = "negotiate";
     return { state, kind: "negotiation", reply: `我不建议直接把它取消，也不会要求你机械坚持。\n\nA. 保留 ${action.duration_minutes} 分钟：方向连续，但今天的负担最大。\nB. 缩成 10 分钟：只完成最小观察，保住连续性。\nC. 推到明天：今天完全让路，但明天我会重新检查它是否仍是最重要的。\n\n结合你刚说的状态，我更倾向 B；最终由你选。` };
   }
-  if (action && /缩|十分钟|10分钟/.test(observation.text)) {
+  if (action && /缩成|缩短|改成\s*(?:10|十)\s*分钟|只做\s*(?:10|十)\s*分钟|选\s*B/i.test(observation.text)) {
     const revised = shorten(action);
     recordActionRevision(state, action, revised, "用户反馈精力或时间后协商缩短", observation.at);
     state.next_recommended_action = revised;
@@ -55,24 +55,22 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.decision_log.push({ at: observation.at, action_id: revised.id, judgment: revised.judgment, decision: "shorten", reason: "用户反馈后仍保留方向连续性", confidence: 0.78 });
     return { state, kind: "proposal", reply: formatProposal(revised, 0.78) };
   }
+  const suppliedEvidence = action?.evidence_required
+    ?.filter(term => observation.text.includes(term)).length >= 2;
+  if (action && (observation.signals.completed || suppliedEvidence || state.tutor_session)) {
+    if (state.tutor_session && (observation.signals.confused || observation.signals.wants_hint)) {
+      state.tutor_session = tutorReply(state.tutor_session, observation);
+      return { state, kind: "tutor", reply: state.tutor_session.prompt };
+    }
+    state.phase = "verify";
+    return evaluateCompletion(state, action, observation);
+  }
   if (action && observation.signals.delays) {
     recordActionRevision(state, action, null, `用户选择推迟：${observation.text}`, observation.at);
     state.pending_items.push({ ...action, status: "deferred", revisit_at: "tomorrow" });
     state.next_recommended_action = null;
     state.phase = "learn";
     return { state, kind: "revision", reply: "已经推到明天。我保留了原计划、调整结果和原因；明天不会机械照搬，而会结合新的现实情况重新判断。" };
-  }
-  if (action && observation.signals.completed) {
-    state.phase = "verify";
-    return evaluateCompletion(state, action, observation);
-  }
-  if (action && state.tutor_session) {
-    if (observation.signals.confused || observation.signals.wants_hint) {
-      state.tutor_session = tutorReply(state.tutor_session, observation);
-      return { state, kind: "tutor", reply: state.tutor_session.prompt };
-    }
-    state.phase = "verify";
-    return evaluateCompletion(state, action, observation);
   }
   if (action && observation.signals.accepts) {
     state.phase = "execute";

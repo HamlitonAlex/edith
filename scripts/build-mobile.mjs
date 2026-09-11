@@ -19,7 +19,7 @@ await Promise.all([
   cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
   cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
   cp(resolve(web, "agent"), resolve(dist, "agent"), { recursive: true }),
-  cp(resolve(web, "lib"), resolve(dist, "lib"), { recursive: true }),
+  cp(resolve(web, "lib", "conversation-history.js"), resolve(dist, "lib", "conversation-history.js")),
 ]);
 
 console.log("Mobile web bundle created in dist/");

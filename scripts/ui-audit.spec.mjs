@@ -79,3 +79,45 @@ test("all visible controls have a real response", async ({ page }) => {
   await page.locator('#model-dialog button[value="cancel"]').click();
   expect(errors).toEqual([]);
 });
+
+test("short Space types while long press starts and stops voice input", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__voiceStarts = 0;
+    window.__voiceStops = 0;
+    window.SpeechRecognition = class {
+      start() { window.__voiceStarts += 1; }
+      stop() {
+        window.__voiceStops += 1;
+        this.onend?.();
+      }
+    };
+  });
+  await page.goto("http://127.0.0.1:4173/");
+  await page.evaluate(() => localStorage.clear());
+  await page.reload();
+  await page.locator('[data-onboarding-skip]:visible').click();
+  await page.locator('[data-onboarding-skip]:visible').click();
+  await page.locator('[data-onboarding-skip]:visible').click();
+
+  const input = page.locator("#chat-input");
+  await input.focus();
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(80);
+  await page.keyboard.up("Space");
+  await expect(input).toHaveValue(" ");
+  expect(await page.evaluate(() => window.__voiceStarts)).toBe(0);
+
+  await page.keyboard.down("Space");
+  await page.waitForTimeout(420);
+  await expect(page.locator("#chat-form")).toHaveClass(/listening/);
+  await page.keyboard.up("Space");
+  await expect(page.locator("#chat-form")).not.toHaveClass(/listening/);
+  expect(await page.evaluate(() => [window.__voiceStarts, window.__voiceStops])).toEqual([1, 1]);
+
+  await input.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 2, isPrimary: true });
+  await page.waitForTimeout(420);
+  await expect(page.locator("#chat-form")).toHaveClass(/listening/);
+  await input.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 2, isPrimary: true });
+  await expect(page.locator("#chat-form")).not.toHaveClass(/listening/);
+  expect(await page.evaluate(() => [window.__voiceStarts, window.__voiceStops])).toEqual([2, 2]);
+});

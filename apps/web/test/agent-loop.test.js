@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAgentState, createKnownAgentState, runAgentTurn } from "../agent/index.js";
+import { createAgentState, runAgentTurn } from "../agent/index.js";
+import { createKnownAgentState } from "./known-agent-fixture.js";
 
 test("a new user profile starts unknown instead of inheriting the developer's goals", () => {
   const state = createAgentState(new Date("2026-09-10T08:00:00Z"));
@@ -51,12 +52,12 @@ test("low energy triggers negotiation rather than cancellation or blind complian
   assert.match(result.reply, /最终由你选/);
 });
 
-test("asking why connects the resource to this user's long-term goal", () => {
+test("asking why connects the action to this user's long-term goal", () => {
   const proposed = runAgentTurn(createKnownAgentState(), "给我判断下一步");
   const result = runAgentTurn(proposed.state, "我为什么要看这个？");
   assert.equal(result.kind, "explanation");
-  assert.match(result.reply, /未来想做产品/);
-  assert.match(result.reply, /技术如何改变社会结构/);
+  assert.match(result.reply, /建立稳定而自主的学习节奏/);
+  assert.match(result.reply, /不是套用一份固定清单/);
 });
 
 test("completion without explanation is not treated as mastery", () => {
@@ -64,15 +65,15 @@ test("completion without explanation is not treated as mastery", () => {
   const result = runAgentTurn(proposed.state, "我看完了");
   assert.equal(result.verified, false);
   assert.match(result.reply, /还缺少理解证据/);
-  assert.equal(result.state.skills.general_knowledge.evidence.length, 0);
+  assert.equal(Object.values(result.state.skills).flatMap(skill => skill.evidence).length, 0);
 });
 
 test("explanation evidence updates skill model and clears the action", () => {
   const proposed = runAgentTurn(createKnownAgentState(), "给我判断下一步");
-  const result = runAgentTurn(proposed.state, "我看完了。收益是粮食更加稳定，代价是劳动和疾病增加，而且社会关系开始围绕土地和权力重组。");
+  const result = runAgentTurn(proposed.state, "我找到了具体场景：晚饭后先读十分钟，观察自己是否更容易开始；最小行动是今晚先试一次。");
   assert.equal(result.verified, true);
   assert.equal(result.state.next_recommended_action, null);
-  assert.equal(result.state.skills.general_knowledge.evidence.length, 1);
+  assert.equal(Object.values(result.state.skills).flatMap(skill => skill.evidence).length, 1);
   assert.equal(result.state.recent_learning.length, 1);
 });
 
@@ -104,7 +105,7 @@ test("a clear final rejection overrides the guide's disagreement", () => {
 
 test("completion evidence takes priority over incidental acceptance words", () => {
   const proposed = runAgentTurn(createKnownAgentState(), "给我判断下一步");
-  const result = runAgentTurn(proposed.state, "我看完了，可以确认：收益是粮食稳定，代价是疾病增加，社会关系也围绕土地权力重组。");
+  const result = runAgentTurn(proposed.state, "我做完了，可以确认：具体场景是晚饭后，变化是更容易开始，下一次最小行动是继续十分钟。");
   assert.equal(result.verified, true);
   assert.equal(result.state.next_recommended_action, null);
 });
@@ -112,7 +113,7 @@ test("completion evidence takes priority over incidental acceptance words", () =
 test("Tutor Mode evaluates a user's explanation without requiring a completion command", () => {
   const proposed = runAgentTurn(createKnownAgentState(), "给我判断下一步");
   const started = runAgentTurn(proposed.state, "接受，现在开始");
-  const result = runAgentTurn(started.state, "收益是粮食更稳定，代价是疾病和劳动增加，社会关系开始被土地和权力重新组织。");
+  const result = runAgentTurn(started.state, "具体场景是晚饭后，变化是我更容易开始，最小行动是明天继续读十分钟。");
   assert.equal(result.verified, true);
   assert.equal(result.state.tutor_session, null);
 });

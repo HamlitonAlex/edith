@@ -37,18 +37,6 @@ export function createAgentState(now = new Date()) {
   };
 }
 
-export function createKnownAgentState(now = new Date()) {
-  const state = createAgentState(now);
-  state.current_stage = "把想法变成可验证的个人产品";
-  state.long_term_goals = [{ id: "build-xuecheng", text: "完成并公开发布一个真正可安装的私人教育伙伴", confidence: 0.96, source: "连续对话" }];
-  state.active_goals = ["用学程项目训练 AI 协作、产品判断与持续执行"];
-  state.interests = ["AI 应用", "产品设计", "真实项目", "通识"];
-  state.skills.ai_application = { label: "AI 应用", level: "developing", confidence: 0.62, evidence: ["持续推进学程项目"] };
-  state.skills.product = { label: "产品能力", level: "developing", confidence: 0.58, evidence: ["能持续指出产品与现实生活的距离"] };
-  state.current_constraints = ["不希望依赖每日手工记录", "主要使用 iPhone 与 Windows"];
-  return state;
-}
-
 export function hydrateAgentState(saved) {
   const base = createAgentState();
   if (!saved || saved.schema_version !== base.schema_version) return base;
