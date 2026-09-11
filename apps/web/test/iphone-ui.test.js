@@ -2,12 +2,35 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-const [html, css, refinementCss, js] = await Promise.all([
+const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest] = await Promise.all([
   readFile(new URL("../iphone.html", import.meta.url), "utf8"),
   readFile(new URL("../iphone.css", import.meta.url), "utf8"),
   readFile(new URL("../iphone-refinement.css", import.meta.url), "utf8"),
-  readFile(new URL("../iphone.js", import.meta.url), "utf8")
+  readFile(new URL("../iphone.js", import.meta.url), "utf8"),
+  readFile(new URL("../assets/xuecheng-mark.svg", import.meta.url), "utf8"),
+  readFile(new URL("../assets/xuecheng-mark.png", import.meta.url)),
+  readFile(new URL("../../../ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png", import.meta.url)),
+  readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8")
 ]);
+
+test("web and iOS ship one font-independent 学程 brand mark", () => {
+  assert.doesNotMatch(markSvg, /<text\b|font-family=/i);
+  assert.match(markSvg, /data-mark="cheng"/);
+  assert.deepEqual(webIcon, iosIcon);
+  assert.match(manifest, /"sizes": "1024x1024"/);
+  assert.match(manifest, /"background_color": "#ebe9e6"/);
+});
+
+test("the visual system uses quiet neutrals with directional accent colors", () => {
+  for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
+    assert.match(css, new RegExp(`--${token}:`));
+  }
+  assert.match(html, /class="onboarding-visual"/);
+  assert.match(html, /assets\/onboarding-path\.webp/);
+  assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
+  assert.match(js, /day: "#f5f3ef", night: "#282321"/);
+  assert.match(html, /name="theme-color" content="#f5f3ef"/);
+});
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
   for (const theme of ["day", "night"]) {

@@ -17,3 +17,17 @@
 button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--action-strong);outline-offset:3px}
 @media(max-width:600px){.composer{bottom:calc(84px + env(safe-area-inset-bottom))}.keyboard-open .composer{bottom:max(8px,env(safe-area-inset-bottom))}.keyboard-open .onboarding{padding-bottom:12px}.keyboard-open .onboarding-actions{display:none!important}}
 @media(prefers-reduced-motion:reduce){.onboarding,.plan-proposal{transition:none}}
+
+/* 2026-09 visual system: Apple-like restraint, lived-in warmth, directional color. */
+.companion-header{border-bottom:1px solid var(--glass-line);background:var(--glass)}
+.composer,.bottom-nav{border-color:var(--glass-line);background:var(--glass)}
+.plan-proposal{border-color:color-mix(in srgb,var(--accent-growth) 24%,var(--line));background:linear-gradient(145deg,color-mix(in srgb,var(--surface) 94%,var(--accent-growth)),var(--surface) 44%)}
+.plan-proposal header span{color:var(--accent-growth);font-weight:750}.platform-line{color:var(--accent-general)}.platform-mark{background:color-mix(in srgb,var(--accent-general) 15%,var(--surface));color:var(--accent-general)}
+.empty-conversation:before{background:linear-gradient(90deg,var(--accent-growth),var(--accent-general),var(--accent-wellbeing),var(--accent-reflection))}
+.path-list article:nth-child(4n+1) i{color:var(--accent-growth)}.path-list article:nth-child(4n+2) i{color:var(--accent-general)}.path-list article:nth-child(4n+3) i{color:var(--accent-wellbeing)}.path-list article:nth-child(4n) i{color:var(--accent-reflection)}
+.onboarding-visual{position:relative;height:190px;margin:0 0 24px;overflow:hidden;border-radius:30px;background:var(--surface-strong);box-shadow:0 20px 46px color-mix(in srgb,var(--ink) 14%,transparent)}
+.onboarding-visual>img{width:100%;height:100%;object-fit:cover}.onboarding-visual:after{position:absolute;inset:40% 0 0;background:linear-gradient(transparent,color-mix(in srgb,#241f1c 72%,transparent));content:""}
+.onboarding-visual>span{position:absolute;z-index:2;top:14px;left:14px;display:grid;width:49px;height:49px;place-items:center;border:1px solid var(--glass-line);border-radius:16px;background:var(--glass);backdrop-filter:blur(18px)}
+.onboarding-visual .onboarding-mark{width:39px;height:39px;margin:0;border:0;border-radius:12px;background:transparent}.onboarding-visual figcaption{position:absolute;z-index:2;right:18px;bottom:16px;left:18px;color:#fffaf5;font-family:"Songti SC","STSong",serif;font-size:16px;line-height:1.45}
+:root[data-theme="night"] .phone{background:linear-gradient(170deg,var(--canvas-soft),var(--canvas))}:root[data-theme="night"] .plan-actions #start-action,:root[data-theme="night"] .bottom-nav button.active{background:color-mix(in srgb,var(--surface-strong) 62%,var(--ink));color:var(--ink)}
+@media(max-height:760px){.onboarding-visual{height:150px}.onboarding h1{font-size:31px}.onboarding p{margin-bottom:18px}}

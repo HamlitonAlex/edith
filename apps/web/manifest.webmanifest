@@ -7,12 +7,12 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f3cd8c",
-  "theme_color": "#f1bd68",
+  "background_color": "#ebe9e6",
+  "theme_color": "#f5f3ef",
   "icons": [
     {
       "src": "./assets/xuecheng-mark.png",
-      "sizes": "512x512",
+      "sizes": "1024x1024",
       "type": "image/png",
       "purpose": "any maskable"
     }

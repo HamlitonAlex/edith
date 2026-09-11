@@ -1,20 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="title" data-mark="cheng">
   <title id="title">学程</title>
   <defs>
-    <linearGradient id="paper" x1="12" y1="8" x2="84" y2="90" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#fffdf8"/>
-      <stop offset="1" stop-color="#eee4d2"/>
+    <linearGradient id="paper" x1="10" y1="8" x2="86" y2="90" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fffdf9"/>
+      <stop offset="1" stop-color="#eee7dc"/>
     </linearGradient>
-    <linearGradient id="light" x1="20" y1="77" x2="78" y2="20" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8f4a32"/>
-      <stop offset=".72" stop-color="#b16d2c"/>
-      <stop offset="1" stop-color="#e5a63b"/>
+    <linearGradient id="route" x1="15" y1="78" x2="82" y2="18" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#56735f"/>
+      <stop offset=".54" stop-color="#bd6045"/>
+      <stop offset="1" stop-color="#dfa642"/>
     </linearGradient>
   </defs>
-  <rect width="96" height="96" rx="27" fill="url(#paper)"/>
-  <path d="M20 22h24M32 15v30M20 38l12-10 12 10M32 32v19M20 51h24" fill="none" stroke="#29231d" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M53 19h24M57 19l-4 13h27l-4-13M55 33v17h23V33M55 42h23M51 56h31M55 56v20h23V56M55 66h23" fill="none" stroke="#29231d" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M18 78c19-2 31-10 40-21 7-8 13-19 21-34" fill="none" stroke="url(#light)" stroke-width="4" stroke-linecap="round"/>
-  <circle cx="18" cy="78" r="4.5" fill="#fffdf8" stroke="#8f4a32" stroke-width="3"/>
-  <circle cx="79" cy="23" r="5" fill="#e5a63b" stroke="#fffdf8" stroke-width="2.5"/>
+  <rect width="96" height="96" rx="25" fill="url(#paper)"/>
+  <circle cx="80" cy="17" r="18" fill="#f2cc7f" opacity=".42"/>
+  <circle cx="15" cy="81" r="15" fill="#a9bea9" opacity=".34"/>
+  <path d="M14 78c14-5 20-14 29-23 9-10 20-13 27-24 4-6 7-11 12-16" fill="none" stroke="url(#route)" stroke-width="4.2" stroke-linecap="round" opacity=".94"/>
+  <path d="M40 1115H306V1335Q187 1323 68 1315Q54 1467 32 1571Q348 1587 744 1655L806 1405Q684 1383 562 1366V1115H790V877H562V657L618 713Q718 629 878 477L700 305Q629 393 562 469V-277H306V494Q232 269 124 65Q86 237 28 401Q160 584 268 877H40ZM860 1621H1902V949H860ZM1636 1389H1126V1181H1636ZM716 17H1244V189H852V413H1244V579H816V811H1968V579H1518V413H1914V189H1518V17H2016V-215H716Z" transform="translate(16 75) scale(.032 -.032)" fill="#292724"/>
+  <circle cx="15" cy="78" r="3.7" fill="#56735f" stroke="#fffdf9" stroke-width="1.8"/>
+  <circle cx="82" cy="15" r="4.2" fill="#dfa642" stroke="#fffdf9" stroke-width="1.8"/>
 </svg>

@@ -9,7 +9,7 @@ const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
-const themeColors = { day: "#f7f2e9", night: "#171614" };
+const themeColors = { day: "#f5f3ef", night: "#282321" };
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
   guide: `${pronoun}会像一位了解你的引路人，给建议，也会指出你正在回避的问题。`,
