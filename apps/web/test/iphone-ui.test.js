@@ -240,6 +240,13 @@ test("selected controls use botanical green and the tab bar has restrained depth
   assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
 });
 
+test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
+  assert.match(refinementCss, /Ambient atmosphere: two quiet fields of brand light/);
+  assert.match(refinementCss, /\.phone\{[\s\S]*?var\(--accent-growth\)[\s\S]*?var\(--action\)[\s\S]*?linear-gradient\(165deg/s);
+  assert.match(refinementCss, /:root\[data-theme="night"\] \.phone\{[\s\S]*?var\(--accent-reflection\)[\s\S]*?var\(--action\)/s);
+  assert.match(refinementCss, /\.settings-screen\{background:linear-gradient\(180deg,[^}]*transparent/);
+});
+
 test("new users begin without fabricated personal history", () => {
   assert.doesNotMatch(html, /早上好。我把你最近说的|可以，不过晚上如果太累/);
   assert.doesNotMatch(js, /请根据你已经知道的信息，判断我现在最值得做的下一件事/);
