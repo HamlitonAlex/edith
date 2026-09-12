@@ -62,6 +62,14 @@ function escapeHtml(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
+function safeImageUrl(value) {
+  if (!value) return "";
+  try {
+    const url = new URL(value, window.location.href);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch { return ""; }
+}
+
 function renderOnboarding() {
   if (state.onboardingComplete) return;
   const steps = [...document.querySelectorAll("[data-onboarding-step]")];
@@ -166,6 +174,10 @@ function render() {
   const action = agentState.next_recommended_action;
   $("#agent-proposal").hidden = !action;
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));
+  const proposalMedia = $("#proposal-media");
+  const proposalImage = $("#proposal-media-image");
+  proposalMedia.hidden = true;
+  proposalImage.removeAttribute("src");
   if (action) {
     $("#proposal-time").textContent = `${action.duration_minutes} 分钟`;
     $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
@@ -173,6 +185,13 @@ function render() {
     $("#proposal-why").textContent = action.why_now;
     $("#proposal-instructions").textContent = action.instructions;
     $("#proposal-completion").textContent = action.completion_criteria;
+    const imageUrl = safeImageUrl(action.resource?.image_url);
+    if (imageUrl) {
+      proposalImage.src = imageUrl;
+      proposalImage.alt = action.resource?.image_alt || `${action.title}的资源封面`;
+      proposalMedia.hidden = false;
+      proposalImage.onerror = () => { proposalMedia.hidden = true; };
+    }
     const start = $("#start-action");
     start.textContent = action.resource?.url ? `打开${action.platform}并开始` : "开始讲解";
     start.disabled = action.status === "accepted";

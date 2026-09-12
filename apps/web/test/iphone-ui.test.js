@@ -129,7 +129,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
 });
 
 test("shared brand actions keep readable text in both atmospheres", () => {
-  assert.match(css, /--on-action:#f8fbf7/);
+  assert.match(css, /--on-action:#f8f5eb/);
   assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
@@ -166,9 +166,12 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
   assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
 });
 
-test("dynamic recommendations do not ship a fixed daily resource or cover", () => {
-  assert.doesNotMatch(html, /id="proposal-media"/);
-  assert.doesNotMatch(js, /proposalImage|resource\?\.image/);
+test("dynamic recommendations show only a real resource cover and never ship a fixed daily image", () => {
+  assert.match(html, /id="proposal-media"[^>]*hidden/);
+  assert.match(html, /id="proposal-media-image"[^>]*referrerpolicy="no-referrer"/);
+  assert.doesNotMatch(html, /id="proposal-media-image"[^>]*src=/);
+  assert.match(js, /safeImageUrl/);
+  assert.match(js, /action\.resource\?\.image_url/);
   for (const source of [planner, tutor, evaluator]) assert.doesNotMatch(source, /农业革命|世界历史速成课|BV1fSr7YoEJ7|build-xuecheng/);
   assert.doesNotMatch(buildScript, /cp\(resolve\(web, "lib"\), resolve\(dist, "lib"\)/);
 });
@@ -234,10 +237,18 @@ test("the entire composer supports hold to talk", () => {
 });
 
 test("selected controls use botanical green and the tab bar has restrained depth", () => {
-  assert.match(css, /--action:#4f6d5b/);
-  assert.match(css, /--action-strong:#365342/);
+  assert.match(css, /--action:#315443/);
+  assert.match(css, /--action-strong:#234536/);
   assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
   assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
+});
+
+test("the chosen production direction is warm editorial with restrained forest immersion", () => {
+  assert.match(refinementCss, /Chosen direction: 80% warm editorial page, 20% botanical immersion/);
+  assert.match(css, /--canvas-soft:#f4f0e7/);
+  assert.match(css, /--surface:#fbf8f0/);
+  assert.match(css, /--radius-card:16px/);
+  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:1px solid var\(--line\)[^}]*background:var\(--surface\)/s);
 });
 
 test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
