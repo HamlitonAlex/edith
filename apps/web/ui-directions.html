@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#e8e6df">
+  <title>学程 · 五套界面方向</title>
+  <link rel="stylesheet" href="./ui-directions.css">
+</head>
+<body>
+  <svg class="symbol-bank" aria-hidden="true">
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M5 17.5 3.8 21l4-1.6A9 9 0 1 0 5 17.5Z"/></symbol>
+    <symbol id="i-today" viewBox="0 0 24 24"><path d="M6 3v3m12-3v3M4 9h16M5 5h14a1 1 0 0 1 1 1v14H4V6a1 1 0 0 1 1-1Z"/></symbol>
+    <symbol id="i-path" viewBox="0 0 24 24"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18c6 0 4-12 8-12"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 21c.6-4.2 3-6.2 7.5-6.2s6.9 2 7.5 6.2"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="m5 12 14-7-5 14-2.4-5.6L5 12Z"/></symbol>
+  </svg>
+
+  <header class="board-header">
+    <div><small>学程 · UI DIRECTION STUDY</small><h1>不是换颜色，<br>是五种完全不同的气质。</h1></div>
+    <p>五套样板使用同一个“下一步”场景。图片的位置和作用刻意不同，便于比较。选中只记录在当前浏览器，不会修改正式界面。</p>
+  </header>
+
+  <aside class="selection-bar" aria-live="polite"><span>当前选择</span><strong id="current-choice">尚未选择</strong><a href="./">返回当前版本</a></aside>
+
+  <main class="directions">
+    <article class="direction" data-direction="01">
+      <header class="direction-copy"><span>01</span><div><h2>晨间书页</h2><p>温暖编辑感 · 真实资源封面 · 大段呼吸空间</p></div><button type="button" data-choose>选择这套</button></header>
+      <div class="phone direction-editorial">
+        <div class="phone-status"><b>9:41</b><span>● ◒</span></div>
+        <header class="app-head"><div class="mini-mark">程</div><span><small>早上好</small><b>今天先走这一步</b></span><button>本地判断⌄</button></header>
+        <main class="phone-body">
+          <p class="eyebrow">NEXT · 20 MIN</p><h3>用一个现实例子，<br>分清 TCP 和 UDP</h3>
+          <figure class="resource-cover"><img src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌"><figcaption><b>学程内讲解</b><span>不是背定义，从寄快递和打电话开始。</span></figcaption></figure>
+          <p class="reason"><b>为什么是现在</b>你正在补网络基础，这一块会影响以后理解 Web 与 Agent 通信。</p>
+          <div class="actions"><button class="primary">开始讲解 <i>→</i></button><button>聊聊再定</button></div>
+        </main>
+        <div class="dock"><div class="composer"><svg><use href="#i-plus"/></svg><span>和她说说现在的想法</span><svg><use href="#i-send"/></svg></div><nav class="nav"><svg class="active"><use href="#i-chat"/></svg><svg><use href="#i-today"/></svg><svg><use href="#i-path"/></svg><svg><use href="#i-user"/></svg></nav></div>
+      </div>
+    </article>
+
+    <article class="direction" data-direction="02">
+      <header class="direction-copy"><span>02</span><div><h2>林影折光</h2><p>沉浸陪伴感 · 顶部氛围图 · 内容浮在真实生活之上</p></div><button type="button" data-choose>选择这套</button></header>
+      <div class="phone direction-forest">
+        <img class="forest-scene" src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌">
+        <div class="phone-status"><b>9:41</b><span>● ◒</span></div>
+        <header class="app-head"><div class="mini-mark">程</div><span><small>小程在这里</small><b>早上好，先不用着急</b></span><button>···</button></header>
+        <main class="phone-body">
+          <p class="eyebrow">她替你判断的下一件事</p><h3>今天只理解<br>一个网络问题。</h3>
+          <section class="glass-task"><div><span>20</span><small>分钟</small></div><p><b>TCP 和 UDP</b>先听现实例子，再用自己的话解释一次。</p></section>
+          <details open><summary>为什么值得现在做</summary><p>它足够小，又会连接你之后的 Web、Agent 与智能硬件。</p></details>
+          <div class="actions"><button class="primary">现在开始</button><button>和她讨论</button></div>
+        </main>
+        <div class="dock"><div class="composer"><svg><use href="#i-plus"/></svg><span>按住这里直接说话</span><svg><use href="#i-send"/></svg></div><nav class="nav"><svg class="active"><use href="#i-chat"/></svg><svg><use href="#i-today"/></svg><svg><use href="#i-path"/></svg><svg><use href="#i-user"/></svg></nav></div>
+      </div>
+    </article>
+
+    <article class="direction" data-direction="03">
+      <header class="direction-copy"><span>03</span><div><h2>路径手帐</h2><p>没有图片 · 纸张与批注 · 最强“长期成长路线”识别</p></div><button type="button" data-choose>选择这套</button></header>
+      <div class="phone direction-notebook">
+        <div class="phone-status"><b>9:41</b><span>● ◒</span></div>
+        <header class="app-head"><div class="mini-mark">程</div><span><small>SEPTEMBER 12</small><b>小程的判断</b></span><button>模型⌄</button></header>
+        <main class="phone-body">
+          <div class="route-margin"><i></i><i></i><i class="now"></i></div>
+          <p class="eyebrow">今天的第 01 步</p><h3>别急着背定义。<br>先说清楚两个场景。</h3>
+          <section class="note-task"><small>20 MIN · 网络基础</small><b>TCP / UDP</b><p>我会先举例，你只需要告诉我：哪一种更像打电话，哪一种更像寄明信片。</p></section>
+          <p class="pencil-note">“为什么？”——因为它是之后所有网络通信判断的第一个分岔口。</p>
+          <div class="actions"><button class="primary">开始这一页</button><button>改一改</button></div>
+        </main>
+        <div class="dock"><div class="composer"><svg><use href="#i-plus"/></svg><span>写下或按住说话……</span><svg><use href="#i-send"/></svg></div><nav class="nav"><svg class="active"><use href="#i-chat"/></svg><svg><use href="#i-today"/></svg><svg><use href="#i-path"/></svg><svg><use href="#i-user"/></svg></nav></div>
+      </div>
+    </article>
+
+    <article class="direction" data-direction="04">
+      <header class="direction-copy"><span>04</span><div><h2>静奢画册</h2><p>高反差排版 · 局部影像 · 更成熟、更像个人顾问</p></div><button type="button" data-choose>选择这套</button></header>
+      <div class="phone direction-gallery">
+        <div class="phone-status"><b>9:41</b><span>● ◒</span></div>
+        <header class="app-head"><div class="mini-mark">程</div><span><small>XUECHENG</small><b>与你一起判断</b></span><button>LOCAL / 01</button></header>
+        <main class="phone-body">
+          <div class="gallery-grid"><div><p class="eyebrow">TODAY'S DECISION</p><h3>下一步，<br>不是下一张<br>任务清单。</h3></div><img src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌"></div>
+          <section class="gallery-task"><span>01</span><div><small>20 分钟 · 学程内</small><b>用现实例子分清 TCP 与 UDP</b><p>完成不是“看过”，而是能用自己的话解释。</p></div></section>
+          <div class="actions"><button class="primary">进入讲解</button><button>讨论这个判断</button></div>
+        </main>
+        <div class="dock"><div class="composer"><svg><use href="#i-plus"/></svg><span>告诉她你真实的状态</span><svg><use href="#i-send"/></svg></div><nav class="nav"><svg class="active"><use href="#i-chat"/></svg><svg><use href="#i-today"/></svg><svg><use href="#i-path"/></svg><svg><use href="#i-user"/></svg></nav></div>
+      </div>
+    </article>
+
+    <article class="direction" data-direction="05">
+      <header class="direction-copy"><span>05</span><div><h2>柔彩拼贴</h2><p>温馨年轻 · 少量不规则色块 · 更像朋友而不是管理工具</p></div><button type="button" data-choose>选择这套</button></header>
+      <div class="phone direction-collage">
+        <div class="shape one"></div><div class="shape two"></div>
+        <div class="phone-status"><b>9:41</b><span>● ◒</span></div>
+        <header class="app-head"><div class="mini-mark">程</div><span><small>在你身边</small><b>今天感觉怎么样？</b></span><button>本地⌄</button></header>
+        <main class="phone-body">
+          <div class="collage-intro"><div><p class="eyebrow">ONE GOOD STEP</p><h3>不用做很多，<br>把这一点弄懂。</h3></div><figure><img src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌"></figure></div>
+          <section class="collage-task"><small>网络基础 · 20 分钟</small><b>TCP 和 UDP 到底差在哪？</b><p>从两个生活场景出发，最后由你自己讲一遍。</p><div class="chips"><span>现实例子</span><span>自己解释</span></div></section>
+          <div class="actions"><button class="primary">陪我开始</button><button>我想换一个</button></div>
+        </main>
+        <div class="dock"><div class="composer"><svg><use href="#i-plus"/></svg><span>想说什么都可以……</span><svg><use href="#i-send"/></svg></div><nav class="nav"><svg class="active"><use href="#i-chat"/></svg><svg><use href="#i-today"/></svg><svg><use href="#i-path"/></svg><svg><use href="#i-user"/></svg></nav></div>
+      </div>
+    </article>
+  </main>
+  <script src="./ui-directions.js"></script>
+</body>
+</html>
