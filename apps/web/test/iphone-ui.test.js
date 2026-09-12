@@ -166,7 +166,9 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
   assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
 });
 
-test("dynamic recommendations show only a real resource cover and never ship a fixed daily image", () => {
+test("dynamic recommendations keep content covers optional while atmosphere stays generic", () => {
+  assert.match(html, /class="proposal-atmosphere"[^>]*id="proposal-atmosphere"/);
+  assert.match(html, /onboarding-morning-v2\.png/);
   assert.match(html, /id="proposal-media"[^>]*hidden/);
   assert.match(html, /id="proposal-media-image"[^>]*referrerpolicy="no-referrer"/);
   assert.doesNotMatch(html, /id="proposal-media-image"[^>]*src=/);
@@ -174,6 +176,13 @@ test("dynamic recommendations show only a real resource cover and never ship a f
   assert.match(js, /action\.resource\?\.image_url/);
   for (const source of [planner, tutor, evaluator]) assert.doesNotMatch(source, /农业革命|世界历史速成课|BV1fSr7YoEJ7|build-xuecheng/);
   assert.doesNotMatch(buildScript, /cp\(resolve\(web, "lib"\), resolve\(dist, "lib"\)/);
+});
+
+test("the recommendation opens as atmosphere and settles after starting", () => {
+  assert.match(js, /classList\.toggle\("started", action\?\.status === "accepted"\)/);
+  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent[^}]*box-shadow:none/);
+  assert.match(refinementCss, /\.plan-proposal\.started \.proposal-atmosphere\{[^}]*height:70px/);
+  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*border-radius:0[^}]*background:transparent/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {

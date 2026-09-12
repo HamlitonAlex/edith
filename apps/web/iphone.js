@@ -174,6 +174,7 @@ function render() {
   const action = agentState.next_recommended_action;
   $("#agent-proposal").hidden = !action;
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));
+  $("#agent-proposal").classList.toggle("started", action?.status === "accepted");
   const proposalMedia = $("#proposal-media");
   const proposalImage = $("#proposal-media-image");
   proposalMedia.hidden = true;
