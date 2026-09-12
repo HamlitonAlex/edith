@@ -173,6 +173,7 @@ function render() {
   $("#reset-avatar").hidden = state.avatar === defaultAvatar;
   const action = agentState.next_recommended_action;
   $("#agent-proposal").hidden = !action;
+  $("#chat-screen").classList.toggle("has-proposal", Boolean(action));
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));
   $("#agent-proposal").classList.toggle("started", action?.status === "accepted");
   const proposalMedia = $("#proposal-media");

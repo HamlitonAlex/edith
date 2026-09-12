@@ -252,12 +252,22 @@ test("selected controls use botanical green and the tab bar has restrained depth
   assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
 });
 
-test("the chosen production direction is warm editorial with restrained forest immersion", () => {
-  assert.match(refinementCss, /Chosen direction: 80% warm editorial page, 20% botanical immersion/);
+test("the chosen production direction leads with botanical immersion and editorial clarity", () => {
+  assert.match(refinementCss, /Chosen direction: 70% botanical immersion, 30% warm editorial clarity/);
   assert.match(css, /--canvas-soft:#f4f0e7/);
   assert.match(css, /--surface:#fbf8f0/);
   assert.match(css, /--radius-card:16px/);
-  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:1px solid var\(--line\)[^}]*background:var\(--surface\)/s);
+  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent/);
+  assert.match(refinementCss, /\.chat-atmosphere\{[^}]*height:256px/);
+  assert.match(refinementCss, /\.bottom-nav\{[^}]*right:14px[^}]*left:14px[^}]*border-radius:23px/);
+});
+
+test("the chat surface carries the immersive image without duplicating a live resource", () => {
+  assert.match(html, /class="screen active chat-screen" id="chat-screen"/);
+  assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="chat-atmosphere"[\s\S]*?loading="eager"/);
+  assert.match(js, /classList\.toggle\("has-proposal", Boolean\(action\)\)/);
+  assert.match(refinementCss, /\.chat-screen\.has-proposal \.chat-atmosphere\{[^}]*opacity:0/);
 });
 
 test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
