@@ -32,9 +32,11 @@ test("the visual system uses quiet neutrals with directional accent colors", () 
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(html, /class="onboarding-visual"/);
-  assert.match(html, /assets\/onboarding-path\.webp/);
-  assert.match(html, /onboarding-path\.webp[^>]*as="image"/);
-  assert.match(html, /onboarding-path\.webp[^>]*fetchpriority="high"/);
+  assert.match(html, /assets\/onboarding-morning-v2\.png/);
+  assert.match(html, /onboarding-morning-v2\.png[^>]*as="image"/);
+  assert.match(html, /onboarding-morning-v2\.png[^>]*fetchpriority="high"/);
+  assert.match(refinementCss, /onboarding-visual:before/);
+  assert.match(refinementCss, /onboarding-visual figcaption\{[^}]*backdrop-filter:blur\(16px\)/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
   assert.match(js, /day: "#f5f6f3", night: "#202522"/);
   assert.match(html, /name="theme-color" content="#f5f6f3"/);

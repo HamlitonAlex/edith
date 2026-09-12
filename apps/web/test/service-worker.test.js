@@ -10,8 +10,8 @@ test("offline cache never intercepts model-provider or other cross-origin reques
 
 test("offline cache includes the conversation history module", () => {
   assert.match(source, /\.\/lib\/conversation-history\.js/);
-  assert.match(source, /\.\/assets\/onboarding-path\.webp/);
+  assert.match(source, /\.\/assets\/onboarding-morning-v2\.png/);
   assert.match(source, /\.\/assets\/phosphor\/regular\.woff2/);
   assert.doesNotMatch(source, /resource-agriculture/);
-  assert.match(source, /xuecheng-iphone-v15/);
+  assert.match(source, /xuecheng-iphone-v16/);
 });
