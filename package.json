@@ -13,7 +13,8 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",
-    "@capacitor/ios": "^8.5.1"
+    "@capacitor/ios": "^8.5.1",
+    "@phosphor-icons/web": "^2.1.2"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.1",

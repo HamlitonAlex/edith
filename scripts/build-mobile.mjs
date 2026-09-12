@@ -13,6 +13,7 @@ await Promise.all([
   cp(resolve(web, "iphone.html"), resolve(dist, "index.html")),
   cp(resolve(web, "iphone.css"), resolve(dist, "iphone.css")),
   cp(resolve(web, "iphone-refinement.css"), resolve(dist, "iphone-refinement.css")),
+  cp(resolve(web, "phosphor-icons.css"), resolve(dist, "phosphor-icons.css")),
   cp(resolve(web, "iphone.js"), resolve(dist, "iphone.js")),
   cp(resolve(web, "local-backup.js"), resolve(dist, "local-backup.js")),
   cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),

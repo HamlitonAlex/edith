@@ -7,8 +7,8 @@
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#ebe9e6",
-  "theme_color": "#f5f3ef",
+  "background_color": "#eceeeb",
+  "theme_color": "#f5f6f3",
   "icons": [
     {
       "src": "./assets/xuecheng-mark.png",

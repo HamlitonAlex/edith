@@ -1,0 +1,3 @@
+@font-face{font-family:"Phosphor";src:url("./assets/phosphor/regular.woff2") format("woff2");font-weight:400;font-style:normal;font-display:block}
+.ph{display:inline-block;font-family:"Phosphor"!important;font-style:normal;font-weight:400;font-variant:normal;line-height:1;text-transform:none;speak:never;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+.ph-arrow-left::before{content:"\e058"}.ph-arrow-up::before{content:"\e08e"}.ph-calendar-blank::before{content:"\e10a"}.ph-caret-right::before{content:"\e13a"}.ph-chat-circle::before{content:"\e168"}.ph-gear::before{content:"\e270"}.ph-path::before{content:"\e39c"}.ph-plus::before{content:"\e3d4"}.ph-television-simple::before{content:"\eae6"}.ph-user-circle::before{content:"\e4c4"}

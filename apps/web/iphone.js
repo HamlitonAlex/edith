@@ -9,7 +9,7 @@ const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
-const themeColors = { day: "#f5f3ef", night: "#282321" };
+const themeColors = { day: "#f5f6f3", night: "#202522" };
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
   guide: `${pronoun}会像一位了解你的引路人，给建议，也会指出你正在回避的问题。`,
@@ -111,7 +111,7 @@ function renderToday(pronoun) {
   const action = agentState.next_recommended_action;
   $("#energy-check").hidden = !agentState.long_term_goals.length;
   $("#today-empty").hidden = Boolean(action);
-  $("#today-agenda").innerHTML = action ? `<li class="next"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p><b>动作：</b>${escapeHtml(action.instructions)}</p><p><b>做到什么算完成：</b>${escapeHtml(action.completion_criteria)}</p><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><div class="agenda-actions"><button type="button" data-start-current>${action.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>现在最值得推进</span></li>` : "";
+  $("#today-agenda").innerHTML = action ? `<li class="next"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current>${action.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>现在最值得推进</span></li>` : "";
 }
 
 function renderPath() {
@@ -325,7 +325,8 @@ $("#chat-form").addEventListener("submit", async event => {
     working.className = "message companion-message work-state";
     working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
     $("#dynamic-messages").append(working);
-    working.scrollIntoView({ block: "end" });
+    const conversation = $("#conversation");
+    conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
     try {
       reply = await requestProviderReply({
         ...state.modelConfig,
@@ -354,7 +355,10 @@ $("#chat-form").addEventListener("submit", async event => {
     message.style.setProperty("--enter-delay", `${index * 70}ms`);
     if (!reduceMotion.matches) message.classList.add("message-enter");
   });
-  requestAnimationFrame(() => $("#dynamic-messages").scrollIntoView({ behavior: reduceMotion.matches ? "auto" : "smooth", block: "end" }));
+  requestAnimationFrame(() => {
+    const conversation = $("#conversation");
+    conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
+  });
 });
 
 let pendingExternalUrl = "";
@@ -461,7 +465,7 @@ document.querySelectorAll("[data-gender]").forEach(button => button.addEventList
     state[key] = event.target.value;
     save();
     render();
-    showToast(`安静时段：${state.quietStart}—${state.quietEnd}`);
+    showToast(`安静时段：${state.quietStart} - ${state.quietEnd}`);
   });
 });
 

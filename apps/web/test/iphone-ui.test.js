@@ -24,7 +24,7 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.doesNotMatch(markSvg, /data-mark="cheng"/);
   assert.deepEqual(webIcon, iosIcon);
   assert.match(manifest, /"sizes": "1024x1024"/);
-  assert.match(manifest, /"background_color": "#ebe9e6"/);
+  assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
 test("the visual system uses quiet neutrals with directional accent colors", () => {
@@ -33,9 +33,11 @@ test("the visual system uses quiet neutrals with directional accent colors", () 
   }
   assert.match(html, /class="onboarding-visual"/);
   assert.match(html, /assets\/onboarding-path\.webp/);
+  assert.match(html, /onboarding-path\.webp[^>]*as="image"/);
+  assert.match(html, /onboarding-path\.webp[^>]*fetchpriority="high"/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(js, /day: "#f5f3ef", night: "#282321"/);
-  assert.match(html, /name="theme-color" content="#f5f3ef"/);
+  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
+  assert.match(html, /name="theme-color" content="#f5f6f3"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -54,7 +56,36 @@ test("daily work names the platform, action, content and completion", () => {
   assert.match(html, /id="today-agenda"/);
   assert.match(html, /id="today-empty"/);
   assert.match(js, /renderToday/);
-  assert.match(js, /做到什么算完成/);
+  assert.match(js, /完成标准/);
+});
+
+test("the primary recommendation reveals detail progressively", () => {
+  assert.match(html, /<details class="proposal-details"/);
+  assert.match(html, /<summary>查看怎么做和完成标准<\/summary>/);
+  assert.match(html, /id="proposal-why"/);
+  assert.ok(html.indexOf('id="proposal-why"') < html.indexOf('class="proposal-details"'));
+  assert.ok(html.indexOf('id="dynamic-messages"') < html.indexOf('id="agent-proposal"'));
+});
+
+test("settings read like a finished product instead of a numbered design spec", () => {
+  assert.doesNotMatch(html, /<small>0[1-9]<\/small>/);
+  assert.match(html, /id="appearance-title">界面氛围/);
+  assert.match(html, /id="model-title">模型与智能/);
+});
+
+test("the refined visual system uses forest neutrals and one radius scale", () => {
+  for (const token of ["radius-control", "radius-card", "radius-floating"]) {
+    assert.match(css, new RegExp(`--${token}:`));
+  }
+  assert.match(css, /--canvas:#191d1b/);
+  assert.match(css, /--canvas-soft:#202522/);
+  assert.doesNotMatch(css, /--canvas:#211d1c|--canvas-soft:#282321/);
+  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
+});
+
+test("visible product copy avoids typographic dash decoration", () => {
+  assert.doesNotMatch(html, /[–—]/u);
+  assert.doesNotMatch(js, /[–—]/u);
 });
 
 test("the product mark is the default and the user can replace it locally", () => {
@@ -114,8 +145,16 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
 
 test("the active iPhone interface uses SVG marks instead of emoji or status glyphs", () => {
   assert.match(html, /class="status-icons"[^>]*>[\s\S]*?<svg/);
-  assert.match(html, /class="platform-mark"[^>]*>[\s\S]*?<svg/);
+  assert.match(html, /class="platform-mark"[^>]*>[\s\S]*?ph-television-simple/);
   assert.doesNotMatch(html, /●●●|⌁|▰|>程<|[\p{Extended_Pictographic}]/u);
+});
+
+test("functional controls use one local Phosphor icon family", () => {
+  assert.match(html, /phosphor-icons\.css/);
+  for (const icon of ["ph-plus", "ph-arrow-up", "ph-chat-circle", "ph-calendar-blank", "ph-path", "ph-user-circle", "ph-gear"]) {
+    assert.match(html, new RegExp(icon));
+  }
+  assert.match(buildScript, /phosphor-icons\.css/);
 });
 
 test("bottom navigation is a floating rounded control layer over a quiet canvas", () => {

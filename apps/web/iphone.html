@@ -3,13 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f5f3ef">
+  <meta name="theme-color" content="#f5f6f3">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
+  <link rel="icon" href="./assets/xuecheng-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/xuecheng-mark.png">
+  <link rel="preload" href="./assets/onboarding-path.webp" as="image" type="image/webp">
   <link rel="manifest" href="./manifest.webmanifest">
   <title>学程 · 小程</title>
+  <link rel="stylesheet" href="./phosphor-icons.css">
   <link rel="stylesheet" href="./iphone.css">
   <link rel="stylesheet" href="./iphone-refinement.css">
 </head>
@@ -19,7 +22,7 @@
       <div class="onboarding-progress" aria-hidden="true"><i></i><i></i><i></i></div>
       <article data-onboarding-step="partner">
         <figure class="onboarding-visual">
-          <img src="./assets/onboarding-path.webp" alt="晨光下摊开的笔记本与正在思考的人">
+          <img src="./assets/onboarding-path.webp" alt="晨光下摊开的笔记本与正在思考的人" fetchpriority="high">
           <span><img class="onboarding-mark" src="./assets/xuecheng-mark.svg" alt="学程图标"></span>
           <figcaption>从你真实生活里正在发生的事开始。</figcaption>
         </figure>
@@ -64,32 +67,35 @@
 
       <div class="conversation" id="conversation" aria-live="polite">
         <div class="empty-conversation" id="empty-conversation"><b>先随便说一句。</b><p>不用填问卷。你说生活里正在发生什么，我会在对话中慢慢认识你。</p></div>
+        <div id="dynamic-messages"></div>
         <article class="plan-proposal" id="agent-proposal" hidden>
           <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
           <div class="platform-line">
-            <span class="platform-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m8 4 4 4 4-4M5 8.5h14a2 2 0 0 1 2 2v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-7.5a2 2 0 0 1 2-2Z"/><path d="M9 13v2m6-2v2"/></svg></span>
+            <span class="platform-mark" aria-hidden="true"><i class="ph ph-television-simple"></i></span>
             <span id="proposal-platform"></span>
           </div>
           <h2 id="proposal-title"></h2>
-          <dl class="task-detail-list">
-            <div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why"></dd></div>
-            <div><dt>怎么做</dt><dd id="proposal-instructions"></dd></div>
-            <div><dt>做到什么算完成</dt><dd id="proposal-completion"></dd></div>
-          </dl>
+          <dl class="task-detail-list proposal-reason"><div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why"></dd></div></dl>
+          <details class="proposal-details">
+            <summary>查看怎么做和完成标准</summary>
+            <dl class="task-detail-list">
+              <div><dt>怎么做</dt><dd id="proposal-instructions"></dd></div>
+              <div><dt>完成标准</dt><dd id="proposal-completion"></dd></div>
+            </dl>
+          </details>
           <div class="plan-actions">
             <button id="start-action" type="button">开始</button>
             <button id="discuss-action" type="button">和她讨论</button>
           </div>
         </article>
-        <div id="dynamic-messages"></div>
       </div>
 
       <form class="composer" id="chat-form">
         <div class="attachment-preview" id="attachment-preview" hidden></div>
-        <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
         <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
-        <button class="send-button" type="submit" aria-label="发送"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 18V6M7.5 10.5 12 6l4.5 4.5"/></svg></button>
+        <button class="send-button" type="submit" aria-label="发送"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
       </form>
     </section>
 
@@ -128,28 +134,28 @@
         <button type="button" data-gender="female">女性 · 她</button><button type="button" data-gender="male">男性 · 他</button><button type="button" data-gender="neutral">中性 · TA</button>
       </div></section>
       <button class="settings-entry" type="button" data-open-screen="settings">
-        <span class="settings-entry-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 13.5v-3l-2-.7-.7-1.7.9-1.9-2.1-2.1-1.9.9-1.7-.7-.7-2h-3l-.7 2-1.7.7-1.9-.9-2.1 2.1.9 1.9-.7 1.7-2 .7v3l2 .7.7 1.7-.9 1.9 2.1 2.1 1.9-.9 1.7.7.7 2h3l.7-2 1.7-.7 1.9.9 2.1-2.1-.9-1.9.7-1.7z"/></svg></span>
+        <span class="settings-entry-icon" aria-hidden="true"><i class="ph ph-gear"></i></span>
         <span><b>系统设置</b><small>模型、本地数据与通知</small></span>
-        <svg class="settings-entry-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"/></svg>
+        <i class="ph ph-caret-right settings-entry-chevron" aria-hidden="true"></i>
       </button>
     </section>
 
     <section class="screen settings-screen" data-screen="settings" hidden>
       <header class="settings-header">
-        <button type="button" data-open-screen="us" aria-label="返回我们"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7"/></svg></button>
+        <button type="button" data-open-screen="us" aria-label="返回我们"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>
         <div><small>学程</small><h1>设置</h1></div>
       </header>
       <section class="settings-section" aria-labelledby="appearance-title">
-        <div class="settings-title"><div><small>01</small><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
-        <p class="settings-note appearance-note">只改变空间明暗，学程的陶土与微光点缀保持不变。</p>
+        <div class="settings-title"><div><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
+        <p class="settings-note appearance-note">只改变空间明暗，森林绿与微光点缀保持不变。</p>
         <div class="appearance-switch" role="group" aria-label="界面氛围"><button type="button" data-theme-option="day">日间</button><button type="button" data-theme-option="night">夜间</button></div>
       </section>
       <section class="settings-section" aria-labelledby="plan-title">
-        <div class="settings-title"><div><small>02</small><h2 id="plan-title">使用方式</h2></div><span>本地个人版</span></div>
+        <div class="settings-title"><div><h2 id="plan-title">使用方式</h2></div><span>本地个人版</span></div>
         <div class="setting-row"><span><b>一人一份长期记忆</b><small>对话、偏好、判断证据只保存在当前设备</small></span><span class="fixed-state">正在使用</span></div>
       </section>
       <section class="settings-section" aria-labelledby="model-title">
-        <div class="settings-title"><div><small>03</small><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
+        <div class="settings-title"><div><h2 id="model-title">模型与智能</h2></div><span id="model-summary">本地判断</span></div>
         <label class="setting-row" for="settings-cloud-consent"><span><b>允许当次对话使用云端模型</b><small>关闭后立即回到本地判断，不会发送新内容</small></span><input class="switch" id="settings-cloud-consent" type="checkbox"></label>
         <label class="model-field"><span>厂商</span><select id="provider-select"></select></label>
         <label class="model-field"><span>API 地址</span><input id="api-endpoint" type="url" autocomplete="url"></label>
@@ -160,7 +166,7 @@
         <p class="settings-note">当前测试版的 Key 只保留到本次页面或应用会话结束；不会写入长期记忆或备份。接入 iPhone 系统安全凭据前，不会长期保存密钥。</p>
       </section>
       <section class="settings-section" aria-labelledby="data-title">
-        <div class="settings-title"><div><small>04</small><h2 id="data-title">资料与授权</h2></div><span>只在这里管理</span></div>
+        <div class="settings-title"><div><h2 id="data-title">资料与授权</h2></div><span>只在这里管理</span></div>
         <div class="setting-row"><span><b>设备本地保存</b><small>对话、偏好与路径首先保存在设备</small></span><span class="fixed-state">始终开启</span></div>
         <div class="source-row"><span><b>对话附件</b><small>照片、文本与文件只在你发送后进入当前对话</small></span><button type="button" data-open-screen="chat">去添加</button></div>
         <div class="source-row"><span><b>日历</b><small id="calendar-summary">可导入标准 .ics 日历，在本地识别现实时间</small></span><button type="button" id="calendar-import">导入</button><input id="calendar-file" type="file" accept="text/calendar,.ics" hidden></div>
@@ -169,7 +175,7 @@
         <p class="settings-note">备份包含你的对话、偏好和 Agent 对你的本地认识；恢复前会再次确认。</p>
       </section>
       <section class="settings-section" aria-labelledby="notify-title">
-        <div class="settings-title"><div><small>05</small><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
+        <div class="settings-title"><div><h2 id="notify-title">通知与安静时段</h2></div><button class="text-link" type="button" data-open-screen="us">调整主动程度</button></div>
         <div class="quiet-times"><label for="quiet-start"><span>从</span><input id="quiet-start" type="time" value="23:00"></label><label for="quiet-end"><span>到</span><input id="quiet-end" type="time" value="07:30"></label></div>
         <label class="setting-row" for="urgent-override"><span><b>重要事情可以覆盖安静时段</b><small>由紧迫度判断；每一次打扰都会说明原因</small></span><input class="switch" id="urgent-override" type="checkbox" checked></label>
       </section>
@@ -193,10 +199,10 @@
     </dialog>
 
     <nav class="bottom-nav" aria-label="主要页面">
-      <button type="button" class="active" data-nav="chat"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5.8h14v9.7H11l-4.8 3.2.9-3.2H5z"/></svg><span>对话</span></button>
-      <button type="button" data-nav="today"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5.5" width="16" height="14" rx="3"/><path d="M8 3.5v4M16 3.5v4M4 10h16"/></svg><span>今天</span></button>
-      <button type="button" data-nav="path"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="17.5" r="2"/><circle cx="18" cy="6.5" r="2"/><path d="M7.8 16.6c3.8-1.4 2.6-5.5 6.5-7.1l1.9-.8"/></svg><span>路径</span></button>
-      <button type="button" data-nav="us"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5"/><path d="M5.5 19c.8-3.7 3-5.6 6.5-5.6s5.7 1.9 6.5 5.6"/></svg><span>我们</span></button>
+      <button type="button" class="active" data-nav="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i><span>对话</span></button>
+      <button type="button" data-nav="today"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>今天</span></button>
+      <button type="button" data-nav="path"><i class="ph ph-path" aria-hidden="true"></i><span>路径</span></button>
+      <button type="button" data-nav="us"><i class="ph ph-user-circle" aria-hidden="true"></i><span>我们</span></button>
     </nav>
     <div class="app-toast" id="app-toast" role="status" aria-live="polite"></div>
   </main>
