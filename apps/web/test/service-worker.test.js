@@ -13,5 +13,5 @@ test("offline cache includes the conversation history module", () => {
   assert.match(source, /\.\/assets\/onboarding-morning-v2\.png/);
   assert.match(source, /\.\/assets\/phosphor\/regular\.woff2/);
   assert.doesNotMatch(source, /resource-agriculture/);
-  assert.match(source, /xuecheng-iphone-v17/);
+  assert.match(source, /xuecheng-iphone-v18/);
 });

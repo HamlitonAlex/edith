@@ -247,6 +247,14 @@ test("the shared canvas carries quiet daytime and nighttime atmosphere without e
   assert.match(refinementCss, /\.settings-screen\{background:linear-gradient\(180deg,[^}]*transparent/);
 });
 
+test("the next-step card uses a branded route and a single dominant action", () => {
+  assert.match(html, /class="proposal-route"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="route-now"/);
+  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*justify-content:flex-start[^}]*background:var\(--action\)/s);
+  assert.match(refinementCss, /\.plan-actions #discuss-action\{[^}]*border:0[^}]*background:transparent/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active::after\{[^}]*border-radius:50%/s);
+});
+
 test("new users begin without fabricated personal history", () => {
   assert.doesNotMatch(html, /早上好。我把你最近说的|可以，不过晚上如果太累/);
   assert.doesNotMatch(js, /请根据你已经知道的信息，判断我现在最值得做的下一件事/);
