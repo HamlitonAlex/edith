@@ -221,8 +221,9 @@ function render() {
   $("#quiet-end").value = state.quietEnd;
   $("#urgent-override").checked = state.urgentOverride;
   const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
+  const selectedModelLabel = state.currentConversationModel === "local" ? "本地" : selectedModel.replace(/^models\//, "").slice(0, 12);
   $("#model-summary").textContent = selectedModel;
-  $("#conversation-model").innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/></svg>';
+  $("#conversation-model").innerHTML = `<span class="model-status-dot" aria-hidden="true"></span><b>${escapeHtml(selectedModelLabel)}</b><i class="ph ph-caret-down" aria-hidden="true"></i>`;
   $("#conversation-model").setAttribute("aria-label", `选择对话模型，当前：${selectedModel}`);
   $("#conversation-model").title = `当前：${selectedModel}`;
   let previousDay = "";

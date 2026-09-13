@@ -127,14 +127,20 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 @media(prefers-reduced-motion:reduce){.proposal-atmosphere,.proposal-atmosphere img,.proposal-atmosphere figcaption{transition:none}}
 
 /* Compact model picker: a quiet control, independent of model-name length. */
-.companion-header .conversation-model{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:11px;background:transparent;border:0;border-radius:50%;box-shadow:none}
+.companion-header .conversation-model{display:flex;flex:0 1 auto;width:auto;max-width:108px;height:36px;min-height:36px;align-items:center;gap:6px;padding:0 10px;border:1px solid color-mix(in srgb,var(--glass-line) 64%,var(--line));border-radius:12px;background:color-mix(in srgb,var(--glass) 58%,transparent);box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 48%,transparent);color:var(--action-strong);backdrop-filter:blur(16px) saturate(1.08)}
 .companion-header .conversation-model::after{display:none}
-.conversation-model svg{width:21px;height:21px;fill:var(--canvas);stroke:currentColor;stroke-width:1.6;stroke-linecap:round}
-#model-dialog{width:min(280px,calc(100vw - 40px));padding:20px;border-radius:20px}
-#model-dialog h2{font-size:18px;margin:8px 0 14px}
-#model-dialog .dialog-options button{overflow-wrap:anywhere}
+.conversation-model .model-status-dot{width:6px;height:6px;flex:none;border-radius:50%;background:var(--action);box-shadow:0 0 0 3px color-mix(in srgb,var(--action) 12%,transparent)}
+.conversation-model b{min-width:0;overflow:hidden;font-size:10px;font-weight:720;text-overflow:ellipsis;white-space:nowrap}.conversation-model .ph{flex:none;font-size:12px}
+#model-dialog{position:fixed;inset:calc(70px + env(safe-area-inset-top)) 16px auto auto;width:min(258px,calc(100vw - 32px));max-height:calc(100dvh - 96px);margin:0;padding:0;border-radius:18px;box-shadow:0 20px 54px color-mix(in srgb,var(--action-strong) 22%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 58%,transparent)}
+#model-dialog::backdrop{background:transparent;backdrop-filter:none}
+#model-dialog form{padding:18px}
+#model-dialog h2{margin:6px 0 12px;font-size:18px}
+#model-dialog form>.dialog-options{display:grid;grid-template-columns:1fr;gap:4px;margin-top:0;padding:4px;border-radius:13px;background:color-mix(in srgb,var(--surface-strong) 76%,transparent)}
+#model-dialog .dialog-options button{min-height:40px;padding:0 11px;overflow-wrap:anywhere;border-radius:10px;background:transparent;text-align:left}
+#model-dialog .dialog-options button.active{background:var(--surface);color:var(--action-strong);box-shadow:0 4px 12px color-mix(in srgb,var(--ink) 8%,transparent)}
 #model-dialog .model-picker-note{font-size:12px;line-height:1.5;color:var(--muted)}
-#model-dialog #manage-models{background:transparent;color:var(--action-strong);box-shadow:none}
+#model-dialog #manage-models{width:100%;margin-top:2px;background:transparent;color:var(--action-strong);box-shadow:none;text-align:left}
+#model-dialog form>button[value="cancel"]{width:100%;min-height:38px;background:transparent;color:var(--muted)}
 
 /* Immersive direction: 70% botanical atmosphere, 30% editorial clarity. */
 .chat-atmosphere{position:absolute;z-index:0;top:0;right:0;left:0;height:256px;overflow:hidden;pointer-events:none;opacity:1;transition:opacity .34s ease,transform .5s var(--ease-out-quart)}
@@ -175,9 +181,10 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 
 /* Layered atmosphere: let a decision feel lived-in without turning every surface into glass. */
 .agenda li.next,.current-direction{isolation:isolate;overflow:hidden;background:color-mix(in srgb,var(--task) 68%,transparent);backdrop-filter:blur(18px) saturate(1.08)}
-.agenda-atmosphere,.direction-atmosphere{position:absolute;z-index:0;inset:0;display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:.54;filter:saturate(.52) contrast(.95)}.agenda-atmosphere{object-position:center 55%}.direction-atmosphere{object-position:center 52%;opacity:.42}
-.agenda li.next::after,.current-direction::after{position:absolute;z-index:1;inset:0;background:linear-gradient(104deg,color-mix(in srgb,var(--task) 92%,transparent) 0%,color-mix(in srgb,var(--task) 76%,transparent) 58%,color-mix(in srgb,var(--task) 48%,transparent) 100%);content:"";pointer-events:none}.agenda li.next::before,.current-direction::before{z-index:3}.agenda li.next>time,.agenda li.next>div,.agenda li.next>span,.current-direction>small,.current-direction>h2,.current-direction>p{position:relative;z-index:2}
-:root[data-theme="night"] .agenda-atmosphere,:root[data-theme="night"] .direction-atmosphere{opacity:.28;filter:saturate(.4) brightness(.62) contrast(1.04)}:root[data-theme="night"] .agenda li.next::after,:root[data-theme="night"] .current-direction::after{background:linear-gradient(104deg,color-mix(in srgb,var(--task) 94%,transparent),color-mix(in srgb,var(--task) 80%,transparent) 60%,color-mix(in srgb,var(--task) 58%,transparent))}
+.agenda li.next,.current-direction{border-color:color-mix(in srgb,var(--action) 24%,var(--line));border-radius:24px;box-shadow:0 18px 42px color-mix(in srgb,var(--action-strong) 13%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 40%,transparent)}
+.agenda-atmosphere,.direction-atmosphere{position:absolute;z-index:0;inset:0;display:block;width:100%;height:100%;object-fit:cover;pointer-events:none;opacity:.76;filter:saturate(.74) contrast(1.02)}.agenda-atmosphere{object-position:center 55%}.direction-atmosphere{object-position:center 52%;opacity:.68}
+.agenda li.next::after,.current-direction::after{position:absolute;z-index:1;inset:0;background:radial-gradient(ellipse at 108% 115%,color-mix(in srgb,var(--action) 34%,transparent),transparent 56%),linear-gradient(104deg,color-mix(in srgb,var(--task) 88%,transparent) 0%,color-mix(in srgb,var(--task) 68%,transparent) 58%,color-mix(in srgb,var(--action) 18%,transparent) 100%);content:"";pointer-events:none}.agenda li.next::before,.current-direction::before{z-index:3}.agenda li.next>time,.agenda li.next>div,.agenda li.next>span,.current-direction>small,.current-direction>h2,.current-direction>p{position:relative;z-index:2}
+:root[data-theme="night"] .agenda-atmosphere,:root[data-theme="night"] .direction-atmosphere{opacity:.46;filter:saturate(.5) brightness(.64) contrast(1.06)}:root[data-theme="night"] .agenda li.next::after,:root[data-theme="night"] .current-direction::after{background:radial-gradient(ellipse at 108% 115%,color-mix(in srgb,var(--action) 24%,transparent),transparent 58%),linear-gradient(104deg,color-mix(in srgb,var(--task) 92%,transparent),color-mix(in srgb,var(--task) 72%,transparent) 60%,color-mix(in srgb,var(--action) 18%,transparent))}
 @media(prefers-reduced-transparency:reduce){.agenda li.next,.current-direction{background:var(--task);backdrop-filter:none}.agenda-atmosphere,.direction-atmosphere,.agenda li.next::after,.current-direction::after{display:none}}
 
 /* Immersive companion and settings space: one atmosphere, two content densities. */
@@ -229,5 +236,5 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 :root[data-theme="night"] .settings-atmosphere::after{background:linear-gradient(112deg,rgba(14,34,24,.64),rgba(10,18,14,.2) 58%),linear-gradient(180deg,transparent 42%,var(--canvas-soft) 100%)}
 :root[data-theme="night"] .settings-section{background:color-mix(in srgb,var(--canvas-soft) 92%,transparent)}
 :root[data-theme="night"] .settings-section:nth-of-type(4){background:color-mix(in srgb,var(--task) 66%,var(--canvas-soft))}
-@media(max-width:600px){.us-screen,.settings-screen{padding-right:0;padding-left:0}.profile-atmosphere{height:232px}.settings-atmosphere,.settings-header{height:180px;min-height:180px}.settings-header{margin-top:-180px}}
+@media(max-width:600px){.us-screen,.settings-screen{padding-right:0;padding-left:0}.us-screen{padding-top:0}.profile-atmosphere{height:280px}.profile-atmosphere-mark{top:calc(54px + env(safe-area-inset-top))}.settings-atmosphere,.settings-header{height:180px;min-height:180px}.settings-header{margin-top:-180px}}
 @media(prefers-reduced-transparency:reduce){.profile-avatar-picker,.profile-atmosphere-mark,.settings-entry,.settings-header>button{background:var(--surface);backdrop-filter:none}.settings-header>button{color:var(--ink)}}

@@ -288,6 +288,21 @@ test("companion and settings pages use a full-width immersive atmosphere", () =>
   assert.match(refinementCss, /\.profile-atmosphere\{[^}]*height:244px[^}]*overflow:hidden/);
   assert.match(refinementCss, /\.settings-header\{[^}]*margin-top:-190px/);
   assert.match(refinementCss, /\.settings-section\{[^}]*margin:0[^}]*border-radius:0[^}]*box-shadow:none/);
+  assert.match(refinementCss, /@media\(max-width:600px\)\{\.us-screen,\.settings-screen\{[^}]*padding-left:0\}\.us-screen\{padding-top:0\}/);
+});
+
+test("the conversation model stays understandable without becoming a large selector", () => {
+  assert.match(js, /selectedModelLabel = state\.currentConversationModel === "local" \? "本地"/);
+  assert.match(js, /class="model-status-dot"/);
+  assert.match(refinementCss, /\.companion-header \.conversation-model\{[^}]*max-width:108px[^}]*height:36px/);
+  assert.match(refinementCss, /#model-dialog\{[^}]*inset:calc\(70px \+ env\(safe-area-inset-top\)\) 16px auto auto/);
+  assert.match(refinementCss, /#model-dialog::backdrop\{background:transparent/);
+});
+
+test("today and path imagery remains visible beneath a botanical reading layer", () => {
+  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*opacity:\.76[^}]*saturate\(\.74\)/);
+  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*radial-gradient\(ellipse at 108% 115%[^}]*var\(--action\)/);
+  assert.match(refinementCss, /\.agenda li\.next,.current-direction\{[^}]*border-radius:24px[^}]*box-shadow:/);
 });
 
 test("selected decision layers can carry quiet imagery without making every surface a card", () => {
