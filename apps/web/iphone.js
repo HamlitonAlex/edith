@@ -2,6 +2,7 @@ import { createAgentState, hydrateAgentState, runAgentTurn } from "./agent/index
 import { createEncryptedBackup, readEncryptedBackup } from "./local-backup.js";
 import { MODEL_PROVIDERS, fetchProviderModels, getProvider, requestProviderReply } from "./agent/model-providers.js";
 import { conversationDayLabel, formatConversationTime, mergeStoredConversation } from "./lib/conversation-history.js";
+import { resolveAppViewport } from "./lib/viewport-height.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
@@ -667,7 +668,7 @@ $("#initiative").addEventListener("input", event => {
 });
 
 const chatInput = $("#chat-input");
-let viewportBaseline = Math.max(window.innerHeight, window.visualViewport?.height || 0);
+let viewportBaseline = window.innerHeight || window.visualViewport?.height || 0;
 function resizeComposer() {
   chatInput.style.height = "auto";
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
@@ -784,11 +785,16 @@ $("#clear-sources").addEventListener("click", () => {
 });
 
 function syncVisualViewport() {
-  const viewportHeight = window.visualViewport?.height || window.innerHeight;
-  const focusedTextEntry = document.activeElement?.matches('input:not([type="range"]), textarea');
-  if (!focusedTextEntry) viewportBaseline = Math.max(viewportBaseline, viewportHeight);
-  document.documentElement.style.setProperty("--app-height", `${Math.round(viewportHeight)}px`);
-  const keyboardOpen = Boolean(window.visualViewport && focusedTextEntry && viewportHeight < viewportBaseline - 80);
+  const focusedTextEntry = Boolean(document.activeElement?.matches('input:not([type="range"]), textarea'));
+  const viewport = resolveAppViewport({
+    layoutHeight: window.innerHeight,
+    visualHeight: window.visualViewport?.height,
+    focusedTextEntry,
+    viewportBaseline,
+  });
+  viewportBaseline = viewport.viewportBaseline;
+  document.documentElement.style.setProperty("--app-height", `${viewport.appHeight}px`);
+  const { keyboardOpen } = viewport;
   document.body.classList.toggle("keyboard-open", keyboardOpen);
   if (keyboardOpen) requestAnimationFrame(() => {
     window.scrollTo(0, 0);
