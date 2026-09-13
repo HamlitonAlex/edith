@@ -281,6 +281,16 @@ test("secondary screens share one hierarchy grammar while keeping their own dens
   assert.match(refinementCss, /\.talk-about-path,.primary-settings-action/);
 });
 
+test("selected decision layers can carry quiet imagery without making every surface a card", () => {
+  assert.match(js, /className = "agenda-atmosphere"/);
+  assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
+  assert.match(js, /className = "direction-atmosphere"/);
+  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*position:absolute/);
+  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*linear-gradient/);
+  assert.match(refinementCss, /:root\[data-theme="night"\] \.agenda-atmosphere,:root\[data-theme="night"\] \.direction-atmosphere/);
+  assert.match(refinementCss, /prefers-reduced-transparency:reduce/);
+});
+
 test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
   assert.match(refinementCss, /Ambient atmosphere: two quiet fields of brand light/);
   assert.match(refinementCss, /\.phone\{[\s\S]*?var\(--accent-growth\)[\s\S]*?var\(--action\)[\s\S]*?linear-gradient\(165deg/s);

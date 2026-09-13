@@ -117,16 +117,42 @@ function showToast(message) {
 
 function renderToday(pronoun) {
   const action = agentState.next_recommended_action;
+  const agenda = $("#today-agenda");
   $("#energy-check").hidden = !agentState.long_term_goals.length;
   $("#today-empty").hidden = Boolean(action);
-  $("#today-agenda").innerHTML = action ? `<li class="next"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current>${action.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>现在最值得推进</span></li>` : "";
+  agenda.innerHTML = action ? `<li class="next"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current>${action.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>现在最值得推进</span></li>` : "";
+  const next = agenda.querySelector(".next");
+  if (!next || !action) return;
+  const atmosphere = document.createElement("img");
+  atmosphere.className = "agenda-atmosphere";
+  atmosphere.alt = "";
+  atmosphere.setAttribute("aria-hidden", "true");
+  atmosphere.loading = "lazy";
+  atmosphere.src = safeImageUrl(action.resource?.image_url) || "./assets/onboarding-path.webp";
+  atmosphere.addEventListener("error", () => {
+    if (atmosphere.dataset.fallback) { atmosphere.remove(); return; }
+    atmosphere.dataset.fallback = "true";
+    atmosphere.src = "./assets/onboarding-path.webp";
+  });
+  next.prepend(atmosphere);
 }
 
 function renderPath() {
   const goal = agentState.long_term_goals[0];
+  const direction = $("#current-direction");
   $("#path-empty").hidden = Boolean(goal);
-  $("#current-direction").hidden = !goal;
+  direction.hidden = !goal;
   $("#direction-title").textContent = goal?.text || "";
+  direction.querySelector(".direction-atmosphere")?.remove();
+  if (goal) {
+    const atmosphere = document.createElement("img");
+    atmosphere.className = "direction-atmosphere";
+    atmosphere.alt = "";
+    atmosphere.setAttribute("aria-hidden", "true");
+    atmosphere.loading = "lazy";
+    atmosphere.src = "./assets/onboarding-path.webp";
+    direction.prepend(atmosphere);
+  }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
   $("#path-list").innerHTML = skills.map((skill, index) => `<article><i>${String(index + 1).padStart(2, "0")}</i><div><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`).join("");
 }
