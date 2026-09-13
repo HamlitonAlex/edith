@@ -8,6 +8,11 @@ const [html, css, js, build] = await Promise.all([
   readFile(new URL("../companion.js", import.meta.url), "utf8"),
   readFile(new URL("../../../scripts/build-mobile.mjs", import.meta.url), "utf8"),
 ]);
+const [iphoneHtml, iphoneCss, iphoneJs] = await Promise.all([
+  readFile(new URL("../iphone.html", import.meta.url), "utf8"),
+  readFile(new URL("../iphone-refinement.css", import.meta.url), "utf8"),
+  readFile(new URL("../iphone.js", import.meta.url), "utf8"),
+]);
 
 test("desktop companion preview has an intentional empty state instead of a blank stream", () => {
   assert.match(js, /life-empty/);
@@ -28,4 +33,13 @@ test("desktop companion preview uses the same atmosphere without breaking projec
   assert.doesNotMatch(css, /url\("\/assets\//);
   assert.match(build, /web-preview\.html/);
   assert.match(build, /companion-v3\.css/);
+});
+
+test("mobile chat keeps a clear daily atmosphere tied to the current topic", () => {
+  assert.match(iphoneJs, /dailyAtmosphere/);
+  assert.match(iphoneJs, /chooseDailyAtmosphere/);
+  assert.match(iphoneJs, /renderChatAtmosphere\(action\)/);
+  assert.match(iphoneCss, /filter:saturate\(\.82\) contrast\(1\.05\) brightness\(1\.03\)/);
+  assert.match(iphoneCss, /data-atmosphere="path"/);
+  assert.match(iphoneHtml, /chat-atmosphere/);
 });

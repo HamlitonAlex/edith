@@ -7,9 +7,13 @@ const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true };
+const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
 const themeColors = { day: "#f5f6f3", night: "#202522" };
+const dailyAtmospheres = [
+  { id: "desk", src: "./assets/onboarding-morning-v2.png" },
+  { id: "path", src: "./assets/onboarding-path.webp" },
+];
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
   guide: `${pronoun}会像一位了解你的引路人，给建议，也会指出你正在回避的问题。`,
@@ -52,6 +56,43 @@ function loadAgent() {
 
 function saveAgent() {
   localStorage.setItem(agentStorageKey, JSON.stringify(agentState));
+}
+
+function localDayKey(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function chooseDailyAtmosphere(action) {
+  const day = localDayKey();
+  if (state.dailyAtmosphere?.day === day) {
+    return dailyAtmospheres.find(item => item.id === state.dailyAtmosphere.id) || dailyAtmospheres[0];
+  }
+  const topic = `${action?.skill_id || ""} ${action?.title || ""}`;
+  let hash = 0;
+  for (const character of `${day}|${topic || "welcome"}`) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+  const id = /历史|农业|社会|哲学|人文|艺术|通识/.test(topic)
+    ? "path"
+    : /网络|编程|AI|产品|项目|软件/.test(topic)
+      ? "desk"
+      : dailyAtmospheres[hash % dailyAtmospheres.length].id;
+  state.dailyAtmosphere = { day, id };
+  save();
+  return dailyAtmospheres.find(item => item.id === id) || dailyAtmospheres[0];
+}
+
+function renderChatAtmosphere(action) {
+  const screen = $("#chat-screen");
+  const image = screen?.querySelector(".chat-atmosphere img");
+  if (!screen || !image) return;
+  const atmosphere = chooseDailyAtmosphere(action);
+  screen.dataset.atmosphere = atmosphere.id;
+  if (image.dataset.atmosphereSrc !== atmosphere.src) {
+    image.src = atmosphere.src;
+    image.dataset.atmosphereSrc = atmosphere.src;
+  }
 }
 
 function addMessage(message) {
@@ -198,6 +239,7 @@ function render() {
   renderPath();
   $("#reset-avatar").hidden = state.avatar === defaultAvatar;
   const action = agentState.next_recommended_action;
+  renderChatAtmosphere(action);
   $("#agent-proposal").hidden = !action;
   $("#chat-screen").classList.toggle("has-proposal", Boolean(action));
   $("#agent-proposal").classList.toggle("external", Boolean(action?.resource?.url));

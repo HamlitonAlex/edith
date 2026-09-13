@@ -128,10 +128,11 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 
 /* Immersive direction: 70% botanical atmosphere, 30% editorial clarity. */
 .chat-atmosphere{position:absolute;z-index:0;top:0;right:0;left:0;height:256px;overflow:hidden;pointer-events:none;opacity:1;transition:opacity .34s ease,transform .5s var(--ease-out-quart)}
-.chat-atmosphere img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 48%;filter:saturate(.66) contrast(1.02);transform:scale(1.02);transition:filter .35s ease,transform .6s var(--ease-out-quart)}
-.chat-atmosphere::after{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--canvas) 5%,transparent) 0%,transparent 30%,color-mix(in srgb,var(--canvas) 8%,transparent) 48%,var(--canvas) 96%);content:""}
+.chat-atmosphere img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 48%;filter:saturate(.82) contrast(1.05) brightness(1.03);transform:scale(1.01);transition:filter .35s ease,transform .6s var(--ease-out-quart)}
+.chat-atmosphere::after{position:absolute;inset:0;background:linear-gradient(180deg,color-mix(in srgb,var(--canvas) 3%,transparent) 0%,transparent 38%,color-mix(in srgb,var(--canvas) 5%,transparent) 62%,var(--canvas) 98%);content:""}
+.chat-screen[data-atmosphere="path"] .chat-atmosphere img{object-position:center 52%;filter:saturate(.78) contrast(1.06) brightness(1.04)}
 .chat-screen.has-proposal .chat-atmosphere{opacity:0;transform:scale(1.015)}
-.chat-screen.has-proposal .chat-atmosphere img{filter:saturate(.56) contrast(1.02)}
+.chat-screen.has-proposal .chat-atmosphere img{filter:saturate(.7) contrast(1.04) brightness(1.02)}
 .chat-screen .conversation{position:relative;z-index:2}
 .companion-header{top:-55px;margin-right:12px;margin-left:12px;border:1px solid color-mix(in srgb,var(--glass-line) 72%,var(--line));border-radius:22px;background:color-mix(in srgb,var(--glass) 72%,transparent);box-shadow:0 10px 30px color-mix(in srgb,var(--action-strong) 9%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 58%,transparent);backdrop-filter:blur(22px) saturate(1.12)}
 .composer{right:14px;bottom:88px;left:14px;border-color:color-mix(in srgb,var(--glass-line) 68%,var(--line));border-radius:24px;background:color-mix(in srgb,var(--glass) 73%,transparent);box-shadow:0 16px 34px color-mix(in srgb,var(--action-strong) 15%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 68%,transparent);backdrop-filter:blur(26px) saturate(1.16)}
@@ -139,7 +140,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 .attachment-button{background:transparent;color:var(--action-strong)}
 .bottom-nav{right:14px;bottom:max(10px,env(safe-area-inset-bottom));left:14px;height:64px;padding:5px 8px;border:1px solid color-mix(in srgb,var(--glass-line) 70%,var(--line));border-radius:23px;background:color-mix(in srgb,var(--glass) 73%,transparent);box-shadow:0 16px 36px color-mix(in srgb,var(--action-strong) 16%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 68%,transparent);backdrop-filter:blur(26px) saturate(1.16)}
 .bottom-nav button{border-radius:17px}.bottom-nav button.active{background:color-mix(in srgb,var(--action) 12%,transparent);color:var(--action-strong)}
-:root[data-theme="night"] .chat-atmosphere img{filter:saturate(.52) brightness(.5) contrast(1.08)}
+:root[data-theme="night"] .chat-atmosphere img{filter:saturate(.64) brightness(.58) contrast(1.1)}
 :root[data-theme="night"] .chat-atmosphere::after{background:linear-gradient(180deg,color-mix(in srgb,var(--canvas) 18%,transparent) 0%,color-mix(in srgb,var(--canvas) 6%,transparent) 34%,color-mix(in srgb,var(--canvas) 72%,transparent) 73%,var(--canvas) 98%)}
 :root[data-theme="night"] .companion-header{background:color-mix(in srgb,var(--glass) 70%,transparent);box-shadow:0 10px 30px rgba(5,10,7,.25),inset 0 1px 0 rgba(255,255,255,.1)}
 :root[data-theme="night"] .composer,:root[data-theme="night"] .bottom-nav{background:color-mix(in srgb,var(--glass) 76%,transparent);box-shadow:0 16px 36px rgba(5,10,7,.32),inset 0 1px 0 rgba(255,255,255,.1)}
