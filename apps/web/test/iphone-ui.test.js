@@ -270,6 +270,17 @@ test("the chat surface carries the immersive image without duplicating a live re
   assert.match(refinementCss, /\.chat-screen\.has-proposal \.chat-atmosphere\{[^}]*opacity:0/);
 });
 
+test("secondary screens share one hierarchy grammar while keeping their own density", () => {
+  assert.match(refinementCss, /Unified hierarchy: the same depth grammar, tuned density per screen/);
+  assert.match(refinementCss, /\.screen:not\(\.chat-screen\)\{[^}]*background:/);
+  assert.match(refinementCss, /\.page-header::before\{[^}]*background:linear-gradient/);
+  assert.match(refinementCss, /\.agenda li\{position:relative/);
+  assert.match(refinementCss, /\.settings-section\{[^}]*backdrop-filter:blur\(18px\)/);
+  assert.match(refinementCss, /\.agenda-actions \[data-start-current\]\{[^}]*background:var\(--action\)/);
+  assert.match(refinementCss, /\.model-field input,.model-field select,.setting-field select\{color:var\(--ink\)}/);
+  assert.match(refinementCss, /\.talk-about-path,.primary-settings-action/);
+});
+
 test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
   assert.match(refinementCss, /Ambient atmosphere: two quiet fields of brand light/);
   assert.match(refinementCss, /\.phone\{[\s\S]*?var\(--accent-growth\)[\s\S]*?var\(--action\)[\s\S]*?linear-gradient\(165deg/s);
