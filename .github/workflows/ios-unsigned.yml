@@ -52,7 +52,7 @@ jobs:
 
       - name: Package IPA
         run: |
-          VERSION="$(node -p \"JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version\")"
+          VERSION="$(node -p 'require("./package.json").version')"
           APP_PATH="$GITHUB_WORKSPACE/build/ios/DerivedData/Build/Products/Debug-iphoneos/App.app"
           IPA_ROOT="$GITHUB_WORKSPACE/build/ios/UnsignedIPA"
           IPA_PATH="$GITHUB_WORKSPACE/build/ios/Xuecheng-${VERSION}-unsigned.ipa"
