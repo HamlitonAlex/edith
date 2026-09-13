@@ -23,20 +23,20 @@ body{background-image:radial-gradient(circle at 84% 8%,color-mix(in srgb,var(--w
 /* Desktop polish: a quiet editorial frame with one lived-in starting point. */
 @media (min-width: 821px) {
   :root[data-theme="peach"] {
-    --bg: #eeeae1;
-    --wash: #d7e1d8;
-    --paper: #fbfaf5;
-    --paper-2: #f0eee5;
-    --ink: #26342c;
-    --muted: #647166;
-    --faint: #929b91;
-    --primary: #315443;
-    --primary-ink: #fbfaf4;
-    --accent: #c27e4f;
-    --success: #5f806d;
-    --warning: #a96b49;
-    --line: rgba(38, 54, 44, 0.15);
-    --shadow: 0 22px 64px rgba(39, 57, 46, 0.13);
+    --bg: #dfeade;
+    --wash: #b9d1bd;
+    --paper: #f7fbf5;
+    --paper-2: #e8f1e8;
+    --ink: #1f3428;
+    --muted: #536a5a;
+    --faint: #7f9685;
+    --primary: #2f5c46;
+    --primary-ink: #f7fbf7;
+    --accent: #d2a15b;
+    --success: #3f7a59;
+    --warning: #9b6b4a;
+    --line: rgba(31, 61, 45, 0.18);
+    --shadow: 0 22px 64px rgba(29, 62, 43, 0.16);
   }
 
   .day-heading {
@@ -71,6 +71,25 @@ body{background-image:radial-gradient(circle at 84% 8%,color-mix(in srgb,var(--w
     box-shadow: 0 18px 44px color-mix(in srgb, var(--ink) 8%, transparent);
     -webkit-backdrop-filter: blur(18px) saturate(1.04);
     backdrop-filter: blur(18px) saturate(1.04);
+  }
+
+  .tab.active {
+    background: var(--primary);
+    color: var(--primary-ink);
+    box-shadow: 0 7px 18px color-mix(in srgb, var(--primary) 20%, transparent);
+  }
+
+  .theme-choice.peach > i {
+    background: var(--primary);
+  }
+
+  .voice span,
+  .source-mark.note {
+    background: var(--primary);
+  }
+
+  .source-mark.calendar {
+    background: var(--accent);
   }
 
   .life-event:first-child {

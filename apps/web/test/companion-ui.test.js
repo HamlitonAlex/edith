@@ -19,6 +19,8 @@ test("desktop companion preview has an intentional empty state instead of a blan
 test("desktop companion preview uses the same atmosphere without breaking project-page paths", () => {
   assert.match(css, /Desktop polish/);
   assert.match(css, /@media \(min-width: 821px\)/);
+  assert.match(css, /--primary: #2f5c46/);
+  assert.match(html, /<b>森林<\/b><small>绿色主调<\/small>/);
   assert.match(css, /backdrop-filter: blur\(18px\)/);
   assert.match(html, /href="\.\/companion-v3\.css"/);
   assert.match(html, /src="\.\/companion\.js"/);
