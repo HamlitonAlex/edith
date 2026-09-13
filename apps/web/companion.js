@@ -1,4 +1,4 @@
-import { createCompanionState, receiveMessage } from "/lib/companion-state.js";
+import { createCompanionState, receiveMessage } from "./lib/companion-state.js";
 
 const $ = (selector) => document.querySelector(selector);
 const storageKey = "xuecheng:companion:v3";
@@ -70,17 +70,19 @@ function renderLifeStream() {
     })),
   ];
 
-  $("#life-stream").innerHTML = items
-    .map((item) => {
-      const action = item.href
-        ? `<a class="event-action ${item.tone}" href="${escapeHtml(item.href)}" target="_blank" rel="noreferrer">${escapeHtml(item.status)}</a>`
-        : item.compose
-          ? `<button class="event-action ${item.tone}" type="button" data-compose="${escapeHtml(item.compose)}">${escapeHtml(item.status)}</button>`
-          : `<span class="event-state ${item.tone}">${escapeHtml(item.status)}</span>`;
-      const eyebrow = item.eyebrow ? `<span class="event-eyebrow">${escapeHtml(item.eyebrow)}</span>` : "";
-      return `<article class="life-event"><div class="event-source"><b>${escapeHtml(item.source)}</b><span>${escapeHtml(item.moment)}</span></div><div class="event-copy">${eyebrow}<p>${escapeHtml(item.title)}</p><small>${escapeHtml(item.detail)}</small></div>${action}</article>`;
-    })
-    .join("");
+  $("#life-stream").innerHTML = items.length
+    ? items
+        .map((item) => {
+          const action = item.href
+            ? `<a class="event-action ${item.tone}" href="${escapeHtml(item.href)}" target="_blank" rel="noreferrer">${escapeHtml(item.status)}</a>`
+            : item.compose
+              ? `<button class="event-action ${item.tone}" type="button" data-compose="${escapeHtml(item.compose)}">${escapeHtml(item.status)}</button>`
+              : `<span class="event-state ${item.tone}">${escapeHtml(item.status)}</span>`;
+          const eyebrow = item.eyebrow ? `<span class="event-eyebrow">${escapeHtml(item.eyebrow)}</span>` : "";
+          return `<article class="life-event"><div class="event-source"><b>${escapeHtml(item.source)}</b><span>${escapeHtml(item.moment)}</span></div><div class="event-copy">${eyebrow}<p>${escapeHtml(item.title)}</p><small>${escapeHtml(item.detail)}</small></div>${action}</article>`;
+        })
+        .join("")
+    : `<div class="life-empty" role="status"><span>还没有安排</span><p>从一句话开始，今天的下一步会在这里形成。</p></div>`;
 
   document.querySelectorAll("[data-compose]").forEach((button) => {
     button.onclick = () => {

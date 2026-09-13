@@ -38,6 +38,7 @@ function routePath(pathname) {
 
   if (decoded === "/") return { root: webRoot, relative: "iphone.html" };
   if (decoded === "/web-preview") return { root: webRoot, relative: "companion-v3.html" };
+  if (decoded === "/web-preview.html") return { root: webRoot, relative: "companion-v3.html" };
   if (decoded === "/planner") return { root: webRoot, relative: "planner.html" };
   if (decoded === "/prototype") return { root: webRoot, relative: "index.html" };
   if (decoded === "/ui-directions") return { root: webRoot, relative: "ui-directions.html" };

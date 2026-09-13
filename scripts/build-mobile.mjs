@@ -20,10 +20,14 @@ await Promise.all([
   cp(resolve(web, "ui-directions.js"), resolve(dist, "ui-directions.js")),
   cp(resolve(web, "local-backup.js"), resolve(dist, "local-backup.js")),
   cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),
+  cp(resolve(web, "companion-v3.html"), resolve(dist, "web-preview.html")),
+  cp(resolve(web, "companion-v3.css"), resolve(dist, "companion-v3.css")),
+  cp(resolve(web, "companion.js"), resolve(dist, "companion.js")),
   cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
   cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
   cp(resolve(web, "agent"), resolve(dist, "agent"), { recursive: true }),
   cp(resolve(web, "lib", "conversation-history.js"), resolve(dist, "lib", "conversation-history.js")),
+  cp(resolve(web, "lib", "companion-state.js"), resolve(dist, "lib", "companion-state.js")),
 ]);
 
-console.log("Mobile web bundle created in dist/");
+console.log("Web bundles created in dist/");

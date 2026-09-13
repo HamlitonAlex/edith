@@ -19,3 +19,174 @@ body{background-image:radial-gradient(circle at 84% 8%,color-mix(in srgb,var(--w
 .life-event{min-height:72px;grid-template-columns:98px minmax(0,1fr) auto;padding:20px 2px}.life-event:first-child{min-height:196px;padding:28px 30px}.life-event:first-child .event-copy p{font-size:clamp(25px,2.6vw,32px)}.event-source b{font-size:11px}.event-source span{font-size:11px}.event-copy p{font-size:14px}.event-copy small{font-size:11px}.life-event:not(:first-child) .event-source{position:relative;padding-left:13px}.life-event:not(:first-child) .event-source:before{position:absolute;top:4px;left:0;width:5px;height:5px;border-radius:50%;background:var(--accent);content:""}.event-action,.event-state{font-size:11px}.life-event:first-child .event-action{min-height:44px;padding-inline:17px;font-size:11px}
 .reality-column>header{padding-bottom:16px}.reality-column small{font-size:10px}.reality-column h2{font-size:17px}.reality-column>header>span{font-size:12px}.reality-column>p{font-size:11px}.source-list li{padding:14px 0}.source-list b{font-size:11px}.source-list span,.source-list button{font-size:10px}.honest-state b,.honest-state p{font-size:10px}.input-dock textarea{font-size:13px}.voice,.send{font-size:11px}
 @media(max-width:820px){.day-heading{padding-top:34px}.day-heading h1{font-size:40px}.day-intro{font-size:12px}.daily-grid{gap:34px}.life-event{grid-template-columns:80px minmax(0,1fr);padding-block:18px}.life-event:first-child{min-height:232px;padding:23px}.life-event:first-child .event-copy p{font-size:25px}.reality-column>p{font-size:11px}}
+
+/* Desktop polish: a quiet editorial frame with one lived-in starting point. */
+@media (min-width: 821px) {
+  :root[data-theme="peach"] {
+    --bg: #eeeae1;
+    --wash: #d7e1d8;
+    --paper: #fbfaf5;
+    --paper-2: #f0eee5;
+    --ink: #26342c;
+    --muted: #647166;
+    --faint: #929b91;
+    --primary: #315443;
+    --primary-ink: #fbfaf4;
+    --accent: #c27e4f;
+    --success: #5f806d;
+    --warning: #a96b49;
+    --line: rgba(38, 54, 44, 0.15);
+    --shadow: 0 22px 64px rgba(39, 57, 46, 0.13);
+  }
+
+  .day-heading {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .day-heading::after {
+    position: absolute;
+    z-index: -1;
+    top: -70px;
+    right: -180px;
+    width: 600px;
+    height: 350px;
+    border-radius: 42px 0 0 42px;
+    background:
+      linear-gradient(90deg, color-mix(in srgb, var(--bg) 98%, transparent), color-mix(in srgb, var(--bg) 56%, transparent) 46%, transparent),
+      url("./assets/onboarding-morning-v2.png") 65% 38% / cover;
+    content: "";
+    filter: saturate(0.55) contrast(0.94);
+    opacity: 0.28;
+    pointer-events: none;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 16%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 16%, #000 88%, transparent 100%);
+  }
+
+  .reality-column {
+    padding: 22px 20px 24px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--paper) 68%, transparent);
+    box-shadow: 0 18px 44px color-mix(in srgb, var(--ink) 8%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.04);
+    backdrop-filter: blur(18px) saturate(1.04);
+  }
+
+  .life-event:first-child {
+    background-image: linear-gradient(100deg, var(--primary) 0%, color-mix(in srgb, var(--primary) 88%, transparent) 65%, color-mix(in srgb, var(--primary) 70%, transparent) 100%), url("./assets/onboarding-path.webp");
+    background-position: center, 76% 54%;
+    background-size: cover, cover;
+  }
+
+  .path-panel {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .path-panel::after {
+    position: absolute;
+    z-index: -1;
+    top: 35px;
+    right: -160px;
+    width: 520px;
+    height: 300px;
+    border-radius: 50%;
+    background: url("./assets/onboarding-path.webp") center / cover;
+    content: "";
+    filter: saturate(0.42) contrast(0.96);
+    opacity: 0.12;
+    pointer-events: none;
+    -webkit-mask-image: radial-gradient(ellipse, #000 0%, transparent 72%);
+    mask-image: radial-gradient(ellipse, #000 0%, transparent 72%);
+  }
+
+  .direction-block {
+    padding: 24px 26px;
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: color-mix(in srgb, var(--paper) 72%, transparent);
+    box-shadow: 0 18px 44px color-mix(in srgb, var(--ink) 7%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.04);
+    backdrop-filter: blur(18px) saturate(1.04);
+  }
+
+  .path-steps li.now {
+    padding-left: 20px;
+    border-left: 2px solid var(--primary);
+    background: color-mix(in srgb, var(--paper) 52%, transparent);
+  }
+}
+
+.life-empty {
+  position: relative;
+  display: flex;
+  min-height: 260px;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 30px;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background:
+    linear-gradient(100deg, color-mix(in srgb, var(--paper) 92%, transparent), color-mix(in srgb, var(--paper) 64%, transparent) 62%, color-mix(in srgb, var(--paper) 38%, transparent)),
+    url("./assets/onboarding-path.webp") 74% 54% / cover;
+  box-shadow: var(--shadow);
+  -webkit-backdrop-filter: blur(18px) saturate(1.04);
+  backdrop-filter: blur(18px) saturate(1.04);
+}
+
+.life-empty::before {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 30%, color-mix(in srgb, var(--paper) 28%, transparent));
+  content: "";
+  pointer-events: none;
+}
+
+.life-empty span,
+.life-empty p {
+  position: relative;
+  z-index: 1;
+}
+
+.life-empty span {
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.14em;
+}
+
+.life-empty p {
+  max-width: 19em;
+  margin: 8px 0 0;
+  color: var(--ink);
+  font-family: "Songti SC", "STSong", serif;
+  font-size: clamp(22px, 2.2vw, 30px);
+  line-height: 1.34;
+  letter-spacing: -0.025em;
+}
+
+@media (max-width: 820px) {
+  .life-empty {
+    min-height: 220px;
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .life-empty p {
+    font-size: 24px;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .reality-column,
+  .direction-block,
+  .life-empty {
+    background: var(--paper);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

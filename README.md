@@ -4,6 +4,7 @@
 
 <p align="center">
   <a href="https://hamlitonalex.github.io/edith/"><strong>Web 在线体验</strong></a>
+  · <a href="https://hamlitonalex.github.io/edith/web-preview.html"><strong>Web 大页面预览</strong></a>
   · <a href="https://appetize.io/app/ios/com.xuecheng.companion?device=iphone14pro&osVersion=16.2&toolbar=true"><strong>可操作的 iPhone 演示</strong></a>
   · <a href="PRODUCT.md"><strong>产品定义</strong></a>
   · <a href="docs/github-showcase.md"><strong>首发说明</strong></a>
