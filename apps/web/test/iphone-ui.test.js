@@ -281,6 +281,15 @@ test("secondary screens share one hierarchy grammar while keeping their own dens
   assert.match(refinementCss, /\.talk-about-path,.primary-settings-action/);
 });
 
+test("companion and settings pages use a full-width immersive atmosphere", () => {
+  assert.match(html, /class="profile-atmosphere"[^>]*aria-hidden="true"/);
+  assert.match(html, /class="settings-atmosphere"[^>]*aria-hidden="true"/);
+  assert.match(refinementCss, /\.us-screen,\.settings-screen\{[^}]*padding-right:0[^}]*padding-left:0/);
+  assert.match(refinementCss, /\.profile-atmosphere\{[^}]*height:244px[^}]*overflow:hidden/);
+  assert.match(refinementCss, /\.settings-header\{[^}]*margin-top:-190px/);
+  assert.match(refinementCss, /\.settings-section\{[^}]*margin:0[^}]*border-radius:0[^}]*box-shadow:none/);
+});
+
 test("selected decision layers can carry quiet imagery without making every surface a card", () => {
   assert.match(js, /className = "agenda-atmosphere"/);
   assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
