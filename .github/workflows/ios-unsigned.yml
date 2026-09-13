@@ -1,0 +1,71 @@
+name: Build unsigned iOS IPA
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-unsigned-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build iPhone package
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate and sync the iPhone app
+        run: npm run mobile:sync
+
+      - name: Verify app behavior
+        run: npm test
+
+      - name: Build unsigned iPhone app
+        run: |
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$GITHUB_WORKSPACE/build/ios/DerivedData" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Package IPA
+        run: |
+          VERSION="$(node -p \"JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version\")"
+          APP_PATH="$GITHUB_WORKSPACE/build/ios/DerivedData/Build/Products/Debug-iphoneos/App.app"
+          IPA_ROOT="$GITHUB_WORKSPACE/build/ios/UnsignedIPA"
+          IPA_PATH="$GITHUB_WORKSPACE/build/ios/Xuecheng-${VERSION}-unsigned.ipa"
+          rm -rf "$IPA_ROOT"
+          mkdir -p "$IPA_ROOT/Payload"
+          cp -R "$APP_PATH" "$IPA_ROOT/Payload/App.app"
+          cd "$IPA_ROOT"
+          /usr/bin/zip -qry "$IPA_PATH" Payload
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: Xuecheng-unsigned-ipa
+          path: build/ios/Xuecheng-*-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 14
