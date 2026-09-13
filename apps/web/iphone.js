@@ -222,7 +222,8 @@ function render() {
   $("#urgent-override").checked = state.urgentOverride;
   const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
   $("#model-summary").textContent = selectedModel;
-  $("#conversation-model").textContent = selectedModel;
+  $("#conversation-model").textContent = state.currentConversationModel === "local" ? "连接模型" : selectedModel;
+  $("#conversation-model").setAttribute("aria-label", state.currentConversationModel === "local" ? "连接模型，当前为有限的本地规则交互" : "切换当前对话模型");
   let previousDay = "";
   $("#dynamic-messages").innerHTML = state.messages.map(message => {
     const day = conversationDayLabel(message.createdAt);
@@ -559,6 +560,12 @@ document.querySelectorAll("[data-gender]").forEach(button => button.addEventList
 });
 
 $("#conversation-model").addEventListener("click", () => {
+  if (state.currentConversationModel === "local") {
+    openScreen("settings");
+    $("#model-title").scrollIntoView({ block: "start" });
+    showToast("连接自己的模型后，可开始自由对话；当前仅支持有限的本地规则交互");
+    return;
+  }
   renderModelControls();
   $("#model-dialog").showModal();
 });
