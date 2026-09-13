@@ -305,6 +305,16 @@ test("today and path imagery remains visible beneath a botanical reading layer",
   assert.match(refinementCss, /\.agenda li\.next,.current-direction\{[^}]*border-radius:24px[^}]*box-shadow:/);
 });
 
+test("the 1.0.1 mobile release fixes full bleed and stays portrait-first", () => {
+  assert.match(html, /学程 1\.0\.1 · 本地个人版/);
+  assert.match(refinementCss, /1\.0\.1 release correction/);
+  assert.match(refinementCss, /\.us-screen\{padding-top:0\}/);
+  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{opacity:\.86/);
+  const phoneOrientations = infoPlist.match(/<key>UISupportedInterfaceOrientations<\/key>[\s\S]*?<\/array>/)?.[0] || "";
+  assert.match(phoneOrientations, /UIInterfaceOrientationPortrait/);
+  assert.doesNotMatch(phoneOrientations, /Landscape/);
+});
+
 test("selected decision layers can carry quiet imagery without making every surface a card", () => {
   assert.match(js, /className = "agenda-atmosphere"/);
   assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
