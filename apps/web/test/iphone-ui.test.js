@@ -221,6 +221,22 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(refinementCss, /button:focus-visible/);
 });
 
+test("the next-step layer speaks like a judgment and gives three human exits", () => {
+  assert.match(html, /我觉得现在值得做/);
+  assert.match(html, /id="start-action"[^>]*>就这样做/);
+  assert.match(html, /id="discuss-action"[^>]*>和她聊聊/);
+  assert.match(html, /id="change-action"[^>]*>换个方向/);
+  assert.match(js, /change-action/);
+  assert.doesNotMatch(html, /今天的任务/);
+});
+
+test("the us page surfaces the companion's understanding before configuration", () => {
+  assert.match(html, /她现在知道的我/);
+  assert.match(html, /id="understanding-list"/);
+  assert.match(html, /这里有理解错的吗？/);
+  assert.match(js, /function renderUnderstanding\(\)/);
+});
+
 test("an accepted next step clearly becomes an in-progress state everywhere it appears", () => {
   assert.match(js, /const started = action\?\.status === "accepted"/);
   assert.match(js, /const actionLabel = started \? "进行中"/);

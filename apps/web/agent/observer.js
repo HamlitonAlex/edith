@@ -16,6 +16,8 @@ export function observe(rawText, now = new Date()) {
       delays: includesAny(text, ["明天", "推迟", "晚点", "改天"]),
       tired: includesAny(text, ["累", "困", "没精力", "不想动"]),
       busy: includesAny(text, ["没时间", "要上学", "去学校", "拍摄", "临时有事", "加班"]),
+      new_idea: includesAny(text, ["新想法", "产品想法", "突然想到", "突然有个", "灵感", "想做一个"]),
+      wants_new_direction: includesAny(text, ["换个方向", "换一个方向", "想换方向", "改个方向"]),
       completed: includesAny(text, ["完成了", "做完", "看完", "学完"]),
       confused: includesAny(text, ["没懂", "不明白", "不会", "卡住"]),
       wants_hint: includesAny(text, ["提示", "思路", "引导"]),

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAgentState, runAgentTurn } from "../agent/index.js";
+import { createAgentState, hydrateAgentState, runAgentTurn } from "../agent/index.js";
 import { createKnownAgentState } from "./known-agent-fixture.js";
 
 test("a new user profile starts unknown instead of inheriting the developer's goals", () => {
@@ -50,6 +50,62 @@ test("low energy triggers negotiation rather than cancellation or blind complian
   assert.match(result.reply, /B\./);
   assert.match(result.reply, /C\./);
   assert.match(result.reply, /最终由你选/);
+});
+
+test("a tired user without an active action is met before being given another task", () => {
+  const result = runAgentTurn(createKnownAgentState(), "我今天真的很累，只想躺着");
+  assert.equal(result.kind, "reflection");
+  assert.equal(result.state.next_recommended_action, null);
+  assert.match(result.reply, /不急着把它变成任务/);
+});
+
+test("a tired new user is never mistaken for a long-term-goal confirmation", () => {
+  const result = runAgentTurn(createAgentState(), "我今天真的很累，只想躺着");
+  assert.equal(result.kind, "reflection");
+  assert.equal(result.state.long_term_goals.length, 0);
+  assert.equal(result.state.pending_items.length, 0);
+});
+
+test("hydration discards only the legacy transient-state goal that an older build could create", () => {
+  const saved = createAgentState();
+  saved.long_term_goals = [
+    { id: "mistake", text: "我今天真的很累，只想躺着", source: "用户确认" },
+    { id: "keep", text: "以后能独立做出真正有人用的产品", source: "用户确认" },
+  ];
+  saved.next_recommended_action = { id: "legacy-action", title: "把“我今天真的很累，只想躺着”推进到一个现实场景" };
+  const hydrated = hydrateAgentState(saved);
+  assert.deepEqual(hydrated.long_term_goals.map(goal => goal.id), ["keep"]);
+  assert.equal(hydrated.next_recommended_action, null);
+});
+
+test("a new product idea remains a discussion note without displacing the current next step", () => {
+  const proposed = runAgentTurn(createKnownAgentState(), "帮我判断下一步");
+  const originalActionId = proposed.state.next_recommended_action.id;
+  const result = runAgentTurn(proposed.state, "我突然有个新的 AI 产品想法，想做一个能陪人学习的东西");
+  assert.equal(result.kind, "idea");
+  assert.equal(result.state.next_recommended_action.id, originalActionId);
+  assert.equal(result.state.pending_items.at(-1).kind, "idea_to_revisit");
+  assert.match(result.reply, /不急着打乱/);
+});
+
+test("changing direction starts a negotiation instead of blindly replacing the current step", () => {
+  const proposed = runAgentTurn(createKnownAgentState(), "帮我判断下一步");
+  const originalActionId = proposed.state.next_recommended_action.id;
+  const result = runAgentTurn(proposed.state, "我想换个方向，但想先和你说说原因。");
+  assert.equal(result.kind, "negotiate_direction");
+  assert.equal(result.state.next_recommended_action.id, originalActionId);
+  assert.equal(result.state.phase, "negotiate");
+  assert.match(result.reply, /先不急着换成另一个任务/);
+});
+
+test("a next step carries portable judgment fields instead of only task copy", () => {
+  const result = runAgentTurn(createKnownAgentState(), "帮我判断下一步");
+  const action = result.state.next_recommended_action;
+  assert.equal(typeof action.expected_gain, "string");
+  assert.equal(action.estimated_time, action.duration_minutes);
+  assert.equal(action.suggested_method, action.instructions);
+  assert.equal(action.completion_evidence, action.completion_criteria);
+  assert.equal(typeof action.confidence, "number");
 });
 
 test("asking why connects the action to this user's long-term goal", () => {

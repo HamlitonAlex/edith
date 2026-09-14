@@ -40,5 +40,13 @@ export function createAgentState(now = new Date()) {
 export function hydrateAgentState(saved) {
   const base = createAgentState();
   if (!saved || saved.schema_version !== base.schema_version) return base;
-  return { ...base, ...saved, skills: { ...base.skills, ...saved.skills } };
+  const isLegacyTransientGoal = item => /(?:今天|现在).{0,12}(?:累|困|躺着|不想动)/.test(String(item?.text || ""));
+  return {
+    ...base,
+    ...saved,
+    long_term_goals: (saved.long_term_goals || []).filter(item => !isLegacyTransientGoal(item)),
+    pending_items: (saved.pending_items || []).filter(item => !(item?.kind === "long_term_goal_inference" && isLegacyTransientGoal(item))),
+    next_recommended_action: isLegacyTransientGoal({ text: saved.next_recommended_action?.title }) ? null : saved.next_recommended_action,
+    skills: { ...base.skills, ...saved.skills },
+  };
 }

@@ -165,8 +165,8 @@ function renderToday(pronoun) {
   $("#energy-check").hidden = !agentState.long_term_goals.length;
   $("#today-empty").hidden = Boolean(action);
   const started = action?.status === "accepted";
-  const actionLabel = started ? "进行中" : action?.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解";
-  agenda.innerHTML = action ? `<li class="next ${started ? "started" : ""}"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${actionLabel}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>${started ? "正在推进" : "现在最值得推进"}</span></li>` : "";
+  const actionLabel = started ? "进行中" : "就这样做";
+  agenda.innerHTML = action ? `<li class="next ${started ? "started" : ""}"><time>现在<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么是现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${actionLabel}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-change-current>换个方向</button></div></div><span>${started ? "正在推进" : "她觉得值得一试"}</span></li>` : "";
   const next = agenda.querySelector(".next");
   if (!next || !action) return;
   const atmosphere = document.createElement("img");
@@ -201,6 +201,22 @@ function renderPath() {
   }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
   $("#path-list").innerHTML = skills.map((skill, index) => `<article><i>${String(index + 1).padStart(2, "0")}</i><div><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`).join("");
+}
+
+function renderUnderstanding() {
+  const goal = agentState.long_term_goals[0]?.text;
+  const interests = agentState.interests
+    .map(item => typeof item === "string" ? item : item?.label || item?.text)
+    .filter(Boolean);
+  const latestConstraint = agentState.current_constraints.at(-1);
+  const constraint = typeof latestConstraint === "string" ? latestConstraint : latestConstraint?.text;
+  const rows = [
+    ["最近最重要", goal || "我还不急着替你下结论"],
+    ["反复出现的兴趣", interests.length ? interests.slice(0, 3).join("、") : "还在慢慢了解"],
+    ["更适合的方式", agentState.recent_learning.length ? "先通过对话把事情拆成一小步" : "还没有足够证据判断"],
+    ["当前现实", constraint || "暂时没有需要长期记住的限制"],
+  ];
+  $("#understanding-list").innerHTML = rows.map(([label, value]) => `<div><small>${escapeHtml(label)}</small><p>${escapeHtml(value)}</p></div>`).join("");
 }
 
 function render() {
@@ -245,6 +261,7 @@ function render() {
   $("#empty-conversation").hidden = state.messages.length > 0 || Boolean(agentState.next_recommended_action);
   renderToday(pronoun);
   renderPath();
+  renderUnderstanding();
   $("#reset-avatar").hidden = state.avatar === defaultAvatar;
   const action = agentState.next_recommended_action;
   renderChatAtmosphere(action);
@@ -272,9 +289,9 @@ function render() {
     }
     const start = $("#start-action");
     const started = action.status === "accepted";
-    start.textContent = started ? "进行中" : action.resource?.url ? `打开${action.platform}并开始` : "开始讲解";
+    start.textContent = started ? "进行中" : "就这样做";
     start.disabled = started;
-    $("#discuss-action").textContent = `和${pronoun}讨论`;
+    $("#discuss-action").textContent = `和${pronoun}聊聊`;
   }
   $("#onboarding").hidden = state.onboardingComplete;
   $("#settings-cloud-consent").checked = state.cloudConsent;
@@ -498,11 +515,19 @@ $("#start-action").addEventListener("click", () => {
   showToast("已经开始，我会一次只陪你推进一小块");
 });
 $("#discuss-action").addEventListener("click", () => discussCurrentAction());
+$("#change-action").addEventListener("click", () => discussCurrentAction("我想换个方向，但想先和你说说原因。"));
+$("#correct-understanding").addEventListener("click", () => {
+  openScreen("chat");
+  const input = $("#chat-input");
+  input.value = "我想纠正你对我的一个理解：";
+  input.focus();
+});
 document.addEventListener("click", event => {
   const external = event.target.closest("[data-external-url]");
   if (external) openExternalConfirmation(external.dataset.externalUrl);
   const discuss = event.target.closest("[data-discuss]");
   if (discuss) discussCurrentAction(discuss.dataset.discuss);
+  if (event.target.closest("[data-change-current]")) $("#change-action").click();
   if (event.target.closest("[data-start-current]")) $("#start-action").click();
 });
 $("#confirm-external-action").addEventListener("click", () => {

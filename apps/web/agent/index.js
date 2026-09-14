@@ -7,12 +7,26 @@ import { evaluateCompletion } from "./evaluator.js";
 export { createAgentState, hydrateAgentState } from "./state.js";
 export { GENERAL_KNOWLEDGE_RESOURCES, findResourceCandidates, canRecommendResource } from "./resource-catalog.js";
 
-const shorten = action => ({ ...action, duration_minutes: 10, status: "revised", instructions: `只完成最小版本：${action.instructions}` });
+const shorten = action => {
+  const instructions = `只完成最小版本：${action.instructions}`;
+  return { ...action, duration_minutes: 10, estimated_time: 10, status: "revised", instructions, suggested_method: instructions };
+};
 
 export function runAgentTurn(current, rawText, now = new Date()) {
   const observation = observe(rawText, now);
   let state = updateUserModel(rememberObservation(current, observation), observation);
   let action = state.next_recommended_action;
+
+  if (!action && (observation.signals.tired || observation.signals.busy)) {
+    state.phase = "observe";
+    return {
+      state,
+      kind: "reflection",
+      reply: observation.signals.tired
+        ? "听起来你现在是真的累了。我先不急着把它变成任务，也不替你安排补偿。你想让我先陪你把这份累说清楚，还是安静地把今天先放下？"
+        : "我先看见你眼前的现实安排，不急着把它塞进学习计划。等你有空再说一句现在最需要我帮你看清什么，我们再判断下一步。",
+    };
+  }
 
   const pendingGoal = state.pending_items.find(item => item.kind === "long_term_goal_inference" && item.status === "awaiting_confirmation");
   if (pendingGoal && observation.signals.accepts) {
@@ -25,6 +39,42 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.pending_items.push({ kind: "long_term_goal_inference", text: observation.text, source: "conversation", confidence: 0.64, status: "awaiting_confirmation", created_at: observation.at });
     state.phase = "observe";
     return { state, kind: "confirmation", reply: `我先不擅自把它写成你的人生目标。我的理解是：“${observation.text}”是你现阶段想走的长期方向。这个理解准确吗？` };
+  }
+
+  if (action && observation.signals.new_idea) {
+    const alreadySaved = state.pending_items.some(item => item.kind === "idea_to_revisit" && item.text === observation.text);
+    if (!alreadySaved) {
+      state.pending_items.push({
+        kind: "idea_to_revisit",
+        text: observation.text,
+        source: "conversation",
+        confidence: 0.52,
+        status: "open_for_discussion",
+        created_at: observation.at,
+      });
+    }
+    state.phase = "observe";
+    return {
+      state,
+      kind: "idea",
+      reply: "我先把这个想法放在这里，不急着打乱你正在推进的方向。它可能值得长成一条新的线，但先不让它替你抢走现在最重要的事。你想现在聊聊它，还是等这一小步走完再回来？",
+    };
+  }
+
+  if (action && observation.signals.wants_new_direction) {
+    state.phase = "negotiate";
+    state.decision_log.push({
+      at: observation.at,
+      action_id: action.id,
+      decision: "negotiate_direction",
+      reason: "用户希望改变方向，先理解变化而不是立刻替换行动",
+      confidence: 0.7,
+    });
+    return {
+      state,
+      kind: "negotiate_direction",
+      reply: "可以。我们先不急着换成另一个任务。你想换的是眼前这件事、今天的节奏，还是更长期的方向？我先听懂变化，再决定是调整、暂停，还是让一条新线慢慢长出来。",
+    };
   }
 
   if (action && observation.signals.asks_why) {
