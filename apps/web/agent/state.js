@@ -15,6 +15,8 @@ export function createAgentState(now = new Date()) {
     recent_learning: [],
     recent_events: [],
     current_constraints: [],
+    current_state: { energy: "unknown", urgent_direction: null, last_observed_at: null },
+    direction_signals: {},
     pending_items: [],
     next_recommended_action: null,
     action_history: [],
@@ -48,5 +50,7 @@ export function hydrateAgentState(saved) {
     pending_items: (saved.pending_items || []).filter(item => !(item?.kind === "long_term_goal_inference" && isLegacyTransientGoal(item))),
     next_recommended_action: isLegacyTransientGoal({ text: saved.next_recommended_action?.title }) ? null : saved.next_recommended_action,
     skills: { ...base.skills, ...saved.skills },
+    current_state: { ...base.current_state, ...(saved.current_state || {}) },
+    direction_signals: { ...(saved.direction_signals || {}) },
   };
 }

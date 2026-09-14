@@ -134,6 +134,10 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.phase = "observe";
     return { state, kind: "question", reply: "我还不知道你希望长期变成怎样的人，所以现在不能负责任地替你决定下一步。先不用填问卷：最近哪件事最让你觉得“我不能再这样野蛮生长下去”？" };
   }
+  if (diagnosis.confidence < 0.74) {
+    state.phase = "observe";
+    return { state, kind: "question", reply: diagnosis.question };
+  }
   action = decideNextAction(state, diagnosis);
   state.next_recommended_action = action;
   state.phase = "propose";

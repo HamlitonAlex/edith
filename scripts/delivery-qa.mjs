@@ -212,6 +212,7 @@ async function runUserJourney(browser, origin) {
       "black-box: today screen must show either the empty state or the current dynamic recommendation"
     );
     await page.locator('[data-nav="us"]').click();
+    await page.locator('details.companion-preferences > summary').click();
     await page.locator('[data-gender="male"]').click();
     verify((await page.locator("#relationship-copy").textContent()).includes("他会"), "black-box: companion presentation did not update");
     await page.locator('[data-open-screen="settings"]').click();
