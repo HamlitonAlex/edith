@@ -28,6 +28,7 @@ await Promise.all([
   cp(resolve(web, "agent"), resolve(dist, "agent"), { recursive: true }),
   cp(resolve(web, "lib", "conversation-history.js"), resolve(dist, "lib", "conversation-history.js")),
   cp(resolve(web, "lib", "companion-state.js"), resolve(dist, "lib", "companion-state.js")),
+  cp(resolve(web, "lib", "viewport-height.js"), resolve(dist, "lib", "viewport-height.js")),
 ]);
 
 console.log("Web bundles created in dist/");
