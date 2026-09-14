@@ -6,6 +6,8 @@ import { resolveAppViewport } from "./lib/viewport-height.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
+const nativeShell = Boolean(window.Capacitor?.isNativePlatform?.() || ["capacitor:", "ionic:"].includes(location.protocol));
+document.documentElement.classList.toggle("native-shell", nativeShell);
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
@@ -668,17 +670,18 @@ $("#initiative").addEventListener("input", event => {
 });
 
 const chatInput = $("#chat-input");
-let viewportBaseline = window.innerHeight || window.visualViewport?.height || 0;
+let viewportState = {
+  viewportBaseline: window.innerHeight || window.visualViewport?.height || 0,
+  viewportWidth: window.innerWidth || 0,
+  keyboardWasOpen: false,
+};
 function resizeComposer() {
   chatInput.style.height = "auto";
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
 }
 chatInput.addEventListener("input", () => { resizeComposer(); renderAttachments(); });
 chatInput.addEventListener("focus", () => {
-  requestAnimationFrame(() => {
-    window.scrollTo(0, 0);
-    syncVisualViewport();
-  });
+  requestAnimationFrame(syncVisualViewport);
 });
 
 const avatarInput = $("#avatar-input");
@@ -784,22 +787,36 @@ $("#clear-sources").addEventListener("click", () => {
   showToast("长期资料引用已清除");
 });
 
+function keepFocusedControlVisible() {
+  const focused = document.activeElement;
+  const surface = focused?.closest(".screen.active");
+  if (!focused || !surface || surface.classList.contains("chat-screen")) return;
+  const surfaceBounds = surface.getBoundingClientRect();
+  const focusedBounds = focused.getBoundingClientRect();
+  const visibleTop = surfaceBounds.top + 16;
+  const visibleBottom = surfaceBounds.bottom - 18;
+  if (focusedBounds.bottom > visibleBottom) surface.scrollTop += focusedBounds.bottom - visibleBottom;
+  if (focusedBounds.top < visibleTop) surface.scrollTop -= visibleTop - focusedBounds.top;
+}
+
 function syncVisualViewport() {
   const focusedTextEntry = Boolean(document.activeElement?.matches('input:not([type="range"]), textarea'));
   const viewport = resolveAppViewport({
     layoutHeight: window.innerHeight,
     visualHeight: window.visualViewport?.height,
+    layoutWidth: window.innerWidth,
     focusedTextEntry,
-    viewportBaseline,
+    ...viewportState,
   });
-  viewportBaseline = viewport.viewportBaseline;
+  viewportState = {
+    viewportBaseline: viewport.viewportBaseline,
+    viewportWidth: viewport.viewportWidth,
+    keyboardWasOpen: viewport.keyboardOpen,
+  };
   document.documentElement.style.setProperty("--app-height", `${viewport.appHeight}px`);
   const { keyboardOpen } = viewport;
   document.body.classList.toggle("keyboard-open", keyboardOpen);
-  if (keyboardOpen) requestAnimationFrame(() => {
-    window.scrollTo(0, 0);
-    chatInput.scrollIntoView({ block: "nearest" });
-  });
+  if (keyboardOpen) requestAnimationFrame(keepFocusedControlVisible);
 }
 window.visualViewport?.addEventListener("resize", syncVisualViewport);
 window.visualViewport?.addEventListener("scroll", syncVisualViewport);
@@ -807,7 +824,6 @@ window.addEventListener("resize", syncVisualViewport);
 document.addEventListener("focusin", syncVisualViewport);
 document.addEventListener("focusout", () => {
   requestAnimationFrame(syncVisualViewport);
-  window.scrollTo(0, 0);
 });
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;

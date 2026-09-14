@@ -145,6 +145,15 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
 });
 
+test("the native shell uses the real iOS status bar and keeps the focused control in view", () => {
+  assert.match(js, /native-shell/);
+  assert.match(css, /:root\.native-shell \.statusbar\{display:none\}/);
+  assert.match(css, /:root\.native-shell \.screen\{padding-top:calc\(14px \+ env\(safe-area-inset-top\)\)\}/);
+  assert.match(js, /function keepFocusedControlVisible\(\)/);
+  assert.doesNotMatch(js, /chatInput\.scrollIntoView/);
+  assert.doesNotMatch(js, /window\.scrollTo\(0, 0\)/);
+});
+
 test("the active iPhone interface uses SVG marks instead of emoji or status glyphs", () => {
   assert.match(html, /class="status-icons"[^>]*>[\s\S]*?<svg/);
   assert.match(html, /class="platform-mark"[^>]*>[\s\S]*?ph-television-simple/);
