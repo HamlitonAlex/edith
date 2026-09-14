@@ -9,7 +9,9 @@
     "build:mobile": "node scripts/build-mobile.mjs",
     "mobile:sync": "npm run build:mobile && cap sync ios",
     "mobile:open": "cap open ios",
-    "test": "node --test packages/event-schema/test/*.test.js apps/web/test/*.test.js && node scripts/test-server.mjs"
+    "test": "node --test packages/event-schema/test/*.test.js apps/web/test/*.test.js && node scripts/test-server.mjs",
+    "test:delivery": "node scripts/delivery-qa.mjs",
+    "test:mobile-package": "node scripts/mobile-package-qa.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",

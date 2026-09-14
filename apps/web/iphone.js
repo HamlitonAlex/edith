@@ -164,7 +164,9 @@ function renderToday(pronoun) {
   const agenda = $("#today-agenda");
   $("#energy-check").hidden = !agentState.long_term_goals.length;
   $("#today-empty").hidden = Boolean(action);
-  agenda.innerHTML = action ? `<li class="next"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current>${action.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>现在最值得推进</span></li>` : "";
+  const started = action?.status === "accepted";
+  const actionLabel = started ? "进行中" : action?.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解";
+  agenda.innerHTML = action ? `<li class="next ${started ? "started" : ""}"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${actionLabel}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>${started ? "正在推进" : "现在最值得推进"}</span></li>` : "";
   const next = agenda.querySelector(".next");
   if (!next || !action) return;
   const atmosphere = document.createElement("img");
@@ -269,8 +271,9 @@ function render() {
       proposalImage.onerror = () => { proposalMedia.hidden = true; };
     }
     const start = $("#start-action");
-    start.textContent = action.resource?.url ? `打开${action.platform}并开始` : "开始讲解";
-    start.disabled = action.status === "accepted";
+    const started = action.status === "accepted";
+    start.textContent = started ? "进行中" : action.resource?.url ? `打开${action.platform}并开始` : "开始讲解";
+    start.disabled = started;
     $("#discuss-action").textContent = `和${pronoun}讨论`;
   }
   $("#onboarding").hidden = state.onboardingComplete;

@@ -35,7 +35,15 @@ jobs:
         run: npm run mobile:sync
 
       - name: Verify app behavior
-        run: npm test
+        run: |
+          npm test
+          npm run test:mobile-package
+
+      - name: Install browser for delivery acceptance
+        run: npx playwright install chromium
+
+      - name: Verify delivery journeys and native layouts
+        run: npm run test:delivery
 
       - name: Build unsigned iPhone app
         run: |

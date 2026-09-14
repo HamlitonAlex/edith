@@ -203,6 +203,15 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(refinementCss, /button:focus-visible/);
 });
 
+test("an accepted next step clearly becomes an in-progress state everywhere it appears", () => {
+  assert.match(js, /const started = action\?\.status === "accepted"/);
+  assert.match(js, /const actionLabel = started \? "进行中"/);
+  assert.match(js, /data-start-current \$\{started \? "disabled" : ""\}/);
+  assert.match(js, /start\.textContent = started \? "进行中"/);
+  assert.match(refinementCss, /\.plan-proposal\.started #start-action/);
+  assert.match(refinementCss, /\.agenda li\.next\.started \[data-start-current\]/);
+});
+
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
   assert.match(css, /@keyframes message-enter/);
   assert.match(css, /prefers-reduced-motion:reduce/);
