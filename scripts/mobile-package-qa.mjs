@@ -68,6 +68,7 @@ verify(shippedApp.includes("__XUECHENG_NATIVE_SHELL__") && shippedApp.includes("
 verify(nativeBootstrap.includes("__XUECHENG_NATIVE_SHELL__"), "the native bootstrap marker is missing");
 verify(sceneDelegate.includes("XuechengBridgeViewController()"), "the iOS scene must use the native keyboard bridge controller");
 verify(nativeController.includes("UIResponder.keyboardWillChangeFrameNotification") && nativeController.includes("xuecheng:native-keyboard"), "the iOS controller must forward real keyboard frames");
+verify(nativeController.includes("WKUserScript") && nativeController.includes("atDocumentStart") && !nativeController.includes("injectScriptBeforeLoad"), "the iOS shell marker must use a compilable document-start bridge");
 verify(project.includes("XuechengBridgeViewController.swift in Sources"), "the native keyboard bridge controller is not compiled into the app");
 await access(resolve(publicRoot, "assets", "onboarding-path.webp"));
 checks += 1;

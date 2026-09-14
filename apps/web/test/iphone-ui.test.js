@@ -164,6 +164,9 @@ test("the iOS wrapper explicitly marks the native shell and reports keyboard ove
   assert.match(buildScript, /native-bootstrap\.js/);
   assert.match(js, /__XUECHENG_NATIVE_SHELL__/);
   const controller = readFileSync(nativeController, "utf8");
+  assert.match(controller, /WKUserScript/);
+  assert.match(controller, /atDocumentStart/);
+  assert.doesNotMatch(controller, /injectScriptBeforeLoad/);
   assert.match(controller, /UIResponder\.keyboardWillChangeFrameNotification/);
   assert.match(controller, /xuecheng:native-keyboard/);
   assert.match(projectFile, /XuechengBridgeViewController\.swift in Sources/);

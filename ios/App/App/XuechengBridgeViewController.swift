@@ -1,11 +1,24 @@
 import UIKit
+import WebKit
 import Capacitor
 
 final class XuechengBridgeViewController: CAPBridgeViewController {
     private var keyboardObservers: [NSObjectProtocol] = []
 
-    override func capacitorDidLoad() {
-        bridge?.injectScriptBeforeLoad?(path: "native-bootstrap.js")
+    override func webViewConfiguration(for instanceConfiguration: InstanceConfiguration) -> WKWebViewConfiguration {
+        let configuration = super.webViewConfiguration(for: instanceConfiguration)
+        let nativeShellScript = """
+        window.__XUECHENG_NATIVE_SHELL__ = true;
+        document.documentElement && document.documentElement.classList.add('native-shell');
+        """
+        configuration.userContentController.addUserScript(
+            WKUserScript(
+                source: nativeShellScript,
+                injectionTime: .atDocumentStart,
+                forMainFrameOnly: true
+            )
+        )
+        return configuration
     }
 
     override func viewDidLoad() {
