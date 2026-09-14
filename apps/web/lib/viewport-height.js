@@ -16,6 +16,8 @@ export function resolveAppViewport({
   viewportBaseline,
   viewportWidth,
   keyboardWasOpen = false,
+  nativeKeyboardOpen = false,
+  nativeKeyboardInset = 0,
 }) {
   const layout = validHeight(layoutHeight);
   const visual = validHeight(visualHeight) || layout;
@@ -28,17 +30,24 @@ export function resolveAppViewport({
     : Math.max(validHeight(viewportBaseline), currentHeight);
   const layoutShrunk = Boolean(layout && layout < baseline - 80);
   const visualShrunk = Boolean(visual && visual < baseline - 80);
+  const nativeKeyboardActive = Boolean(nativeKeyboardOpen);
+  const keyboardInset = nativeKeyboardActive
+    ? Math.max(0, Math.round(Number(nativeKeyboardInset) || 0))
+    : 0;
   // A resize can arrive just before iOS emits focusin. A layout viewport that
   // has already shortened is therefore treated as an active keyboard session;
   // this prevents the tab bar from flashing in the middle of the app.
-  const keyboardOpen = !orientationChanged && Boolean(
+  const keyboardOpen = nativeKeyboardActive || (!orientationChanged && Boolean(
     layoutShrunk || (visualShrunk && (focusedTextEntry || keyboardWasOpen))
-  );
-  const appHeight = keyboardOpen ? Math.min(layout || visual, visual || layout) : currentHeight;
+  ));
+  const appHeight = nativeKeyboardActive
+    ? currentHeight
+    : keyboardOpen ? Math.min(layout || visual, visual || layout) : currentHeight;
 
   return {
     appHeight,
     keyboardOpen,
+    ...(nativeKeyboardActive ? { keyboardInset } : {}),
     viewportBaseline: baseline,
     viewportWidth: width || previousWidth,
   };

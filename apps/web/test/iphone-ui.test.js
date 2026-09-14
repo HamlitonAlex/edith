@@ -1,8 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { existsSync, readFileSync } from "node:fs";
 
-const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest, planner, tutor, evaluator, infoPlist, buildScript] = await Promise.all([
+const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest, planner, tutor, evaluator, infoPlist, buildScript, projectFile] = await Promise.all([
   readFile(new URL("../iphone.html", import.meta.url), "utf8"),
   readFile(new URL("../iphone.css", import.meta.url), "utf8"),
   readFile(new URL("../iphone-refinement.css", import.meta.url), "utf8"),
@@ -15,7 +16,8 @@ const [html, css, refinementCss, js, markSvg, webIcon, iosIcon, manifest, planne
   readFile(new URL("../agent/tutor.js", import.meta.url), "utf8"),
   readFile(new URL("../agent/evaluator.js", import.meta.url), "utf8"),
   readFile(new URL("../../../ios/App/App/Info.plist", import.meta.url), "utf8"),
-  readFile(new URL("../../../scripts/build-mobile.mjs", import.meta.url), "utf8")
+  readFile(new URL("../../../scripts/build-mobile.mjs", import.meta.url), "utf8"),
+  readFile(new URL("../../../ios/App/App.xcodeproj/project.pbxproj", import.meta.url), "utf8")
 ]);
 
 test("web and iOS ship one font-independent 学程 brand mark", () => {
@@ -152,6 +154,19 @@ test("the native shell uses the real iOS status bar and keeps the focused contro
   assert.match(js, /function keepFocusedControlVisible\(\)/);
   assert.doesNotMatch(js, /chatInput\.scrollIntoView/);
   assert.doesNotMatch(js, /window\.scrollTo\(0, 0\)/);
+});
+
+test("the iOS wrapper explicitly marks the native shell and reports keyboard overlap", () => {
+  const nativeBootstrap = new URL("../native-bootstrap.js", import.meta.url);
+  const nativeController = new URL("../../../ios/App/App/XuechengBridgeViewController.swift", import.meta.url);
+  assert.ok(existsSync(nativeBootstrap));
+  assert.ok(existsSync(nativeController));
+  assert.match(buildScript, /native-bootstrap\.js/);
+  assert.match(js, /__XUECHENG_NATIVE_SHELL__/);
+  const controller = readFileSync(nativeController, "utf8");
+  assert.match(controller, /UIResponder\.keyboardWillChangeFrameNotification/);
+  assert.match(controller, /xuecheng:native-keyboard/);
+  assert.match(projectFile, /XuechengBridgeViewController\.swift in Sources/);
 });
 
 test("the active iPhone interface uses SVG marks instead of emoji or status glyphs", () => {
@@ -323,8 +338,8 @@ test("today and path imagery remains visible beneath a botanical reading layer",
   assert.match(refinementCss, /\.agenda li\.next,.current-direction\{[^}]*border-radius:24px[^}]*box-shadow:/);
 });
 
-test("the 1.0.1 mobile release fixes full bleed and stays portrait-first", () => {
-  assert.match(html, /学程 1\.0\.1 · 本地个人版/);
+test("the current mobile release fixes full bleed and stays portrait-first", () => {
+  assert.match(html, /学程 1\.0\.2 · 本地个人版/);
   assert.match(refinementCss, /1\.0\.1 release correction/);
   assert.match(refinementCss, /\.us-screen\{padding-top:0\}/);
   assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{opacity:\.86/);

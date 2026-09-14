@@ -327,13 +327,25 @@ async function runNativeKeyboardCase(browser, origin) {
   });
   const state = () => page.evaluate(() => ({
     appHeight: getComputedStyle(document.documentElement).getPropertyValue("--app-height").trim(),
+    keyboardInset: getComputedStyle(document.documentElement).getPropertyValue("--keyboard-inset").trim(),
     keyboardOpen: document.body.classList.contains("keyboard-open"),
     fakeStatusbar: getComputedStyle(document.querySelector(".statusbar")).display,
     navOpacity: Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity),
+    composerBottom: document.querySelector(".composer").getBoundingClientRect().bottom,
   }));
   try {
     await page.goto(`${origin}/?screen=settings`, { waitUntil: "networkidle" });
     const initial = await state();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("xuecheng:native-keyboard", { detail: { visible: true, inset: 336 } })));
+    await page.waitForFunction(() => {
+      const inset = getComputedStyle(document.documentElement).getPropertyValue("--keyboard-inset").trim();
+      const navOpacity = Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity);
+      return document.body.classList.contains("keyboard-open") && inset === "336px" && navOpacity < 0.01;
+    });
+    const nativeOverlay = await state();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("xuecheng:native-keyboard", { detail: { visible: false, inset: 0 } })));
+    await page.waitForFunction(() => !document.body.classList.contains("keyboard-open") && Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity) > 0.99);
+    const afterNativeOverlay = await state();
     await page.evaluate(() => window.__setDeliveryViewport(486));
     await page.waitForTimeout(300);
     const beforeFocus = await state();
@@ -345,6 +357,8 @@ async function runNativeKeyboardCase(browser, origin) {
     const recovered = await state();
     equal(initial.fakeStatusbar, "none", "native keyboard: fake status bar must stay hidden");
     equal(initial.appHeight, "852px", "native keyboard: initial app height is wrong");
+    verify(nativeOverlay.keyboardOpen && nativeOverlay.appHeight === "852px" && nativeOverlay.keyboardInset === "336px" && nativeOverlay.navOpacity < 0.01 && nativeOverlay.composerBottom <= 518, "native keyboard: a real native overlay must hide navigation and lift the composer above the keyboard");
+    verify(!afterNativeOverlay.keyboardOpen && afterNativeOverlay.keyboardInset === "0px" && afterNativeOverlay.navOpacity > 0.99, "native keyboard: closing an overlay keyboard must restore the normal shell");
     verify(beforeFocus.keyboardOpen && beforeFocus.appHeight === "486px" && beforeFocus.navOpacity < 0.01, "native keyboard: resize-before-focus must hide the tab bar");
     verify(focused.keyboardOpen && focused.navOpacity < 0.01, "native keyboard: focused field must keep the tab bar hidden");
     verify(!recovered.keyboardOpen && recovered.appHeight === "852px" && recovered.navOpacity > 0.99, "native keyboard: page must recover after the keyboard closes");

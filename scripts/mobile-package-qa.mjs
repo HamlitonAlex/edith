@@ -7,6 +7,8 @@ const dist = resolve(root, "dist");
 const publicRoot = resolve(root, "ios", "App", "App", "public");
 const infoPlistPath = resolve(root, "ios", "App", "App", "Info.plist");
 const projectPath = resolve(root, "ios", "App", "App.xcodeproj", "project.pbxproj");
+const sceneDelegatePath = resolve(root, "ios", "App", "App", "SceneDelegate.swift");
+const nativeControllerPath = resolve(root, "ios", "App", "App", "XuechengBridgeViewController.swift");
 const appIconPath = resolve(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png");
 const shippedFiles = [
   "index.html",
@@ -14,6 +16,7 @@ const shippedFiles = [
   "iphone-refinement.css",
   "phosphor-icons.css",
   "iphone.js",
+  "native-bootstrap.js",
   "manifest.webmanifest",
   "assets/xuecheng-mark.svg",
   "assets/xuecheng-mark.png",
@@ -39,12 +42,15 @@ for (const file of shippedFiles) {
   assert.deepEqual(publicContents, distContents, `iOS public bundle differs from dist: ${file}`);
 }
 
-const [infoPlist, project, icon, shippedIndex, shippedApp] = await Promise.all([
+const [infoPlist, project, sceneDelegate, nativeController, icon, shippedIndex, shippedApp, nativeBootstrap] = await Promise.all([
   readFile(infoPlistPath, "utf8"),
   readFile(projectPath, "utf8"),
+  readFile(sceneDelegatePath, "utf8"),
+  readFile(nativeControllerPath, "utf8"),
   stat(appIconPath),
   readFile(resolve(publicRoot, "index.html"), "utf8"),
   readFile(resolve(publicRoot, "iphone.js"), "utf8"),
+  readFile(resolve(publicRoot, "native-bootstrap.js"), "utf8"),
 ]);
 
 verify(/<key>CFBundleVersion<\/key>\s*<string>\$\(CURRENT_PROJECT_VERSION\)<\/string>/.test(infoPlist), "CFBundleVersion must use the Xcode build setting");
@@ -58,6 +64,11 @@ verify(/NSMicrophoneUsageDescription/.test(infoPlist) && /NSSpeechRecognitionUsa
 verify(icon.size > 0, "iOS app icon is missing");
 verify(shippedIndex.includes("interactive-widget=resizes-content"), "iOS web bundle is missing keyboard resize behavior");
 verify(shippedApp.includes("native-shell") && shippedApp.includes("keyboardWasOpen"), "iOS web bundle is missing native viewport safeguards");
+verify(shippedApp.includes("__XUECHENG_NATIVE_SHELL__") && shippedApp.includes("xuecheng:native-keyboard"), "iOS web bundle is missing the native keyboard bridge");
+verify(nativeBootstrap.includes("__XUECHENG_NATIVE_SHELL__"), "the native bootstrap marker is missing");
+verify(sceneDelegate.includes("XuechengBridgeViewController()"), "the iOS scene must use the native keyboard bridge controller");
+verify(nativeController.includes("UIResponder.keyboardWillChangeFrameNotification") && nativeController.includes("xuecheng:native-keyboard"), "the iOS controller must forward real keyboard frames");
+verify(project.includes("XuechengBridgeViewController.swift in Sources"), "the native keyboard bridge controller is not compiled into the app");
 await access(resolve(publicRoot, "assets", "onboarding-path.webp"));
 checks += 1;
 

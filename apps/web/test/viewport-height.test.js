@@ -97,6 +97,28 @@ test("holds keyboard mode until the native viewport has actually recovered after
   });
 });
 
+test("uses an iOS native keyboard signal when WKWebView leaves the visual viewport unchanged", () => {
+  const result = resolveAppViewport({
+    layoutHeight: 852,
+    visualHeight: 852,
+    layoutWidth: 393,
+    focusedTextEntry: true,
+    viewportBaseline: 852,
+    viewportWidth: 393,
+    keyboardWasOpen: false,
+    nativeKeyboardOpen: true,
+    nativeKeyboardInset: 336,
+  });
+
+  assert.deepEqual(result, {
+    appHeight: 852,
+    keyboardOpen: true,
+    keyboardInset: 336,
+    viewportBaseline: 852,
+    viewportWidth: 393,
+  });
+});
+
 test("resets the baseline for an actual width-changing orientation transition", () => {
   const result = resolveAppViewport({
     layoutHeight: 393,

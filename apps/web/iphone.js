@@ -6,7 +6,7 @@ import { resolveAppViewport } from "./lib/viewport-height.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
-const nativeShell = Boolean(window.Capacitor?.isNativePlatform?.() || ["capacitor:", "ionic:"].includes(location.protocol));
+const nativeShell = Boolean(window.__XUECHENG_NATIVE_SHELL__ || window.Capacitor?.isNativePlatform?.() || ["capacitor:", "ionic:"].includes(location.protocol));
 document.documentElement.classList.toggle("native-shell", nativeShell);
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
@@ -678,6 +678,7 @@ let viewportState = {
   viewportWidth: window.innerWidth || 0,
   keyboardWasOpen: false,
 };
+let nativeKeyboardState = { visible: false, inset: 0 };
 function resizeComposer() {
   chatInput.style.height = "auto";
   chatInput.style.height = `${Math.min(chatInput.scrollHeight, 92)}px`;
@@ -797,7 +798,10 @@ function keepFocusedControlVisible() {
   const surfaceBounds = surface.getBoundingClientRect();
   const focusedBounds = focused.getBoundingClientRect();
   const visibleTop = surfaceBounds.top + 16;
-  const visibleBottom = surfaceBounds.bottom - 18;
+  const visibleBottom = Math.min(
+    surfaceBounds.bottom - 18,
+    window.innerHeight - (nativeShell && nativeKeyboardState.visible ? nativeKeyboardState.inset : 0) - 18,
+  );
   if (focusedBounds.bottom > visibleBottom) surface.scrollTop += focusedBounds.bottom - visibleBottom;
   if (focusedBounds.top < visibleTop) surface.scrollTop -= visibleTop - focusedBounds.top;
 }
@@ -809,6 +813,8 @@ function syncVisualViewport() {
     visualHeight: window.visualViewport?.height,
     layoutWidth: window.innerWidth,
     focusedTextEntry,
+    nativeKeyboardOpen: nativeShell && nativeKeyboardState.visible,
+    nativeKeyboardInset: nativeKeyboardState.inset,
     ...viewportState,
   });
   viewportState = {
@@ -817,10 +823,21 @@ function syncVisualViewport() {
     keyboardWasOpen: viewport.keyboardOpen,
   };
   document.documentElement.style.setProperty("--app-height", `${viewport.appHeight}px`);
+  document.documentElement.style.setProperty("--keyboard-inset", `${viewport.keyboardInset || 0}px`);
   const { keyboardOpen } = viewport;
   document.body.classList.toggle("keyboard-open", keyboardOpen);
   if (keyboardOpen) requestAnimationFrame(keepFocusedControlVisible);
 }
+window.addEventListener("xuecheng:native-keyboard", event => {
+  if (!nativeShell) return;
+  const detail = event.detail || {};
+  const visible = Boolean(detail.visible);
+  nativeKeyboardState = {
+    visible,
+    inset: visible ? Math.max(0, Math.round(Number(detail.inset) || 0)) : 0,
+  };
+  syncVisualViewport();
+});
 window.visualViewport?.addEventListener("resize", syncVisualViewport);
 window.visualViewport?.addEventListener("scroll", syncVisualViewport);
 window.addEventListener("resize", syncVisualViewport);
