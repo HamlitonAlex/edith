@@ -10,9 +10,12 @@ export function createAgentState(now = new Date()) {
     skills: {
       ai_application: { label: "AI 应用", level: "unknown", confidence: 0.2, evidence: [] },
       product: { label: "产品能力", level: "unknown", confidence: 0.2, evidence: [] },
+      computer_basics: { label: "计算机基础", level: "unknown", confidence: 0.2, evidence: [] },
+      english_expression: { label: "英语表达", level: "unknown", confidence: 0.2, evidence: [] },
       general_knowledge: { label: "通识结构", level: "unknown", confidence: 0.2, evidence: [] },
     },
     recent_learning: [],
+    learning_results: [],
     recent_events: [],
     current_constraints: [],
     current_state: { energy: "unknown", urgent_direction: null, last_observed_at: null },
@@ -50,6 +53,7 @@ export function hydrateAgentState(saved) {
     pending_items: (saved.pending_items || []).filter(item => !(item?.kind === "long_term_goal_inference" && isLegacyTransientGoal(item))),
     next_recommended_action: isLegacyTransientGoal({ text: saved.next_recommended_action?.title }) ? null : saved.next_recommended_action,
     skills: { ...base.skills, ...saved.skills },
+    learning_results: saved.learning_results || [],
     current_state: { ...base.current_state, ...(saved.current_state || {}) },
     direction_signals: { ...(saved.direction_signals || {}) },
   };

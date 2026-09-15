@@ -2,7 +2,7 @@ import { observe } from "./observer.js";
 import { rememberObservation, recordActionRevision } from "./memory.js";
 import { updateUserModel } from "./user-model.js";
 import { diagnose, decideNextAction, formatProposal, formatProposalSummary } from "./planner.js";
-import { beginTutor, tutorReply } from "./tutor.js";
+import { beginTutor, isTutorCompletionEvidence, tutorReply } from "./tutor.js";
 import { evaluateCompletion } from "./evaluator.js";
 export { createAgentState, hydrateAgentState } from "./state.js";
 export { GENERAL_KNOWLEDGE_RESOURCES, findResourceCandidates, canRecommendResource } from "./resource-catalog.js";
@@ -15,7 +15,7 @@ const shorten = action => {
 const decisionSignals = [
   "accepts", "rejects", "final_reject", "delays", "tired", "busy", "new_idea",
   "wants_new_direction", "wants_other", "asks_why", "completed", "confused", "wants_hint",
-  "uncertain",
+  "uncertain", "wants_answer", "tutor_question", "can_read_cannot_write", "weak_baseline", "fast_understanding",
 ];
 
 const hasDecisionSignal = signals => decisionSignals.some(key => Boolean(signals[key]))
@@ -51,7 +51,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     return { state, kind: "confirmation", reply: `我先不擅自把它写成你的人生目标。我的理解是：“${observation.text}”是你现阶段想走的长期方向。这个理解准确吗？` };
   }
 
-  if (!hasDecisionSignal(observation.signals) && observation.signals.intent === "discussion") {
+  if (!state.tutor_session && !hasDecisionSignal(observation.signals) && observation.signals.intent === "discussion") {
     state.phase = "observe";
     return {
       state,
@@ -59,7 +59,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
       reply: "可以，先聊这件事。你想从发生了什么、哪里卡住，还是你希望它变成什么开始？",
     };
   }
-  if (!hasDecisionSignal(observation.signals) && observation.signals.intent === "listening") {
+  if (!state.tutor_session && !hasDecisionSignal(observation.signals) && observation.signals.intent === "listening") {
     state.phase = "observe";
     return {
       state,
@@ -104,10 +104,6 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     };
   }
 
-  if (action && observation.signals.asks_why) {
-    state.phase = "negotiate";
-    return { state, kind: "explanation", reply: action.why_now };
-  }
   if (action && observation.signals.final_reject) {
     state.action_history.push({ action_id: action.id, outcome: "rejected", at: observation.at, reason: observation.text });
     state.next_recommended_action = null;
@@ -134,11 +130,20 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   }
   const suppliedEvidence = action?.evidence_required
     ?.filter(term => observation.text.includes(term)).length >= 2;
-  if (action && (observation.signals.completed || suppliedEvidence || state.tutor_session)) {
-    if (state.tutor_session && (observation.signals.confused || observation.signals.wants_hint)) {
-      state.tutor_session = tutorReply(state.tutor_session, observation);
-      return { state, kind: "tutor", reply: state.tutor_session.prompt };
-    }
+  if (action && state.tutor_session && (observation.signals.completed || isTutorCompletionEvidence(observation.text, state.tutor_session))) {
+    state.phase = "verify";
+    return evaluateCompletion(state, action, observation);
+  }
+  if (action && state.tutor_session) {
+    state.tutor_session = tutorReply(state.tutor_session, observation);
+    state.phase = "execute";
+    return { state, kind: "tutor", reply: state.tutor_session.prompt };
+  }
+  if (action && observation.signals.asks_why) {
+    state.phase = "negotiate";
+    return { state, kind: "explanation", reply: action.why_now };
+  }
+  if (action && (observation.signals.completed || suppliedEvidence)) {
     state.phase = "verify";
     return evaluateCompletion(state, action, observation);
   }
@@ -152,7 +157,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   if (action && observation.signals.accepts) {
     state.phase = "execute";
     state.next_recommended_action = { ...action, status: "accepted" };
-    state.tutor_session = beginTutor(action);
+    state.tutor_session = beginTutor(action, observation);
     return { state, kind: "tutor", reply: state.tutor_session.prompt };
   }
   const diagnosis = diagnose(state);

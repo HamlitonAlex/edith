@@ -13,3 +13,28 @@ export function recordActionRevision(state, previous, nextAction, reason, at) {
   state.action_history.push({ action_id: previous.id, previous, revised_to: nextAction, reason, at });
   state.action_history = state.action_history.slice(-30);
 }
+
+export function recordLearningResult(state, result) {
+  const next = structuredClone(state);
+  next.learning_results = [...(next.learning_results || []), result].slice(-30);
+  next.current_state = {
+    ...(next.current_state || {}),
+    last_learning_result_at: result.at,
+    last_learning_domain: result.domain,
+    last_learning_topic: result.topic,
+  };
+  next.memory = [
+    ...(next.memory || []),
+    {
+      id: result.id,
+      kind: "learning_result",
+      text: result.learned,
+      source: "Tutor Mode",
+      confidence: result.confidence ?? 0.86,
+      status: "recorded",
+      result_id: result.id,
+      at: result.at,
+    },
+  ].slice(-60);
+  return next;
+}

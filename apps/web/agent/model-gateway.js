@@ -7,6 +7,7 @@ export function createModelContext(state, latestMessage) {
     active_goals: state.active_goals,
     skills: Object.fromEntries(Object.entries(state.skills).map(([id, skill]) => [id, { label: skill.label, level: skill.level, confidence: skill.confidence, evidence: skill.evidence.slice(-3) }])),
     recent_learning: state.recent_learning.slice(-7),
+    learning_results: (state.learning_results || []).slice(-5),
     current_constraints: state.current_constraints.slice(-8),
     current_action: state.next_recommended_action,
     principles: state.principles,
