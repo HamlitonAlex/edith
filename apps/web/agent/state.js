@@ -58,25 +58,67 @@ export function createAgentState(now = new Date()) {
 export function hydrateAgentState(saved) {
   const base = createAgentState();
   if (!saved || saved.schema_version !== base.schema_version) return base;
+  const asArray = value => Array.isArray(value) ? value : [];
+  const asObject = value => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+  const objectArray = value => asArray(value).filter(item => item && typeof item === "object" && !Array.isArray(item));
+  const stringArray = value => asArray(value).filter(item => typeof item === "string");
+  const boundedRatio = (value, fallback) => {
+    const number = Number(value);
+    return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
+  };
+  const normalizeSkill = (fallback, candidate) => {
+    const source = asObject(candidate);
+    return {
+      ...fallback,
+      ...source,
+      label: typeof source.label === "string" && source.label.trim() ? source.label.trim().slice(0, 80) : fallback.label,
+      level: typeof source.level === "string" ? source.level : fallback.level,
+      confidence: boundedRatio(source.confidence, fallback.confidence),
+      evidence: stringArray(source.evidence).slice(-8),
+    };
+  };
   const isLegacyTransientGoal = item => /(?:今天|现在).{0,12}(?:累|困|躺着|不想动)/.test(String(item?.text || ""));
+  const savedSkills = asObject(saved.skills);
+  const skillIds = [...new Set([...Object.keys(base.skills), ...Object.keys(savedSkills)])];
+  const skills = Object.fromEntries(skillIds.map(id => [
+    id,
+    normalizeSkill(base.skills[id] || { label: id, level: "unknown", confidence: 0.1, evidence: [] }, savedSkills[id]),
+  ]));
+  const tutorMetrics = asObject(saved.tutor_metrics);
+  const savedTotals = asObject(tutorMetrics.totals);
+  const totals = Object.fromEntries(Object.keys(base.tutor_metrics.totals).map(key => {
+    const number = Number(savedTotals[key]);
+    return [key, Number.isFinite(number) && number >= 0 ? number : base.tutor_metrics.totals[key]];
+  }));
   return {
     ...base,
     ...saved,
-    long_term_goals: (saved.long_term_goals || []).filter(item => !isLegacyTransientGoal(item)),
-    pending_items: (saved.pending_items || []).filter(item => !(item?.kind === "long_term_goal_inference" && isLegacyTransientGoal(item))),
-    next_recommended_action: isLegacyTransientGoal({ text: saved.next_recommended_action?.title }) ? null : saved.next_recommended_action,
-    skills: { ...base.skills, ...saved.skills },
-    learning_results: saved.learning_results || [],
+    long_term_goals: objectArray(saved.long_term_goals).filter(item => !isLegacyTransientGoal(item)),
+    active_goals: asArray(saved.active_goals).filter(item => typeof item === "string" || (item && typeof item === "object" && !Array.isArray(item))),
+    interests: asArray(saved.interests).filter(item => typeof item === "string" || (item && typeof item === "object" && !Array.isArray(item))),
+    recent_learning: objectArray(saved.recent_learning),
+    learning_results: objectArray(saved.learning_results),
+    recent_events: objectArray(saved.recent_events),
+    current_constraints: stringArray(saved.current_constraints),
+    pending_items: objectArray(saved.pending_items).filter(item => !(item?.kind === "long_term_goal_inference" && isLegacyTransientGoal(item))),
+    action_history: objectArray(saved.action_history),
+    memory: objectArray(saved.memory),
+    decision_log: objectArray(saved.decision_log),
+    next_recommended_action: saved.next_recommended_action && typeof saved.next_recommended_action === "object" && !Array.isArray(saved.next_recommended_action) && !isLegacyTransientGoal({ text: saved.next_recommended_action.title })
+      ? saved.next_recommended_action
+      : null,
+    skills,
     tutor_metrics: {
       ...base.tutor_metrics,
-      ...(saved.tutor_metrics || {}),
-      history: (saved.tutor_metrics?.history || []).slice(-30),
+      ...tutorMetrics,
+      current: tutorMetrics.current && typeof tutorMetrics.current === "object" && !Array.isArray(tutorMetrics.current) ? tutorMetrics.current : null,
+      history: objectArray(tutorMetrics.history).slice(-30),
       totals: {
-        ...base.tutor_metrics.totals,
-        ...(saved.tutor_metrics?.totals || {}),
+        ...totals,
       },
     },
-    current_state: { ...base.current_state, ...(saved.current_state || {}) },
-    direction_signals: { ...(saved.direction_signals || {}) },
+    current_state: { ...base.current_state, ...asObject(saved.current_state) },
+    direction_signals: { ...asObject(saved.direction_signals) },
+    tutor_session: saved.tutor_session && typeof saved.tutor_session === "object" && !Array.isArray(saved.tutor_session) ? saved.tutor_session : null,
   };
 }

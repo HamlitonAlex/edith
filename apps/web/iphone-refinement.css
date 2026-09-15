@@ -254,3 +254,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 
 /* An accepted next step is a calm state, not a disabled-looking second start button. */
 .plan-proposal.started #start-action{border-bottom-color:color-mix(in srgb,var(--action) 32%,var(--line));color:var(--action-strong);opacity:1}.plan-proposal.started #start-action::after{display:none}.agenda li.next.started [data-start-current]{background:color-mix(in srgb,var(--action) 14%,var(--surface));color:var(--action-strong);opacity:1}
+
+/* Keep long model output readable and make an in-flight send visible. */
+.message p,.message li,.plan-proposal p{overflow-wrap:anywhere;word-break:break-word}
+.send-button:disabled{cursor:wait;opacity:.58;pointer-events:none}

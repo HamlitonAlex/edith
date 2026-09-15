@@ -47,9 +47,9 @@ export async function fetchProviderModels({ providerId, apiKey = "", endpoint = 
   if (!base) throw new Error("请填写 API 地址");
   const url = provider.protocol === "gemini" ? `${base}/models` : `${base}/models`;
   const payload = await checkedJson(await fetchImpl(url, { headers: authHeaders(provider, apiKey) }));
-  const source = provider.protocol === "gemini" ? payload.models : payload.data;
-  return (source || [])
-    .filter(item => provider.protocol !== "gemini" || !item.supportedGenerationMethods || item.supportedGenerationMethods.includes("generateContent"))
+  const source = provider.protocol === "gemini" ? payload?.models : payload?.data;
+  return (Array.isArray(source) ? source : [])
+    .filter(item => item && (provider.protocol !== "gemini" || !Array.isArray(item.supportedGenerationMethods) || item.supportedGenerationMethods.includes("generateContent")))
     .map(item => String(item.id || item.name || "").replace(/^models\//, ""))
     .filter(Boolean)
     .sort();
@@ -59,15 +59,17 @@ export async function requestProviderReply({ providerId, apiKey = "", endpoint =
   const provider = getProvider(providerId);
   const base = baseFor(provider, endpoint);
   if (!base || !model) throw new Error("模型连接信息不完整");
+  const inputMessages = (Array.isArray(messages) ? messages : []).filter(item => item && typeof item === "object");
   let url;
   let body;
   if (provider.protocol === "anthropic") {
     url = `${base}/messages`;
-    const anthropicMessages = messages.filter(item => item.role !== "system").map(item => ({
+    const anthropicMessages = inputMessages.filter(item => item.role !== "system").map(item => ({
       role: item.role,
-      content: Array.isArray(item.content) ? item.content.map(part => {
+      content: Array.isArray(item.content) ? item.content.filter(Boolean).map(part => {
         if (part.type !== "image_url") return { type: "text", text: part.text || "" };
-        const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+        const imageUrl = part.image_url?.url;
+        const match = typeof imageUrl === "string" ? imageUrl.match(/^data:([^;]+);base64,(.+)$/) : null;
         return match ? { type: "image", source: { type: "base64", media_type: match[1], data: match[2] } } : { type: "text", text: "[图片附件]" };
       }) : item.content,
     }));
@@ -76,11 +78,12 @@ export async function requestProviderReply({ providerId, apiKey = "", endpoint =
     url = `${base}/models/${encodeURIComponent(model)}:generateContent`;
     body = {
       systemInstruction: system ? { parts: [{ text: system }] } : undefined,
-      contents: messages.filter(item => item.role !== "system").map(item => ({
+      contents: inputMessages.filter(item => item.role !== "system").map(item => ({
         role: item.role === "assistant" ? "model" : "user",
-        parts: Array.isArray(item.content) ? item.content.map(part => {
+        parts: Array.isArray(item.content) ? item.content.filter(Boolean).map(part => {
           if (part.type !== "image_url") return { text: part.text || "" };
-          const match = part.image_url.url.match(/^data:([^;]+);base64,(.+)$/);
+          const imageUrl = part.image_url?.url;
+          const match = typeof imageUrl === "string" ? imageUrl.match(/^data:([^;]+);base64,(.+)$/) : null;
           return match ? { inlineData: { mimeType: match[1], data: match[2] } } : { text: "[图片附件]" };
         }) : [{ text: String(item.content || "") }],
       })),
@@ -88,7 +91,7 @@ export async function requestProviderReply({ providerId, apiKey = "", endpoint =
     };
   } else {
     url = `${base}/chat/completions`;
-    body = { model, temperature: 0.55, messages: [...(system ? [{ role: "system", content: system }] : []), ...messages] };
+    body = { model, temperature: 0.55, messages: [...(system ? [{ role: "system", content: system }] : []), ...inputMessages] };
   }
   const payload = await checkedJson(await fetchImpl(url, {
     method: "POST",
@@ -96,10 +99,10 @@ export async function requestProviderReply({ providerId, apiKey = "", endpoint =
     body: JSON.stringify(body),
   }));
   const text = provider.protocol === "anthropic"
-    ? payload.content?.map(part => part.text || "").join("")
+    ? (Array.isArray(payload?.content) ? payload.content : []).map(part => part?.text || "").join("")
     : provider.protocol === "gemini"
-      ? payload.candidates?.[0]?.content?.parts?.map(part => part.text || "").join("")
-      : payload.choices?.[0]?.message?.content || payload.output_text;
+      ? (Array.isArray(payload?.candidates?.[0]?.content?.parts) ? payload.candidates[0].content.parts : []).map(part => part?.text || "").join("")
+      : payload?.choices?.[0]?.message?.content || payload?.output_text;
   if (!String(text || "").trim()) throw new Error("模型没有返回可显示的内容");
   return String(text).trim();
 }

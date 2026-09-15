@@ -13,6 +13,13 @@ const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
 const themeColors = { day: "#f5f6f3", night: "#202522" };
+const ratio = (value, fallback) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
+};
+const objectValue = value => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const stringList = value => Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
+const objectList = value => Array.isArray(value) ? value.filter(item => item && typeof item === "object" && !Array.isArray(item)) : [];
 const dailyAtmospheres = [
   { id: "desk", src: "./assets/onboarding-morning-v2.png" },
   { id: "path", src: "./assets/onboarding-path.webp" },
@@ -34,22 +41,84 @@ let onboardingIndex = 0;
 const screenOrder = ["chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
+let isSending = false;
+
+function parseStoredObject(value) {
+  try {
+    const parsed = JSON.parse(value || "{}");
+    return objectValue(parsed);
+  } catch {
+    return {};
+  }
+}
+
+function normalizeAvatar(value) {
+  const avatar = typeof value === "string" ? value.trim() : "";
+  if (!avatar || avatar === legacyDefaultAvatar) return defaultAvatar;
+  if (/^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(avatar)) return avatar;
+  if (/^(?:\.{0,2}\/|\/)/.test(avatar) && !avatar.startsWith("//")) return avatar;
+  return safeImageUrl(avatar) || defaultAvatar;
+}
+
+function normalizePreferences(saved = {}, { legacyMessages = [], currentMessages = [] } = {}) {
+  const source = objectValue(saved);
+  const role = ["guide", "friend", "family", "partner"].includes(source.role) ? source.role : defaults.role;
+  const gender = ["female", "male", "neutral"].includes(source.gender) ? source.gender : defaults.gender;
+  const theme = legacyThemes[source.theme] || (["day", "night"].includes(source.theme) ? source.theme : defaults.theme);
+  const modelConfig = objectValue(source.modelConfig);
+  return {
+    ...defaults,
+    ...source,
+    name: typeof source.name === "string" && source.name.trim() ? source.name.trim().slice(0, 24) : defaults.name,
+    theme,
+    role,
+    gender,
+    initiative: ratio(source.initiative, defaults.initiative),
+    directness: ratio(source.directness, defaults.directness),
+    avatar: normalizeAvatar(source.avatar),
+    messages: mergeStoredConversation(legacyMessages, Array.isArray(currentMessages) && currentMessages.length ? currentMessages : source.messages),
+    sources: stringList(source.sources),
+    calendarEvents: objectList(source.calendarEvents),
+    pendingSourceNames: stringList(source.pendingSourceNames),
+    currentConversationModel: typeof source.currentConversationModel === "string" && source.currentConversationModel.trim() ? source.currentConversationModel.trim() : defaults.currentConversationModel,
+    modelConfig: Object.keys(modelConfig).length ? {
+      providerId: typeof modelConfig.providerId === "string" ? modelConfig.providerId : "",
+      endpoint: typeof modelConfig.endpoint === "string" ? modelConfig.endpoint.trim() : "",
+      model: typeof modelConfig.model === "string" ? modelConfig.model.trim() : "",
+    } : null,
+    cloudConsent: Boolean(source.cloudConsent),
+    onboardingComplete: Boolean(source.onboardingComplete),
+    quietStart: typeof source.quietStart === "string" ? source.quietStart : defaults.quietStart,
+    quietEnd: typeof source.quietEnd === "string" ? source.quietEnd : defaults.quietEnd,
+    urgentOverride: source.urgentOverride !== false,
+    dailyAtmosphere: objectValue(source.dailyAtmosphere).day ? source.dailyAtmosphere : null,
+  };
+}
 
 function load() {
   try {
-    const current = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    const legacy = JSON.parse(localStorage.getItem("xuecheng:iphone:v1") || "{}");
+    const current = parseStoredObject(localStorage.getItem(storageKey));
+    const legacy = parseStoredObject(localStorage.getItem("xuecheng:iphone:v1"));
     const saved = Object.keys(current).length ? current : legacy;
-    saved.messages = mergeStoredConversation(legacy.messages, current.messages);
-    const savedAvatar = saved.avatar && saved.avatar !== legacyDefaultAvatar ? saved.avatar : defaultAvatar;
-    return { ...defaults, ...saved, theme: legacyThemes[saved.theme] || saved.theme || defaults.theme, avatar: savedAvatar };
+    return normalizePreferences(saved, { legacyMessages: legacy.messages, currentMessages: current.messages });
   } catch {
-    return { ...defaults };
+    return normalizePreferences();
+  }
+}
+
+function persistStorage(key, value) {
+  try {
+    const serialized = typeof value === "string" ? value : JSON.stringify(value);
+    localStorage.setItem(key, serialized);
+    return true;
+  } catch {
+    showToast("设备空间不足或浏览器禁止保存，本次内容暂留在页面中");
+    return false;
   }
 }
 
 function save() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  return persistStorage(storageKey, state);
 }
 
 function loadAgent() {
@@ -58,7 +127,7 @@ function loadAgent() {
 }
 
 function saveAgent() {
-  localStorage.setItem(agentStorageKey, JSON.stringify(agentState));
+  return persistStorage(agentStorageKey, agentState);
 }
 
 function localDayKey(date = new Date()) {
@@ -114,6 +183,11 @@ function safeImageUrl(value) {
   } catch { return ""; }
 }
 
+function safeAttachmentDataUrl(value) {
+  const dataUrl = typeof value === "string" ? value.trim() : "";
+  return /^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(dataUrl) ? dataUrl : "";
+}
+
 function renderOnboarding() {
   if (state.onboardingComplete) return;
   const steps = [...document.querySelectorAll("[data-onboarding-step]")];
@@ -130,7 +204,11 @@ function renderOnboarding() {
 function renderAttachments() {
   const preview = $("#attachment-preview");
   preview.hidden = pendingAttachments.length === 0;
-  preview.innerHTML = pendingAttachments.map((item, index) => `<div class="attachment-chip">${item.type.startsWith("image/") ? `<img src="${item.dataUrl}" alt="">` : ""}<span>${escapeHtml(item.name)}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`).join("");
+  preview.innerHTML = pendingAttachments.map((item, index) => {
+    const type = String(item?.type || "");
+    const image = type.startsWith("image/") ? safeAttachmentDataUrl(item?.dataUrl) : "";
+    return `<div class="attachment-chip">${image ? `<img src="${escapeHtml(image)}" alt="">` : ""}<span>${escapeHtml(item?.name || "未命名附件")}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`;
+  }).join("");
   $(".send-button").classList.toggle("ready", Boolean($("#chat-input").value.trim() || pendingAttachments.length));
 }
 
@@ -157,6 +235,18 @@ function showToast(message) {
   toast.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+function showDialog(selector) {
+  const dialog = $(selector);
+  if (!dialog) return false;
+  try {
+    if (!dialog.open) dialog.showModal();
+    return true;
+  } catch {
+    showToast("这个窗口暂时无法打开，请稍后再试");
+    return false;
+  }
 }
 
 function renderToday(pronoun) {
@@ -419,9 +509,14 @@ $("[data-onboarding-finish]").addEventListener("click", () => {
 const guideSystemPrompt = () => `你是学程中的${state.name}，一位会长期了解用户的私人教育引路人。你的任务不是生成课表，而是观察、判断、协商、陪伴执行和验收。自然交流；信息不足就只问最关键的一件事。每次最多提出一件下一步行动，必须具体说明做什么、多久、怎么做、完成标准、为什么现在值得。可以提出不同意见，但用户拥有最终决定权。不要声称看到了未提供的信息，不要暴露隐藏思维链。`;
 
 function modelMessages(latestText, attachments) {
+  const safeAttachments = Array.isArray(attachments) ? attachments.filter(Boolean) : [];
   const history = state.messages.slice(-12).map(message => ({ role: message.role, content: message.text }));
-  const attachmentText = attachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
-  const imageParts = attachments.filter(item => item.type.startsWith("image/")).map(item => ({ type: "image_url", image_url: { url: item.dataUrl } }));
+  const attachmentText = safeAttachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
+  const imageParts = safeAttachments
+    .filter(item => String(item?.type || "").startsWith("image/"))
+    .map(item => safeAttachmentDataUrl(item?.dataUrl))
+    .filter(Boolean)
+    .map(url => ({ type: "image_url", image_url: { url } }));
   const content = imageParts.length ? [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts] : `${latestText}${attachmentText}`;
   if (history.at(-1)?.role === "user") history.pop();
   return [...history, { role: "user", content }];
@@ -436,59 +531,73 @@ $("#chat-form").addEventListener("submit", async event => {
     input.focus();
     return;
   }
-  const submittedAttachments = pendingAttachments;
-  pendingAttachments = [];
-  $("#agent-proposal").classList.remove("discussing");
-  const userText = text || "请看看我发来的内容。";
-  addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
-  const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
-  agentState = agentResult.state;
-  input.value = "";
-  resizeComposer();
-  save();
-  saveAgent();
-  render();
-  const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
-  let reply = agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
-  if (useCloud) {
-    const working = document.createElement("article");
-    working.className = "message companion-message work-state";
-    working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
-    $("#dynamic-messages").append(working);
-    const conversation = $("#conversation");
-    conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
-    try {
-      reply = await requestProviderReply({
-        ...state.modelConfig,
-        apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
-        system: guideSystemPrompt(),
-        messages: modelMessages(userText, submittedAttachments),
-      });
-    } catch (error) {
-      showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
-    } finally { working.remove(); }
+  if (isSending) {
+    showToast("上一条还在处理，请稍等");
+    return;
   }
-  addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
-  if (submittedAttachments.length) {
-    state.pendingSourceNames = submittedAttachments.map(item => item.name);
-    addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
-  } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
-    state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
-    state.pendingSourceNames = [];
-  } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
-    state.pendingSourceNames = [];
+  isSending = true;
+  const sendButton = $(".send-button");
+  sendButton.disabled = true;
+  try {
+    const submittedAttachments = pendingAttachments;
+    pendingAttachments = [];
+    $("#agent-proposal").classList.remove("discussing");
+    const userText = text || "请看看我发来的内容。";
+    addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+    const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
+    agentState = agentResult.state;
+    input.value = "";
+    resizeComposer();
+    save();
+    saveAgent();
+    render();
+    const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
+    let reply = agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
+    if (useCloud) {
+      const working = document.createElement("article");
+      working.className = "message companion-message work-state";
+      working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
+      $("#dynamic-messages").append(working);
+      const conversation = $("#conversation");
+      conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
+      try {
+        reply = await requestProviderReply({
+          ...state.modelConfig,
+          apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
+          system: guideSystemPrompt(),
+          messages: modelMessages(userText, submittedAttachments),
+        });
+      } catch (error) {
+        showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
+      } finally { working.remove(); }
+    }
+    addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+    if (submittedAttachments.length) {
+      state.pendingSourceNames = submittedAttachments.map(item => item.name);
+      addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
+    } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
+      state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
+      state.pendingSourceNames = [];
+    } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
+      state.pendingSourceNames = [];
+    }
+    save();
+    render();
+    const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
+    recent.forEach((message, index) => {
+      message.style.setProperty("--enter-delay", `${index * 70}ms`);
+      if (!reduceMotion.matches) message.classList.add("message-enter");
+    });
+    requestAnimationFrame(() => {
+      const conversation = $("#conversation");
+      conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
+    });
+  } catch (error) {
+    showToast(`这次发送没有完成：${error?.message || "请稍后再试"}`);
+  } finally {
+    isSending = false;
+    sendButton.disabled = false;
   }
-  save();
-  render();
-  const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
-  recent.forEach((message, index) => {
-    message.style.setProperty("--enter-delay", `${index * 70}ms`);
-    if (!reduceMotion.matches) message.classList.add("message-enter");
-  });
-  requestAnimationFrame(() => {
-    const conversation = $("#conversation");
-    conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
-  });
 });
 
 let pendingExternalUrl = "";
@@ -507,7 +616,7 @@ function acceptCurrentAction() {
 
 function openExternalConfirmation(url) {
   pendingExternalUrl = url;
-  $("#external-action-dialog").showModal();
+  showDialog("#external-action-dialog");
 }
 
 function discussCurrentAction(prompt = "这个安排有些地方不适合我，我们讨论一下。") {
@@ -609,7 +718,7 @@ document.querySelectorAll("[data-gender]").forEach(button => button.addEventList
 
 $("#conversation-model").addEventListener("click", () => {
   renderModelControls();
-  $("#model-dialog").showModal();
+  showDialog("#model-dialog");
 });
 $("#manage-models").addEventListener("click", () => {
   $("#model-dialog").close();
@@ -696,7 +805,7 @@ $("#backup-file").addEventListener("change", async event => {
     const restored = await readEncryptedBackup(await file.text(), password);
     if (!restored.preferences || !restored.agent) throw new Error("备份内容不完整");
     if (!window.confirm("恢复会覆盖这台设备上当前的学程记忆。确定继续吗？")) return;
-    state = { ...defaults, ...restored.preferences };
+    state = normalizePreferences(restored.preferences);
     agentState = hydrateAgentState(restored.agent);
     save();
     saveAgent();
@@ -759,10 +868,10 @@ $("#reset-avatar").addEventListener("click", () => {
 });
 
 const attachmentInput = $("#attachment-input");
-$("#attachment-trigger").addEventListener("click", () => $("#attachment-dialog").showModal());
+$("#attachment-trigger").addEventListener("click", () => showDialog("#attachment-dialog"));
 document.querySelectorAll("[data-attachment-source]").forEach(button => button.addEventListener("click", () => {
   const source = button.dataset.attachmentSource;
-  if (source === "paste") return setTimeout(() => $("#paste-dialog").showModal(), 0);
+  if (source === "paste") return setTimeout(() => showDialog("#paste-dialog"), 0);
   attachmentInput.accept = source === "photo" || source === "camera" ? "image/*" : "image/*,text/*,application/pdf";
   if (source === "camera") attachmentInput.setAttribute("capture", "environment");
   else attachmentInput.removeAttribute("capture");
@@ -809,18 +918,23 @@ $("#calendar-import").addEventListener("click", () => $("#calendar-file").click(
 $("#calendar-file").addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const source = await file.text();
-  const events = [...source.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map(match => {
-    const block = match[1];
-    const summary = block.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "未命名安排";
-    const start = block.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "";
-    return { summary, start };
-  });
-  state.calendarEvents = events;
-  save();
-  render();
-  showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
-  event.target.value = "";
+  try {
+    const source = await file.text();
+    const events = [...source.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map(match => {
+      const block = match[1];
+      const summary = block.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "未命名安排";
+      const start = block.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "";
+      return { summary, start };
+    });
+    state.calendarEvents = events;
+    save();
+    render();
+    showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
+  } catch (error) {
+    showToast(`日历文件读取失败：${error?.message || "格式无法识别"}`);
+  } finally {
+    event.target.value = "";
+  }
 });
 $("#clear-sources").addEventListener("click", () => {
   if (!state.sources.length) return showToast("目前没有长期引用的资料");
@@ -924,9 +1038,18 @@ function createVoiceController(surface) {
       chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
       showToast("没有听清，可以再长按一次");
     };
-    recognition.start();
-    navigator.vibrate?.(18);
-    return true;
+    try {
+      recognition.start();
+      navigator.vibrate?.(18);
+      return true;
+    } catch {
+      listening = false;
+      surface.classList.remove("listening");
+      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
+      recognition = null;
+      showToast("语音输入暂时不可用，请改用文字发送");
+      return false;
+    }
   };
   const stop = () => {
     if (!listening) return;
