@@ -1,4 +1,4 @@
-import { recordLearningResult } from "./memory.js";
+import { finishTutorMetrics, recordLearningResult, recordTutorVerificationAttempt } from "./memory.js";
 import { addSkillEvidence } from "./user-model.js";
 import { isTutorCompletionEvidence } from "./tutor.js";
 
@@ -45,6 +45,7 @@ function learningReply(result) {
 export function evaluateCompletion(state, action, observation) {
   const text = observation.text;
   const session = state.tutor_session;
+  let next = recordTutorVerificationAttempt(state, session, observation);
   const evidenceRequired = action.evidence_required || [];
   const evidenceHits = evidenceRequired.filter(term => text.includes(term));
   const hasConcreteLanguage = /我会|我能|先|今天|明天|在.+时|场景|变化|行动|解释|输出|步骤/.test(text);
@@ -52,15 +53,16 @@ export function evaluateCompletion(state, action, observation) {
   const enoughExplanation = (text.length >= 28 && (evidenceHits.length >= 2 || hasConcreteLanguage)) || Boolean(tutorEvidence);
   if (!enoughExplanation) {
     return {
-      state: { ...state, phase: "verify" },
+      state: { ...next, phase: "verify" },
       verified: false,
       reply: "我先不把它标记为完成。你已经说了结果，但我还缺少理解证据。请告诉我：它发生在什么具体场景、出现了什么可观察变化、下一次最小行动是什么？",
     };
   }
 
   const result = buildLearningResult(action, session, observation, text);
-  let next = addSkillEvidence(state, session?.skill_id || action.skill_id, text, "verified");
+  next = addSkillEvidence(next, session?.skill_id || action.skill_id, text, "verified");
   next = recordLearningResult(next, result);
+  next = finishTutorMetrics(next, { result, observation });
   next.recent_learning.push({
     result_id: result.id,
     action_id: action.id,

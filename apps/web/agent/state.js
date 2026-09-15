@@ -16,6 +16,19 @@ export function createAgentState(now = new Date()) {
     },
     recent_learning: [],
     learning_results: [],
+    tutor_metrics: {
+      current: null,
+      history: [],
+      totals: {
+        started: 0,
+        completed: 0,
+        interrupted: 0,
+        verification_attempts: 0,
+        total_turns: 0,
+        total_hints: 0,
+        total_adaptations: 0,
+      },
+    },
     recent_events: [],
     current_constraints: [],
     current_state: { energy: "unknown", urgent_direction: null, last_observed_at: null },
@@ -54,6 +67,15 @@ export function hydrateAgentState(saved) {
     next_recommended_action: isLegacyTransientGoal({ text: saved.next_recommended_action?.title }) ? null : saved.next_recommended_action,
     skills: { ...base.skills, ...saved.skills },
     learning_results: saved.learning_results || [],
+    tutor_metrics: {
+      ...base.tutor_metrics,
+      ...(saved.tutor_metrics || {}),
+      history: (saved.tutor_metrics?.history || []).slice(-30),
+      totals: {
+        ...base.tutor_metrics.totals,
+        ...(saved.tutor_metrics?.totals || {}),
+      },
+    },
     current_state: { ...base.current_state, ...(saved.current_state || {}) },
     direction_signals: { ...(saved.direction_signals || {}) },
   };

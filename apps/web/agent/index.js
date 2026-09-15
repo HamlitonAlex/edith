@@ -1,5 +1,11 @@
 import { observe } from "./observer.js";
-import { rememberObservation, recordActionRevision } from "./memory.js";
+import {
+  finishTutorMetrics,
+  recordActionRevision,
+  recordTutorTurn,
+  rememberObservation,
+  startTutorMetrics,
+} from "./memory.js";
 import { updateUserModel } from "./user-model.js";
 import { diagnose, decideNextAction, formatProposal, formatProposalSummary } from "./planner.js";
 import { beginTutor, isTutorCompletionEvidence, tutorReply } from "./tutor.js";
@@ -89,6 +95,14 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   }
 
   if (action && (observation.signals.wants_new_direction || observation.signals.wants_other)) {
+    if (state.tutor_session) {
+      state = finishTutorMetrics(state, {
+        observation,
+        status: "interrupted",
+        reason: observation.text,
+      });
+      state.tutor_session = null;
+    }
     state.phase = "negotiate";
     state.decision_log.push({
       at: observation.at,
@@ -105,6 +119,13 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   }
 
   if (action && observation.signals.final_reject) {
+    if (state.tutor_session) {
+      state = finishTutorMetrics(state, {
+        observation,
+        status: "interrupted",
+        reason: observation.text,
+      });
+    }
     state.action_history.push({ action_id: action.id, outcome: "rejected", at: observation.at, reason: observation.text });
     state.next_recommended_action = null;
     state.tutor_session = null;
@@ -136,6 +157,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   }
   if (action && state.tutor_session) {
     state.tutor_session = tutorReply(state.tutor_session, observation);
+    state = recordTutorTurn(state, state.tutor_session, observation);
     state.phase = "execute";
     return { state, kind: "tutor", reply: state.tutor_session.prompt };
   }
@@ -148,6 +170,14 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     return evaluateCompletion(state, action, observation);
   }
   if (action && observation.signals.delays) {
+    if (state.tutor_session) {
+      state = finishTutorMetrics(state, {
+        observation,
+        status: "interrupted",
+        reason: observation.text,
+      });
+      state.tutor_session = null;
+    }
     recordActionRevision(state, action, null, `用户选择推迟：${observation.text}`, observation.at);
     state.pending_items.push({ ...action, status: "deferred", revisit_at: "tomorrow" });
     state.next_recommended_action = null;
@@ -158,6 +188,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.phase = "execute";
     state.next_recommended_action = { ...action, status: "accepted" };
     state.tutor_session = beginTutor(action, observation);
+    state = startTutorMetrics(state, state.tutor_session, observation);
     return { state, kind: "tutor", reply: state.tutor_session.prompt };
   }
   const diagnosis = diagnose(state);
