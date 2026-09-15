@@ -1,7 +1,7 @@
 import { observe } from "./observer.js";
 import { rememberObservation, recordActionRevision } from "./memory.js";
 import { updateUserModel } from "./user-model.js";
-import { diagnose, decideNextAction, formatProposal } from "./planner.js";
+import { diagnose, decideNextAction, formatProposal, formatProposalSummary } from "./planner.js";
 import { beginTutor, tutorReply } from "./tutor.js";
 import { evaluateCompletion } from "./evaluator.js";
 export { createAgentState, hydrateAgentState } from "./state.js";
@@ -11,6 +11,16 @@ const shorten = action => {
   const instructions = `只完成最小版本：${action.instructions}`;
   return { ...action, duration_minutes: 10, estimated_time: 10, status: "revised", instructions, suggested_method: instructions };
 };
+
+const decisionSignals = [
+  "accepts", "rejects", "final_reject", "delays", "tired", "busy", "new_idea",
+  "wants_new_direction", "wants_other", "asks_why", "completed", "confused", "wants_hint",
+  "uncertain",
+];
+
+const hasDecisionSignal = signals => decisionSignals.some(key => Boolean(signals[key]))
+  || signals.duration_minutes != null
+  || Boolean(signals.skills_exam_urgent || signals.skills_exam_resolved);
 
 export function runAgentTurn(current, rawText, now = new Date()) {
   const observation = observe(rawText, now);
@@ -41,6 +51,23 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     return { state, kind: "confirmation", reply: `我先不擅自把它写成你的人生目标。我的理解是：“${observation.text}”是你现阶段想走的长期方向。这个理解准确吗？` };
   }
 
+  if (!hasDecisionSignal(observation.signals) && observation.signals.intent === "discussion") {
+    state.phase = "observe";
+    return {
+      state,
+      kind: "discussion",
+      reply: "可以，先聊这件事。你想从发生了什么、哪里卡住，还是你希望它变成什么开始？",
+    };
+  }
+  if (!hasDecisionSignal(observation.signals) && observation.signals.intent === "listening") {
+    state.phase = "observe";
+    return {
+      state,
+      kind: "listening",
+      reply: "我听到了。今天先不把这句话变成任务；如果你愿意，继续说。",
+    };
+  }
+
   if (action && observation.signals.new_idea) {
     const alreadySaved = state.pending_items.some(item => item.kind === "idea_to_revisit" && item.text === observation.text);
     if (!alreadySaved) {
@@ -61,7 +88,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     };
   }
 
-  if (action && observation.signals.wants_new_direction) {
+  if (action && (observation.signals.wants_new_direction || observation.signals.wants_other)) {
     state.phase = "negotiate";
     state.decision_log.push({
       at: observation.at,
@@ -73,7 +100,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     return {
       state,
       kind: "negotiate_direction",
-      reply: "可以。我们先不急着换成另一个任务。你想换的是眼前这件事、今天的节奏，还是更长期的方向？我先听懂变化，再决定是调整、暂停，还是让一条新线慢慢长出来。",
+      reply: "可以换，但我先不急着换成另一个任务：你想换的是今天这件事、今天的节奏，还是更长期的方向？如果只是今天，我可以把原步骤缩短或暂停；如果是方向，我们一起比较后再换。你可以坚持自己的选择，最终决定仍然是你的。",
     };
   }
 
@@ -91,7 +118,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   if (action && observation.signals.rejects) {
     state.phase = "negotiate";
     state.decision_log.push({ at: observation.at, action_id: action.id, decision: "challenge_rejection", reason: "拒绝原因尚不清楚，不能把一次反感误判成方向变化", confidence: 0.74 });
-    return { state, kind: "challenge", reply: `我听到你不想做，但我暂时不同意直接取消。我的理由是：${action.why_now}\n\n不过我也可能判断错。你更接近哪一种：它和目标无关、今天状态不合适、还是这个具体材料不适合？知道原因后，我会坚持、换方法或撤回建议。最终决定仍然是你的。` };
+    return { state, kind: "challenge", reply: "我听到你不想做。先不把它算成失败：更像是哪一种——任务太大、时间不合适、今天状态不好、你不认可这个方向，还是我也可能判断错？你可以缩短、换方式、推迟，或坚持做你想做的事；最终决定仍然是你的。" };
   }
   if (action && (observation.signals.tired || observation.signals.busy)) {
     state.phase = "negotiate";
@@ -103,7 +130,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
     state.next_recommended_action = revised;
     state.phase = "propose";
     state.decision_log.push({ at: observation.at, action_id: revised.id, judgment: revised.judgment, decision: "shorten", reason: "用户反馈后仍保留方向连续性", confidence: 0.78 });
-    return { state, kind: "proposal", reply: formatProposal(revised, 0.78) };
+    return { state, kind: "proposal", reply: formatProposal(revised, 0.78), summary_reply: formatProposalSummary(revised) };
   }
   const suppliedEvidence = action?.evidence_required
     ?.filter(term => observation.text.includes(term)).length >= 2;
@@ -141,8 +168,8 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   action = decideNextAction(state, diagnosis);
   state.next_recommended_action = action;
   state.phase = "propose";
-  state.decision_log.push({ at: observation.at, action_id: action.id, judgment: action.judgment, decision: "propose", reason: diagnosis.focus, evidence: diagnosis.evidence, confidence: diagnosis.confidence });
+  state.decision_log.push({ at: observation.at, action_id: action.id, title: action.title, gap_id: action.gap?.id, judgment: action.judgment, decision: "propose", reason: diagnosis.focus, evidence: diagnosis.evidence, confidence: diagnosis.confidence });
   state.decision_log = state.decision_log.slice(-30);
   const preface = diagnosis.missing.includes("今天可用时间") ? "我还不知道你今天准确有多少时间，所以先给一个可协商的小行动。\n\n" : "";
-  return { state, kind: "proposal", reply: preface + formatProposal(action, diagnosis.confidence) };
+  return { state, kind: "proposal", reply: preface + formatProposal(action, diagnosis.confidence), summary_reply: formatProposalSummary(action) };
 }

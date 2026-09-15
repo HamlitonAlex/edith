@@ -278,6 +278,21 @@ function render() {
     $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
     $("#proposal-title").textContent = action.title;
     $("#proposal-why").textContent = action.why_now;
+    const context = action.current_context || {};
+    $("#proposal-observation").textContent = action.observation || "";
+    $("#proposal-context").textContent = [
+      context.stage,
+      context.available_minutes ? `今天约 ${context.available_minutes} 分钟` : "今天可用时间未确认",
+      ...(Array.isArray(context.constraints) ? context.constraints : []),
+    ].filter(Boolean).join("；");
+    $("#proposal-related").textContent = action.related_direction?.text || action.related_direction || "当前方向";
+    $("#proposal-gap").textContent = action.gap?.label || action.gap?.id || "当前缺口";
+    const alternatives = Array.isArray(action.why_not_other_directions)
+      ? action.why_not_other_directions
+      : action.why_not_other_directions ? [action.why_not_other_directions] : [];
+    $("#proposal-alternatives").textContent = alternatives.join("\n");
+    $("#proposal-gain").textContent = action.expected_gain || "";
+    $("#proposal-confidence").textContent = `${Math.round((action.confidence ?? 0) * 100)}%`;
     $("#proposal-instructions").textContent = action.instructions;
     $("#proposal-completion").textContent = action.completion_criteria;
     const imageUrl = safeImageUrl(action.resource?.image_url);
@@ -434,7 +449,7 @@ $("#chat-form").addEventListener("submit", async event => {
   saveAgent();
   render();
   const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
-  let reply = agentResult.reply;
+  let reply = agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
   if (useCloud) {
     const working = document.createElement("article");
     working.className = "message companion-message work-state";

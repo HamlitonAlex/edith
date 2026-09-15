@@ -65,8 +65,10 @@ test("daily work names the platform, action, content and completion", () => {
 
 test("the primary recommendation reveals detail progressively", () => {
   assert.match(html, /<details class="proposal-details"/);
-  assert.match(html, /<summary>查看怎么做和完成标准<\/summary>/);
+  assert.match(html, /<summary>为什么<\/summary>/);
   assert.match(html, /id="proposal-why"/);
+  assert.match(html, /id="proposal-observation"/);
+  assert.match(html, /id="proposal-alternatives"/);
   assert.ok(html.indexOf('id="proposal-why"') < html.indexOf('class="proposal-details"'));
   assert.ok(html.indexOf('id="dynamic-messages"') < html.indexOf('id="agent-proposal"'));
 });

@@ -66,6 +66,12 @@ function chooseLearningArea(state) {
     .sort(([, a], [, b]) => (a.confidence ?? 0) - (b.confidence ?? 0))[0]?.[0] || "self_direction";
 }
 
+function previousProposalCount(state, gapId) {
+  return (state.decision_log || [])
+    .filter(entry => entry.decision === "propose" && entry.gap_id === gapId)
+    .length;
+}
+
 function compareDirections(state, selected) {
   const alternatives = (state.long_term_goals || [])
     .filter(goal => goal.id !== selected?.id)
@@ -162,6 +168,7 @@ export function decideNextAction(state, diagnosis) {
   const duration = friction ? Math.min(8, available || 5) : available ? Math.min(15, Math.max(8, available)) : 12;
   const progressSkill = diagnosis.progress_skill;
   const skillId = diagnosis.gap?.skill_id || progressSkill?.id || chooseLearningArea(state);
+  const repeatIndex = previousProposalCount(state, diagnosis.gap?.id);
   let title;
   let instructions;
   let completionCriteria;
@@ -169,9 +176,26 @@ export function decideNextAction(state, diagnosis) {
   let whyNow;
   let judgment;
   if (friction) {
-    title = `用 5 分钟拆掉“${primaryGoal.text}”的启动阻力`;
-    instructions = "只做一个启动动作：打开相关材料，写下你要处理的一个具体问题；到点就停，不要求完成整项任务。";
-    completionCriteria = "留下一个已打开的材料、一个具体问题和下一次可以接上的位置。";
+    const variants = [
+      {
+        title: `用 ${duration} 分钟拆掉“${primaryGoal.text}”的启动阻力`,
+        instructions: "先判断卡点更像任务太大、时间安排不合适、临时状态不好、你不认可这个方向，还是我判断错了；再只打开相关材料，写下一个具体问题，到点就停。",
+        completion: "留下卡点判断、一个具体问题和下一次可以接上的位置。",
+      },
+      {
+        title: `给“${primaryGoal.text}”留一个轻量入口`,
+        instructions: `不要求完成整项任务，只选一个最容易开始的材料或动作，试做 ${duration} 分钟；如果仍然卡住，就记下是时间、内容、方式还是方向的问题。`,
+        completion: "留下一个实际试过的入口，以及它是否值得继续。",
+      },
+      {
+        title: `把“${primaryGoal.text}”改成一次可接受的尝试`,
+        instructions: "从任务、时间、状态、方向和判断这五项里选最像原因的一项，只做对应的最小尝试；不把没完成解释成执行力问题。",
+        completion: "留下你选择的原因、一次最小尝试和下一步调整。",
+      },
+    ][Math.min(repeatIndex, 2)];
+    title = variants.title;
+    instructions = variants.instructions;
+    completionCriteria = variants.completion;
     expectedGain = "先恢复可启动性，区分真正的方向问题与动作过重造成的推迟。";
     whyNow = `同类建议已经连续三次被推迟，今天最有价值的不是再增加内容，而是把动作缩到足以开始的大小。${primaryGoal.text}仍保留，但先用一次低负担启动验证。`;
     judgment = "连续三次没有完成说明启动条件需要调整，不应继续把责任归因给你。";
@@ -183,9 +207,26 @@ export function decideNextAction(state, diagnosis) {
     whyNow = `你已经留下${progressSkill.evidence.length}条真实证据，继续重复基础解释的收益变低；现在适合提高一个台阶，用新场景检验迁移。`;
     judgment = "已有证据支持提高难度，但还不足以宣称稳定掌握，所以用一次可解释的迁移来检验。";
   } else if (diagnosis.gap?.id === "exam_readiness") {
-    title = `用 ${duration} 分钟完成一轮“${primaryGoal.text}”高频检验`;
-    instructions = "选一个最近考试范围内的高频小题，先独立作答，再用错因和下一步复习点记录结果；不打开产品开发任务。";
-    completionCriteria = "留下题目、作答结果、错因（或掌握依据）和下一轮复习点。";
+    const variants = [
+      {
+        title: `用 ${duration} 分钟完成一轮“${primaryGoal.text}”高频检验`,
+        instructions: "选一个最近考试范围内的高频小题，先独立作答，再用错因和下一步复习点记录结果；不打开产品开发任务。",
+        completion: "留下题目、作答结果、错因（或掌握依据）和下一轮复习点。",
+      },
+      {
+        title: `用 ${duration} 分钟回放一题“${primaryGoal.text}”的错因`,
+        instructions: "从最近做过的一道题开始，不急着刷新题；复述当时的判断、错在哪里、下次先看什么，最后补一条仍不确定的地方。",
+        completion: "留下原题、错因复述和一个下一轮先检查的线索。",
+      },
+      {
+        title: `用 ${duration} 分钟口述一题“${primaryGoal.text}”的判断`,
+        instructions: "不看答案，选一道熟悉范围内的小题，用‘已知、判断、结论’口述一遍；说不清的地方就标成下一轮复习点。",
+        completion: "留下一次口述记录、一个不确定点和是否需要回看材料的决定。",
+      },
+    ][Math.min(repeatIndex, 2)];
+    title = variants.title;
+    instructions = variants.instructions;
+    completionCriteria = variants.completion;
     expectedGain = "把临近考试的焦虑转成可测证据，同时保留产品方向，不让短期风险被长期兴趣掩盖。";
     whyNow = "技能高考已经进入紧迫窗口，而你最近仍在投入产品；今天先做一轮可测检验，能最快暴露风险。AI 产品仍在路径里，但不是此刻的第一优先级。";
     judgment = "当前阶段先处理考试风险更负责任，因为它有明确截止时间和可验证结果。";
@@ -233,7 +274,12 @@ export function decideNextAction(state, diagnosis) {
     status: "proposed",
     diagnosis: diagnosis.focus,
     confidence: diagnosis.confidence,
+    presentation_variant: repeatIndex,
   };
+}
+
+export function formatProposalSummary(action) {
+  return `下一步：${action.title}\n\n为什么现在：${action.why_now}\n\n预计用时：${action.duration_minutes} 分钟`;
 }
 
 export function formatProposal(action, confidence = action.confidence ?? 0.7) {

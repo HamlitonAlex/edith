@@ -145,7 +145,7 @@ test("the guide can challenge a rejection while preserving user authority", () =
   const proposed = runAgentTurn(createKnownAgentState(), "给我判断下一步");
   const result = runAgentTurn(proposed.state, "不要这个，没必要");
   assert.equal(result.kind, "challenge");
-  assert.match(result.reply, /暂时不同意/);
+  assert.match(result.reply, /先不把它算成失败|不想做/);
   assert.match(result.reply, /我也可能判断错/);
   assert.match(result.reply, /最终决定仍然是你的/);
 });
