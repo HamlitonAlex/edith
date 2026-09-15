@@ -1,3 +1,5 @@
+import { deriveTutorFeedback } from "./user-model.js";
+
 const directionLabel = goal => goal?.text || "未命名方向";
 
 function latestObservation(state) {
@@ -66,6 +68,12 @@ function chooseLearningArea(state) {
     .sort(([, a], [, b]) => (a.confidence ?? 0) - (b.confidence ?? 0))[0]?.[0] || "self_direction";
 }
 
+function skillForTutorDomain(domain) {
+  if (domain === "computer") return "computer_basics";
+  if (domain === "english") return "english_expression";
+  return "general_knowledge";
+}
+
 function previousProposalCount(state, gapId) {
   return (state.decision_log || [])
     .filter(entry => entry.decision === "propose" && entry.gap_id === gapId)
@@ -93,6 +101,7 @@ export function diagnose(state) {
   const related = relatedDirection(state);
   const delays = deferredPattern(state);
   const progressSkill = findProgressSkill(state);
+  const tutorFeedback = deriveTutorFeedback(state);
   let gap;
   let focus;
   const examIsUrgent = state.current_state?.urgent_direction === "skills_exam" && related;
@@ -104,6 +113,73 @@ export function diagnose(state) {
       signal: "技能高考临近",
     };
     focus = "先处理紧迫且可验证的考试风险，再回到长期产品方向";
+  } else if (tutorFeedback.lowered_failure) {
+    const signal = tutorFeedback.lowered_failure;
+    gap = {
+      id: "prerequisite_diagnosis",
+      label: "前置知识诊断",
+      skill_id: skillForTutorDomain(signal.domain),
+      topic: signal.topic,
+      rationale: `“${signal.topic}”已经连续两次在降阶后仍未形成掌握证据，当前最大缺口是前置概念，而不是继续重复同一讲法。`,
+      signal: "连续降阶后仍未掌握",
+    };
+    focus = `先回到“${signal.topic}”的前置知识，找出真正卡点再决定是否继续推进`;
+  } else if (tutorFeedback.repeated_prompting) {
+    const signal = tutorFeedback.repeated_prompting;
+    gap = {
+      id: "tutor_recovery",
+      label: "换一种方式复现",
+      skill_id: skillForTutorDomain(signal.domain),
+      topic: signal.topic,
+      rationale: `最近两次“${signal.topic}”都需要多次提示，当前缺口是讲法与步幅不合适，不应直接提高难度。`,
+      signal: "连续两次提示过多",
+    };
+    focus = `降低“${signal.topic}”的步幅，换一种更容易主动作答的方式复现`;
+  } else if (tutorFeedback.recurring_english_error) {
+    const signal = tutorFeedback.recurring_english_error;
+    gap = {
+      id: "english_recurrence",
+      label: "英语表达复现",
+      skill_id: "english_expression",
+      topic: signal.topic,
+      rationale: `同一个英语表达错误已经在两次验证中出现，当前最大缺口是轻量复现与即时修正，而不是悄悄换到新内容。`,
+      signal: "同一英语错误重复出现",
+    };
+    focus = `用两句轻量复现修正“${signal.topic}”，让正确表达真正留下来`;
+  } else if (tutorFeedback.interrupted_task) {
+    const signal = tutorFeedback.interrupted_task;
+    gap = {
+      id: "activation_friction",
+      label: "启动阻力",
+      skill_id: skillForTutorDomain(signal.domain),
+      topic: signal.topic,
+      rationale: `“${signal.topic}”已经有两次 Tutor 中断，当前更像任务负担或时机不合适，需要修复启动条件，而不是归因于执行力。`,
+      signal: "同一 Tutor 任务中断两次",
+      tutor_interruption: true,
+    };
+    focus = `先修复“${signal.topic}”的启动条件，再决定是否继续投入`;
+  } else if (tutorFeedback.domain_shift) {
+    const signal = tutorFeedback.domain_shift;
+    gap = {
+      id: "direction_transition",
+      label: "方向过渡",
+      skill_id: skillForTutorDomain(signal.to),
+      topic: signal.to,
+      rationale: `最近的两次学习已经转向${signal.to}，但此前的${signal.from}仍在路径中；当前缺口是确认这次变化是阶段性切换还是长期转向。`,
+      signal: "新领域连续出现",
+    };
+    focus = `确认从${signal.from}转向${signal.to}的意图，再安排下一步`;
+  } else if (tutorFeedback.rapid_mastery) {
+    const signal = tutorFeedback.rapid_mastery;
+    gap = {
+      id: "tutor_transfer",
+      label: "迁移应用",
+      skill_id: skillForTutorDomain(signal.domain),
+      topic: signal.topic,
+      rationale: `“${signal.topic}”已经连续两次快速独立通过，重复基础讲解的收益变低，当前缺口是迁移到新场景。`,
+      signal: "连续两次快速掌握",
+    };
+    focus = `把“${signal.topic}”迁移到新场景，检验能力是否真正稳定`;
   } else if (delays.unique_days >= 3 || (delays.unique_days === 0 && delays.count >= 3)) {
     gap = {
       id: "activation_friction",
@@ -135,8 +211,10 @@ export function diagnose(state) {
   const confidence = missing.length ? 0.68 : Math.min(0.92, 0.82 + (hasStage ? 0.04 : 0) + (related?.confidence >= 0.85 ? 0.03 : 0));
   const recentObservation = latestObservation(state);
   const observation = gap.id === "activation_friction"
-    ? `最近${delays.unique_days || delays.count}天的建议都被推迟。${recentObservation}`
-    : gap.id === "apply_and_explain"
+    ? gap.tutor_interruption
+      ? `同一 Tutor 任务已经中断两次。${recentObservation}`
+      : `最近${delays.unique_days || delays.count}天的建议都被推迟。${recentObservation}`
+      : gap.id === "apply_and_explain"
       ? `已经留下${progressSkill.evidence.length}条真实证据，但还没有新场景的迁移证据。${recentObservation}`
       : gap.id === "exam_readiness"
         ? `观察到技能高考进入紧迫窗口，而近期行为仍偏向产品实践。${recentObservation}`
@@ -155,6 +233,7 @@ export function diagnose(state) {
     evidence: [state.current_stage, ...(state.current_constraints || []).slice(-2), gap.signal].filter(Boolean),
     why_not_other_directions: whyNot,
     progress_skill: progressSkill,
+    tutor_feedback: tutorFeedback,
     confidence,
     question,
   };
@@ -169,13 +248,61 @@ export function decideNextAction(state, diagnosis) {
   const progressSkill = diagnosis.progress_skill;
   const skillId = diagnosis.gap?.skill_id || progressSkill?.id || chooseLearningArea(state);
   const repeatIndex = previousProposalCount(state, diagnosis.gap?.id);
+  const feedbackApplied = [];
+  const feedback = diagnosis.tutor_feedback || {};
   let title;
   let instructions;
   let completionCriteria;
   let expectedGain;
   let whyNow;
   let judgment;
-  if (friction) {
+  if (diagnosis.gap?.id === "prerequisite_diagnosis") {
+    const topic = diagnosis.gap.topic || "这个知识点";
+    feedbackApplied.push("lowered_failure");
+    title = `回到“${topic}”的前置基础做一次小诊断`;
+    instructions = "先不重讲原题，只回答一个更基础的问题：它需要哪些输入、规则或步骤？如果说不清，标出最小缺口；如果说得清，再用一个新例子试一次。";
+    completionCriteria = "留下一个前置概念判断、一个最小缺口，以及是否能进入新例子的决定。";
+    expectedGain = "找到真正的前置卡点，避免在同一难度上继续消耗。";
+    whyNow = `同一知识点已经连续两次降阶后仍未形成掌握证据，现在先诊断前置知识，比继续重复讲解更可靠。`;
+    judgment = "降阶仍失败更像前置概念没有接上，先定位缺口，不把它解释成执行力问题。";
+  } else if (diagnosis.gap?.id === "tutor_recovery") {
+    const topic = diagnosis.gap.topic || "这个知识点";
+    feedbackApplied.push("repeated_prompting");
+    title = `用一个更小的例子复现“${topic}”`;
+    instructions = "不提高难度，只选一个最小例子；先说输入和第一步，我只在必要处给一次提示，再让你自己接着完成。";
+    completionCriteria = "独立说出最小例子的关键一步，并指出这次讲法哪里更容易。";
+    expectedGain = "换掉让你反复求提示的讲法，保住主动理解。";
+    whyNow = `最近两次“${topic}”都需要多次提示，今天先换步幅和表达方式，不急着进入新难度。`;
+    judgment = "重复要提示说明当前讲法需要调整，而不是继续把同一内容讲得更长。";
+  } else if (diagnosis.gap?.id === "english_recurrence") {
+    const topic = diagnosis.gap.topic || "英语表达";
+    feedbackApplied.push("recurring_english_error");
+    title = `用两句轻量复现修正“${topic}”`;
+    instructions = "先写一句和上次相似、但时间或人物不同的英文句子，再写一句你真实会用的话；我只指出最影响意思的一处，并让你马上改写。";
+    completionCriteria = "独立改写两句英文，并能说出这次修正对应的规则。";
+    expectedGain = "把反复出现的表达错误变成可迁移的正确用法。";
+    whyNow = "同一个表达错误已经在两次验证中出现，现在用两句短复现及时修正，比直接换新内容更有效。";
+    judgment = "这是稳定的重复错误信号，安排轻量复现即可，不需要一次上完整语法课。";
+  } else if (diagnosis.gap?.id === "direction_transition") {
+    const signal = feedback.domain_shift;
+    feedbackApplied.push("domain_shift");
+    title = `确认从${signal?.from || "原方向"}转向${signal?.to || "新方向"}，再选下一步`;
+    instructions = "先用一句话说清：这次转向是今天的兴趣、阶段性切换，还是接下来一段时间的重点？然后选一个 10 分钟内能验证的新动作。";
+    completionCriteria = "留下转向的时间范围、选择理由和一个可验证的小动作。";
+    expectedGain = "把新兴趣和长期路径分开，既不压掉变化，也不让一次兴起改写长期方向。";
+    whyNow = "新领域已经连续出现，但还需要确认它的持续性；先做一次短确认，避免把阶段性兴趣误当成永久转向。";
+    judgment = "方向变化值得被认真听见，但需要两次以上的连续信号后再决定是否改变路径。";
+  } else if (diagnosis.gap?.id === "tutor_transfer") {
+    const topic = diagnosis.gap.topic || "这个知识点";
+    feedbackApplied.push("rapid_mastery");
+    title = `把“${topic}”迁移到一个新场景`;
+    instructions = "不再重复定义，选一个你没练过的真实场景，独立写出输入、判断和结果；最后解释为什么这样做。";
+    completionCriteria = "在新场景独立完成一次应用，并解释关键判断。";
+    expectedGain = "确认快速掌握能迁移，而不是只记住熟悉例子。";
+    whyNow = `你已经连续两次快速独立通过“${topic}”，重复基础讲解的收益变低，现在适合提高一个台阶。`;
+    judgment = "已有两次快速验证，足以尝试迁移；如果新场景卡住，再回到具体缺口。";
+  } else if (friction) {
+    if (diagnosis.gap?.tutor_interruption) feedbackApplied.push("interrupted_task");
     const variants = [
       {
         title: `用 ${duration} 分钟拆掉“${primaryGoal.text}”的启动阻力`,
@@ -197,8 +324,12 @@ export function decideNextAction(state, diagnosis) {
     instructions = variants.instructions;
     completionCriteria = variants.completion;
     expectedGain = "先恢复可启动性，区分真正的方向问题与动作过重造成的推迟。";
-    whyNow = `同类建议已经连续三次被推迟，今天最有价值的不是再增加内容，而是把动作缩到足以开始的大小。${primaryGoal.text}仍保留，但先用一次低负担启动验证。`;
-    judgment = "连续三次没有完成说明启动条件需要调整，不应继续把责任归因给你。";
+    whyNow = diagnosis.gap?.tutor_interruption
+      ? `同一 Tutor 任务已经中断两次，今天先把动作缩到足以开始的大小，确认是负担、时机还是方式的问题。`
+      : `同类建议已经连续三次被推迟，今天最有价值的不是再增加内容，而是把动作缩到足以开始的大小。${primaryGoal.text}仍保留，但先用一次低负担启动验证。`;
+    judgment = diagnosis.gap?.tutor_interruption
+      ? "两次中断说明当前执行入口需要修复，不应把它解释成执行力问题。"
+      : "连续三次没有完成说明启动条件需要调整，不应继续把责任归因给你。";
   } else if (diagnosis.gap?.id === "apply_and_explain") {
     title = `把“${progressSkill.label}”迁移到一个新场景并解释`;
     instructions = `选一个你尚未练过的真实场景，用“输入、判断、结果”三句话完成一次应用；再说明为什么这样判断。`;
@@ -263,6 +394,8 @@ export function decideNextAction(state, diagnosis) {
     related_direction: primaryGoal,
     gap: diagnosis.gap,
     next_action: nextAction,
+    feedback_applied: feedbackApplied,
+    tutor_feedback: diagnosis.tutor_feedback,
     expected_gain: expectedGain,
     why_now: `${whyNow}${constraint ? ` 当前还要把“${constraint}”作为现实限制。` : ""}`,
     why_not_other_directions: diagnosis.why_not_other_directions,

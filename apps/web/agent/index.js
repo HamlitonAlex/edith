@@ -187,7 +187,7 @@ export function runAgentTurn(current, rawText, now = new Date()) {
   if (action && observation.signals.accepts) {
     state.phase = "execute";
     state.next_recommended_action = { ...action, status: "accepted" };
-    state.tutor_session = beginTutor(action, observation);
+    state.tutor_session = beginTutor(action, observation, state);
     state = startTutorMetrics(state, state.tutor_session, observation);
     return { state, kind: "tutor", reply: state.tutor_session.prompt };
   }

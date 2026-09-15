@@ -1,3 +1,5 @@
+import { deriveTutorFeedback } from "./user-model.js";
+
 const cleanText = value => String(value || "").trim();
 
 function tutorMetricsContext(state) {
@@ -19,6 +21,8 @@ function tutorMetricsContext(state) {
       verification_attempts: item.verification_attempts,
       last_stage: item.last_stage,
       last_difficulty: item.last_difficulty,
+      teaching_style: item.teaching_style,
+      feedback_applied: item.feedback_applied,
       result_id: item.result_id,
       confidence: item.confidence,
     };
@@ -40,6 +44,7 @@ export function createModelContext(state, latestMessage) {
     recent_learning: state.recent_learning.slice(-7),
     learning_results: (state.learning_results || []).slice(-5),
     tutor_metrics: tutorMetricsContext(state),
+    tutor_feedback: deriveTutorFeedback(state),
     current_constraints: state.current_constraints.slice(-8),
     current_action: state.next_recommended_action,
     principles: state.principles,

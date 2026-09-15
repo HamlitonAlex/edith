@@ -1,3 +1,5 @@
+import { deriveTutorFeedback } from "./user-model.js";
+
 const topicFromText = text => {
   if (/for\s*循环|Python.{0,12}for/i.test(text)) return "Python for 循环";
   if (/MySQL|SQL|查询执行顺序/i.test(text)) return "MySQL 查询执行顺序";
@@ -55,10 +57,64 @@ function addError(next, error) {
   next.last_error_cause = error;
 }
 
-export function beginTutor(action, observation = {}) {
+function sameTopic(signal, domain, topic) {
+  return Boolean(signal && signal.domain === domain && (!signal.topic || signal.topic === topic));
+}
+
+function tutorStrategy(state, domain, topic) {
+  const feedback = state ? deriveTutorFeedback(state) : {};
+  const applied = [];
+  let difficulty = "normal";
+  let stage = "baseline";
+  let teachingStyle = "baseline";
+  let prompt;
+
+  if (sameTopic(feedback.lowered_failure, domain, topic)) {
+    difficulty = "prerequisite";
+    stage = "diagnostic";
+    teachingStyle = "scaffold";
+    applied.push("lowered_failure");
+    prompt = `我们先不重复原题。因为“${topic}”已经两次降阶后仍卡住，先回到前置基础：你觉得它需要哪些输入、规则或步骤？只说最确定的一项。`;
+  } else if (sameTopic(feedback.repeated_prompting, domain, topic)) {
+    difficulty = "lower";
+    stage = "scaffold";
+    teachingStyle = "small_step";
+    applied.push("repeated_prompting");
+    prompt = `前两次“${topic}”都需要不少提示，这次不加难度，换成一个更小的例子。先只说输入和第一步，我只在必要时给一次提示。`;
+  } else if (sameTopic(feedback.recurring_english_error, domain, topic)) {
+    stage = "practice";
+    teachingStyle = "practice";
+    applied.push("recurring_english_error");
+    prompt = `这个英语表达错误已经出现两次了。我们先做两句轻量复现：写一句相似句，再写一句你真实会用的话，我只改最影响意思的一处。`;
+  } else if (sameTopic(feedback.interrupted_task, domain, topic)) {
+    difficulty = "lower";
+    stage = "scaffold";
+    teachingStyle = "small_step";
+    applied.push("interrupted_task");
+    prompt = `上次这个步骤中断了两次，我们把入口缩到最小：只做一个五分钟内能完成的判断。先说你愿意从哪一小步开始。`;
+  } else if (sameTopic(feedback.rapid_mastery, domain, topic)) {
+    difficulty = "higher";
+    stage = "transfer";
+    teachingStyle = "transfer";
+    applied.push("rapid_mastery");
+    prompt = `你已经连续两次快速掌握“${topic}”，这次直接换一个新场景。请独立说出输入、判断和结果，再解释关键原因。`;
+  } else if (feedback.preferred_teaching_style?.stage && feedback.preferred_teaching_style.domain === domain) {
+    teachingStyle = feedback.preferred_teaching_style.stage;
+    stage = feedback.preferred_teaching_style.stage;
+    applied.push("preferred_teaching_style");
+    if (teachingStyle === "practice") {
+      prompt = `上次用动手练习更顺，这次沿用这个方式。先写一个“${topic}”的最小骨架，写不完整也没关系，我只补下一格。`;
+    }
+  }
+
+  return { difficulty, stage, teachingStyle, applied, prompt };
+}
+
+export function beginTutor(action, observation = {}, state = null) {
   const text = observation.text || "";
   const domain = inferTutorDomain(text, action);
   const topic = inferTutorTopic(text, action);
+  const strategy = tutorStrategy(state, domain, topic);
   return {
     action_id: action.id,
     skill_id: tutorSkillId(domain, action),
@@ -69,12 +125,14 @@ export function beginTutor(action, observation = {}) {
     attempts: 0,
     hints_used: 0,
     adaptations: 0,
-    difficulty: "normal",
-    stage: "baseline",
+    difficulty: strategy.difficulty,
+    stage: strategy.stage,
+    teaching_style: strategy.teachingStyle,
+    feedback_applied: strategy.applied,
     status: "learning",
     error_causes: [],
     turns: [],
-    prompt: `好，我们只做“${topic}”这一小步。开始前先摸一下基础：你现在知道什么，或会从哪里开始？只说会的部分也可以。`,
+    prompt: strategy.prompt || `好，我们只做“${topic}”这一小步。开始前先摸一下基础：你现在知道什么，或会从哪里开始？只说会的部分也可以。`,
   };
 }
 

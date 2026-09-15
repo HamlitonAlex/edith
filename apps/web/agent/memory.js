@@ -97,6 +97,8 @@ export function startTutorMetrics(state, session, observation) {
     verification_attempts: 0,
     last_stage: session.stage || "baseline",
     last_difficulty: session.difficulty || "normal",
+    teaching_style: session.teaching_style || "baseline",
+    feedback_applied: [...(session.feedback_applied || [])],
     last_observation_id: null,
   };
   metrics.totals.started += 1;
@@ -117,6 +119,8 @@ export function recordTutorTurn(state, session, observation) {
   current.adaptations = Math.max(current.adaptations, session?.adaptations || 0);
   current.last_stage = session?.stage || current.last_stage;
   current.last_difficulty = session?.difficulty || current.last_difficulty;
+  current.teaching_style = session?.teaching_style || current.teaching_style;
+  current.feedback_applied = [...new Set([...(current.feedback_applied || []), ...(session?.feedback_applied || [])])];
   current.last_observation_id = observationId;
   next.tutor_metrics = metrics;
   return next;
@@ -159,6 +163,8 @@ export function finishTutorMetrics(state, { result, observation, status, reason 
     verification_attempts: current.verification_attempts,
     last_stage: current.last_stage,
     last_difficulty: current.last_difficulty,
+    teaching_style: current.teaching_style,
+    feedback_applied: [...(current.feedback_applied || [])],
     ...(result?.id ? { result_id: result.id } : {}),
     ...(result?.confidence != null ? { confidence: result.confidence } : {}),
     ...(reason ? { reason: compactReason(reason) } : {}),
