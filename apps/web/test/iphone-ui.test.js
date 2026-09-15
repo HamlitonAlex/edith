@@ -149,6 +149,13 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
 });
 
+test("model configuration controls avoid iOS focus zoom", () => {
+  assert.match(
+    refinementCss,
+    /@media\s*\(max-width:600px\)\s*\{\s*\.settings-screen \.model-field input,\s*\.settings-screen \.model-field select\s*\{[^}]*font-size\s*:\s*16px/
+  );
+});
+
 test("the native shell uses the real iOS status bar and keeps the focused control in view", () => {
   assert.match(js, /native-shell/);
   assert.match(css, /:root\.native-shell \.statusbar\{display:none\}/);

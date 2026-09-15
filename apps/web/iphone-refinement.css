@@ -258,3 +258,11 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 /* Keep long model output readable and make an in-flight send visible. */
 .message p,.message li,.plan-proposal p{overflow-wrap:anywhere;word-break:break-word}
 .send-button:disabled{cursor:wait;opacity:.58;pointer-events:none}
+
+/* iOS Safari/WKWebView zooms focused text controls below 16px. Keep BYOK fields stable on narrow screens. */
+@media (max-width:600px) {
+  .settings-screen .model-field input,
+  .settings-screen .model-field select {
+    font-size:16px;
+  }
+}
