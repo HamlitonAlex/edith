@@ -42,7 +42,14 @@ function relatedDirection(state) {
 }
 
 function deferredPattern(state) {
-  const records = (state.action_history || []).filter(item => item.outcome === "deferred" || /推迟|延期|未完成/.test(item.reason || ""));
+  const records = [];
+  for (const item of state.action_history || []) {
+    if (["verified", "completed", "accepted", "rejected"].includes(item.outcome)) {
+      records.length = 0;
+      continue;
+    }
+    if (item.outcome === "deferred" || /推迟|延期|未完成/.test(item.reason || "")) records.push(item);
+  }
   const days = new Set(records.map(item => item.at?.slice(0, 10)).filter(Boolean));
   return { count: records.length, unique_days: days.size };
 }
@@ -82,7 +89,16 @@ export function diagnose(state) {
   const progressSkill = findProgressSkill(state);
   let gap;
   let focus;
-  if (delays.unique_days >= 3 || (delays.unique_days === 0 && delays.count >= 3)) {
+  const examIsUrgent = state.current_state?.urgent_direction === "skills_exam" && related;
+  if (examIsUrgent) {
+    gap = {
+      id: "exam_readiness",
+      label: "考试检验",
+      rationale: "考试进入紧迫窗口，但近期行为仍被产品实践占用，最大缺口是把时间转回可测的考试证据。",
+      signal: "技能高考临近",
+    };
+    focus = "先处理紧迫且可验证的考试风险，再回到长期产品方向";
+  } else if (delays.unique_days >= 3 || (delays.unique_days === 0 && delays.count >= 3)) {
     gap = {
       id: "activation_friction",
       label: "启动阻力",
@@ -99,14 +115,6 @@ export function diagnose(state) {
       signal: "已有多条验证证据",
     };
     focus = "提高难度，把已验证能力迁移到新的真实场景";
-  } else if (state.current_state?.urgent_direction === "skills_exam" && related) {
-    gap = {
-      id: "exam_readiness",
-      label: "考试检验",
-      rationale: "考试进入紧迫窗口，但近期行为仍被产品实践占用，最大缺口是把时间转回可测的考试证据。",
-      signal: "技能高考临近",
-    };
-    focus = "先处理紧迫且可验证的考试风险，再回到长期产品方向";
   } else {
     gap = {
       id: "reality_anchor",

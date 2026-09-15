@@ -1,6 +1,13 @@
 export function updateUserModel(state, observation) {
   const next = structuredClone(state);
   next.current_state = { ...(next.current_state || {}), last_observed_at: observation.at };
+  const mood = observation.signals.mood;
+  if (mood) {
+    next.current_state.mood = mood;
+    next.current_state.mood_at = observation.at;
+    if (["疲惫", "低落"].includes(mood)) next.current_state.energy = "low";
+    if (["专注", "稳定", "有信心"].includes(mood)) next.current_state.energy = "available";
+  }
   if (observation.signals.tired) {
     next.current_state.energy = "low";
     next.current_state.energy_source = "本次对话观察，待持续确认";
@@ -13,6 +20,11 @@ export function updateUserModel(state, observation) {
   if (observation.signals.skills_exam_urgent) {
     next.current_state.urgent_direction = "skills_exam";
     next.current_state.urgent_reason = observation.text;
+  }
+  if (observation.signals.skills_exam_resolved) {
+    next.current_state.urgent_direction = null;
+    next.current_state.urgent_reason = null;
+    next.current_state.urgent_resolved_at = observation.at;
   }
   if (observation.signals.duration_minutes) {
     next.today_context = { ...(next.today_context || {}), available_minutes: observation.signals.duration_minutes, source: "用户本次对话" };
