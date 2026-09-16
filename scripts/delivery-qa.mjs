@@ -65,7 +65,7 @@ async function createMobilePage(browser, state, options = {}) {
   const page = await context.newPage();
   const faults = [];
   page.on("pageerror", error => faults.push(error.message));
-  await page.addInitScript(({ value, native, voice }) => {
+  await page.addInitScript(({ value, native, voice, nativeVoice }) => {
     localStorage.clear();
     sessionStorage.clear();
     localStorage.setItem("xuecheng:iphone:v2", JSON.stringify(value));
@@ -81,7 +81,14 @@ async function createMobilePage(browser, state, options = {}) {
         }
       };
     }
-  }, { value: state, native: Boolean(options.native), voice: Boolean(options.voice) });
+    if (nativeVoice) {
+      window.__speechCommands = [];
+      Object.defineProperty(window, "webkit", {
+        configurable: true,
+        value: { messageHandlers: { xuechengSpeech: { postMessage: payload => window.__speechCommands.push(payload) } } },
+      });
+    }
+  }, { value: state, native: Boolean(options.native), voice: Boolean(options.voice), nativeVoice: Boolean(options.nativeVoice) });
   return { context, page, faults };
 }
 
@@ -301,12 +308,71 @@ async function runLayoutSweep(browser, origin) {
           await page.goto(`${origin}/?screen=${screen}`, { waitUntil: "networkidle" });
           await page.locator(`.screen[data-screen="${screen}"]`).waitFor({ state: "visible" });
           assertLayout(await readLayout(page), screen, `${device.name}/${theme}/${screen}`);
+          if (screen === "chat") {
+            await page.evaluate(() => {
+              document.documentElement.style.setProperty("--bottom-nav-offset", "34px");
+            });
+            await page.waitForTimeout(300);
+            const chromeGap = await page.evaluate(() => {
+              const composer = document.querySelector(".composer").getBoundingClientRect();
+              const nav = document.querySelector(".bottom-nav").getBoundingClientRect();
+              return nav.top - composer.bottom;
+            });
+            verify(chromeGap >= 0, `${device.name}/${theme}/chat: composer intersects the tab bar with an iPhone safe area`);
+          }
           verify(faults.length === 0, `${device.name}/${theme}/${screen}: runtime errors: ${faults.join(" | ")}`);
         } finally {
           await context.close();
         }
       }
     }
+  }
+}
+
+async function runNativeSpeechBridgeCase(browser, origin) {
+  const { context, page, faults } = await createMobilePage(browser, initialState(), {
+    native: true,
+    nativeVoice: true,
+    viewport: { width: 393, height: 852 },
+  });
+  const emit = (state, detail = {}) => page.evaluate(({ state, detail }) => {
+    window.dispatchEvent(new CustomEvent("xuecheng:speech", { detail: { state, ...detail } }));
+  }, { state, detail });
+  const holdAndStart = async () => {
+    const button = page.locator(".send-button");
+    await button.dispatchEvent("pointerdown", { pointerType: "touch", button: 0 });
+    await page.waitForTimeout(310);
+    await page.waitForFunction(() => window.__speechCommands?.at(-1)?.command === "start");
+    await emit("recording");
+    await button.dispatchEvent("pointerup", { pointerType: "touch", button: 0 });
+    await page.waitForFunction(() => window.__speechCommands?.at(-1)?.command === "stop");
+  };
+  try {
+    await page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
+    await holdAndStart();
+    equal(await page.locator("#chat-form").getAttribute("data-voice-state"), "recognizing", "native speech: releasing the button must enter recognizing state");
+    await emit("success", { transcript: "今天想复习网络基础" });
+    equal(await page.locator("#chat-input").inputValue(), "今天想复习网络基础", "native speech: final transcript must fill the composer");
+    equal(await page.locator("#dynamic-messages .user-message").count(), 0, "native speech: transcription must not submit automatically");
+
+    await page.locator("#chat-input").fill("");
+    await holdAndStart();
+    await emit("failure", { message: "No speech was recognized" });
+    equal(await page.locator("#chat-form").getAttribute("data-voice-state"), "failure", "native speech: recognition failure must reach the visible failure state");
+    verify((await page.locator("#app-toast").textContent()).includes("No speech was recognized"), "native speech: recognition failure must be explained");
+
+    await page.waitForTimeout(950);
+    await holdAndStart();
+    await emit("permission-denied");
+    verify((await page.locator("#app-toast").textContent()).includes("权限未开启"), "native speech: permission denial must tell the user how to recover");
+
+    await page.evaluate(() => { window.confirm = () => false; });
+    await emit("cloud-consent-required");
+    await page.waitForFunction(() => window.__speechCommands?.at(-1)?.command === "cancel");
+    verify((await page.locator("#app-toast").textContent()).includes("未上传音频"), "native speech: refusing cloud recognition must cancel without upload");
+    verify(faults.length === 0, `native speech: runtime errors: ${faults.join(" | ")}`);
+  } finally {
+    await context.close();
   }
 }
 
@@ -335,6 +401,7 @@ async function runNativeKeyboardCase(browser, origin) {
     fakeStatusbar: getComputedStyle(document.querySelector(".statusbar")).display,
     navOpacity: Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity),
     composerBottom: document.querySelector(".composer").getBoundingClientRect().bottom,
+    chatBottom: document.querySelector(".chat-screen").getBoundingClientRect().bottom,
   }));
   try {
     await page.goto(`${origin}/?screen=settings`, { waitUntil: "networkidle" });
@@ -345,6 +412,7 @@ async function runNativeKeyboardCase(browser, origin) {
       const navOpacity = Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity);
       return document.body.classList.contains("keyboard-open") && inset === "336px" && navOpacity < 0.01;
     });
+    await page.waitForTimeout(320);
     const nativeOverlay = await state();
     await page.evaluate(() => window.dispatchEvent(new CustomEvent("xuecheng:native-keyboard", { detail: { visible: false, inset: 0 } })));
     await page.waitForFunction(() => !document.body.classList.contains("keyboard-open") && Number(getComputedStyle(document.querySelector(".bottom-nav")).opacity) > 0.99);
@@ -361,6 +429,7 @@ async function runNativeKeyboardCase(browser, origin) {
     equal(initial.fakeStatusbar, "none", "native keyboard: fake status bar must stay hidden");
     equal(initial.appHeight, "852px", "native keyboard: initial app height is wrong");
     verify(nativeOverlay.keyboardOpen && nativeOverlay.appHeight === "852px" && nativeOverlay.keyboardInset === "336px" && nativeOverlay.navOpacity < 0.01 && nativeOverlay.composerBottom <= 518, "native keyboard: a real native overlay must hide navigation and lift the composer above the keyboard");
+    verify(nativeOverlay.chatBottom - nativeOverlay.composerBottom >= 0 && nativeOverlay.chatBottom - nativeOverlay.composerBottom <= 24, "native keyboard: composer must stay attached to the visible chat edge without a blank keyboard-sized gap");
     verify(!afterNativeOverlay.keyboardOpen && afterNativeOverlay.keyboardInset === "0px" && afterNativeOverlay.navOpacity > 0.99, "native keyboard: closing an overlay keyboard must restore the normal shell");
     verify(beforeFocus.keyboardOpen && beforeFocus.appHeight === "486px" && beforeFocus.navOpacity < 0.01, "native keyboard: resize-before-focus must hide the tab bar");
     verify(focused.keyboardOpen && focused.navOpacity < 0.01, "native keyboard: focused field must keep the tab bar hidden");
@@ -430,6 +499,11 @@ async function runConversationStateCase(browser, origin) {
     equal(empty.status, "idle_empty", "conversation state: a fresh install must start empty");
     equal(empty.emptyHidden, false, "conversation state: the fresh welcome must be visible");
     verify(!empty.messages.includes("刚才"), "conversation state: an empty conversation must not imply prior user speech");
+    await fresh.page.locator("#chat-input").fill("你好");
+    await fresh.page.locator("#chat-form").evaluate(form => form.requestSubmit());
+    await fresh.page.waitForFunction(() => document.querySelector("#conversation")?.dataset.conversationState === "conversation_active");
+    const greeting = await fresh.page.locator("#dynamic-messages .companion-message").last().textContent();
+    verify(greeting.includes("你好，我在。今天想聊聊什么？") && greeting.length < 50, "conversation state: a greeting must receive a short natural reply");
     await fresh.page.locator("#chat-input").fill("我想聊聊今天的状态");
     await fresh.page.locator("#chat-form").evaluate(form => form.requestSubmit());
     await fresh.page.waitForFunction(() => document.querySelector("#conversation")?.dataset.conversationState === "conversation_active");
@@ -440,7 +514,10 @@ async function runConversationStateCase(browser, origin) {
   }
 
   const restored = await createMobilePage(browser, initialState({
-    messages: [{ role: "assistant", text: "上一轮留下的真实记录", kind: "conversation", createdAt: "2026-09-16T08:00:00.000Z" }],
+    messages: [
+      { role: "assistant", text: "上一轮留下的真实记录", kind: "conversation", createdAt: "2026-09-16T08:00:00.000Z" },
+      { role: "assistant", text: "这是 **重点**", kind: "conversation", createdAt: "2026-09-16T08:01:00.000Z" },
+    ],
   }), { native: true, viewport: { width: 393, height: 852 } });
   try {
     await restored.page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
@@ -452,6 +529,7 @@ async function runConversationStateCase(browser, origin) {
     equal(history.status, "conversation_restored", "conversation state: stored history must be marked as restored");
     equal(history.emptyHidden, true, "conversation state: restored history must hide the empty welcome");
     verify(history.text.includes("上一轮留下的真实记录"), "conversation state: restored history must remain visible");
+    equal(await restored.page.locator("#dynamic-messages strong").textContent(), "重点", "conversation state: safe assistant markdown must render instead of leaking markers");
     verify(!history.text.includes("正在整理你的想法"), "conversation state: restored history must not show a generating placeholder");
     verify(restored.faults.length === 0, `conversation state: restored flow runtime errors: ${restored.faults.join(" | ")}`);
   } finally {
@@ -494,10 +572,11 @@ try {
   browser = await chromium.launch({ headless: true });
   await runUserJourney(browser, origin);
   await runLayoutSweep(browser, origin);
+  await runNativeSpeechBridgeCase(browser, origin);
   await runNativeKeyboardCase(browser, origin);
   await runModalKeyboardCase(browser, origin);
   await runConversationStateCase(browser, origin);
-  console.log(`delivery QA passed: ${checks} assertions across smoke, black-box, responsive, native keyboard, modal keyboard, conversation state, backup, and BYOK flows`);
+  console.log(`delivery QA passed: ${checks} assertions across smoke, black-box, responsive, native speech bridge, native keyboard, modal keyboard, conversation state, backup, and BYOK flows`);
 } finally {
   await browser?.close();
   await close(server);

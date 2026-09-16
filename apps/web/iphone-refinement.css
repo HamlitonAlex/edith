@@ -258,6 +258,14 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 /* Keep long model output readable and make an in-flight send visible. */
 .message p,.message li,.plan-proposal p{overflow-wrap:anywhere;word-break:break-word}
 .send-button:disabled{cursor:wait;opacity:.58;pointer-events:none}
+.send-button.voice-mode{background:var(--surface-strong);color:var(--action)}
+.composer[data-voice-state="recording"]{border-color:var(--action);box-shadow:0 0 0 5px color-mix(in srgb,var(--action) 12%,transparent),0 12px 32px color-mix(in srgb,var(--ink) 13%,transparent)}
+.composer[data-voice-state="recording"] .send-button{animation:voice-pulse 1.15s ease-in-out infinite;background:var(--action);color:var(--on-action)}
+.composer[data-voice-state="recognizing"] .send-button{background:var(--action);color:var(--on-action)}
+.composer[data-voice-state="recognizing"] .send-button svg{animation:voice-listen .85s linear infinite}
+@keyframes voice-pulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--action) 13%,transparent)}}
+@keyframes voice-listen{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.composer[data-voice-state="recording"] .send-button,.composer[data-voice-state="recognizing"] .send-button svg{animation:none}}
 
 /* iOS Safari/WKWebView zooms focused text controls below 16px. Keep BYOK fields stable on narrow screens. */
 @media (max-width:600px) {
@@ -310,4 +318,18 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
     width:100%;
     height:var(--visible-viewport-height,var(--app-height));
   }
+}
+
+/* Mobile reliability contract: one safe-area owner for bottom chrome and one visible viewport owner while typing. */
+:root{--safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);--bottom-nav-offset:max(10px,var(--safe-bottom));--bottom-nav-height:64px;--composer-nav-gap:10px}
+.composer{bottom:calc(var(--bottom-nav-offset) + var(--bottom-nav-height) + var(--composer-nav-gap))}
+.bottom-nav{bottom:var(--bottom-nav-offset);height:var(--bottom-nav-height)}
+#model-dialog{overflow:hidden;max-height:calc(var(--visible-viewport-height,100dvh) - 82px - var(--safe-top))}
+#model-dialog form{max-height:inherit;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#model-dialog form>button[value="cancel"]{position:sticky;z-index:2;bottom:0;background:var(--surface)}
+@media(max-width:600px){
+  :root.native-shell .chat-screen{padding-top:var(--safe-top)}
+  :root.native-shell .companion-header{top:var(--safe-top);height:64px;padding-top:6px;padding-bottom:6px}
+  .keyboard-open .composer{bottom:max(8px,var(--safe-bottom));transition:none}
+  .keyboard-open .chat-screen{inset:0 auto auto 0;width:100%;height:var(--visible-viewport-height,var(--app-height))}
 }

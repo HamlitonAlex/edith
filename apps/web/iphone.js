@@ -183,6 +183,33 @@ function escapeHtml(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
 }
 
+function formatMessageHtml(value = "") {
+  return escapeHtml(value)
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+}
+
+function isSimpleGreeting(value = "") {
+  return /^(?:你好|您好|嗨|哈喽|hello|hi|早上好|下午好|晚上好)[!！。,.，\s]*$/i.test(String(value).trim());
+}
+
+const microphoneIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"></path></svg>`;
+const sendIcon = `<i class="ph ph-arrow-up" aria-hidden="true"></i>`;
+
+function syncComposerAction() {
+  const button = $(".send-button");
+  const input = $("#chat-input");
+  if (!button || !input) return;
+  const hasContent = Boolean(input.value.trim() || pendingAttachments.length);
+  const voiceMode = !hasContent && !isSending;
+  button.classList.toggle("voice-mode", voiceMode);
+  button.classList.toggle("ready", hasContent);
+  button.type = voiceMode ? "button" : "submit";
+  button.setAttribute("aria-label", voiceMode ? "按住说话" : "发送");
+  const markup = voiceMode ? microphoneIcon : sendIcon;
+  if (button.innerHTML !== markup) button.innerHTML = markup;
+}
+
 function safeImageUrl(value) {
   if (!value) return "";
   try {
@@ -217,7 +244,7 @@ function renderAttachments() {
     const image = type.startsWith("image/") ? safeAttachmentDataUrl(item?.dataUrl) : "";
     return `<div class="attachment-chip">${image ? `<img src="${escapeHtml(image)}" alt="">` : ""}<span>${escapeHtml(item?.name || "未命名附件")}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`;
   }).join("");
-  $(".send-button").classList.toggle("ready", Boolean($("#chat-input").value.trim() || pendingAttachments.length));
+  syncComposerAction();
 }
 
 function renderModelControls() {
@@ -358,7 +385,7 @@ function render() {
     const time = formatConversationTime(message.createdAt);
     const content = message.role === "user"
       ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>${time}</time></div></article>`
-      : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
+      : `<article class="message companion-message"><div><p>${formatMessageHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${formatMessageHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
     return divider + content;
   }).join("");
   $("#empty-conversation").hidden = conversationStatus !== "idle_empty" || state.messages.length > 0 || Boolean(agentState.next_recommended_action);
@@ -558,15 +585,18 @@ $("#chat-form").addEventListener("submit", async event => {
     $("#agent-proposal").classList.remove("discussing");
     const userText = text || "请看看我发来的内容。";
     addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
-    const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
+    const simpleGreeting = isSimpleGreeting(userText) && submittedAttachments.length === 0;
+    const agentResult = simpleGreeting
+      ? { state: agentState, kind: "conversation", reply: "你好，我在。今天想聊聊什么？" }
+      : runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
     agentState = agentResult.state;
     input.value = "";
     resizeComposer();
     save();
     saveAgent();
     render();
-    const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
-    let reply = agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
+    const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local" && !simpleGreeting;
+    let reply = simpleGreeting ? "你好，我在。今天想聊聊什么？" : agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
     if (useCloud) {
       const working = document.createElement("article");
       working.className = "message companion-message work-state";
@@ -614,6 +644,7 @@ $("#chat-form").addEventListener("submit", async event => {
   } finally {
     isSending = false;
     sendButton.disabled = false;
+    syncComposerAction();
   }
 });
 
@@ -1024,61 +1055,137 @@ document.addEventListener("focusout", () => {
 });
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const nativeSpeechBridge = window.webkit?.messageHandlers?.xuechengSpeech;
 let recognition = null;
+let voiceResetTimer = null;
+
 function createVoiceController(surface) {
+  let voiceState = "idle";
   let confidence = 0;
-  let listening = false;
-  const start = () => {
-    if (listening) return true;
-    if (!Recognition) {
-      showToast("当前环境暂不支持语音，请先用文字告诉她");
+
+  const setState = (next, { message = "", transcript = "" } = {}) => {
+    voiceState = next;
+    surface.setAttribute("data-voice-state", next);
+    surface.classList.toggle("listening", next === "recording");
+    surface.classList.toggle("recognizing", next === "recognizing");
+    clearTimeout(voiceResetTimer);
+    if (transcript.trim()) {
+      chatInput.value = transcript.trim();
+      chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+      resizeComposer();
+    }
+    chatInput.placeholder = next === "recording"
+      ? "正在听，松开结束"
+      : next === "recognizing"
+        ? "正在识别……"
+        : `和${pronounFor(state.gender)}说说现在的想法……`;
+    if (message) showToast(message);
+    syncComposerAction();
+    if (["success", "failure", "cancelled"].includes(next)) voiceResetTimer = setTimeout(() => setState("idle"), 900);
+  };
+
+  const sendNativeCommand = (command, extra = {}) => {
+    try {
+      nativeSpeechBridge.postMessage({ command, ...extra });
+      return true;
+    } catch {
+      setState("failure", { message: "语音输入暂时不可用，请再试一次" });
       return false;
     }
-    listening = true;
-    confidence = 0;
-    surface.classList.add("listening");
-    chatInput.setAttribute("placeholder", "正在听，松开结束");
-    showToast("正在听，松开结束");
+  };
+
+  const startBrowserRecognition = () => {
+    if (!Recognition) {
+      setState("failure", { message: "当前环境不支持语音转文字，请使用键盘输入" });
+      return false;
+    }
     recognition = new Recognition();
     recognition.lang = "zh-CN";
     recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onstart = () => setState("recording", { message: "正在听，松开结束" });
     recognition.onresult = result => {
       const best = result.results[0][0];
       confidence = Number(best.confidence || 0);
-      chatInput.value = best.transcript;
-      resizeComposer();
+      setState("success", {
+        transcript: best.transcript,
+        message: confidence && confidence < .72 ? "我不太确定是否听准了，请确认后再发送" : "已转成文字，请确认后发送",
+      });
+    };
+    recognition.onerror = event => {
+      const denied = ["not-allowed", "service-not-allowed"].includes(event.error);
+      setState("failure", { message: denied ? "麦克风或语音识别权限未开启，请到系统设置中允许" : "没有听清，可以再按住说一次" });
     };
     recognition.onend = () => {
-      listening = false;
-      surface.classList.remove("listening");
-      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
-      if (chatInput.value.trim() && confidence >= .72) surface.requestSubmit();
-      else if (chatInput.value.trim()) showToast("我不太确定是否听准了，你看一眼再发送");
-    };
-    recognition.onerror = () => {
-      listening = false;
-      surface.classList.remove("listening");
-      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
-      showToast("没有听清，可以再长按一次");
+      if (["recording", "recognizing"].includes(voiceState)) setState("failure", { message: "没有识别到文字，可以再试一次" });
+      recognition = null;
     };
     try {
+      setState("requesting");
       recognition.start();
-      navigator.vibrate?.(18);
       return true;
     } catch {
-      listening = false;
-      surface.classList.remove("listening");
-      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
       recognition = null;
-      showToast("语音输入暂时不可用，请改用文字发送");
+      setState("failure", { message: "语音输入暂时不可用，请再试一次" });
       return false;
     }
   };
-  const stop = () => {
-    if (!listening) return;
-    recognition?.stop();
+
+  const start = () => {
+    if (["recording", "recognizing"].includes(voiceState)) return true;
+    confidence = 0;
+    clearTimeout(voiceResetTimer);
+    if (nativeSpeechBridge) {
+      const started = sendNativeCommand("start", { allowCloud: false, locale: "zh-CN" });
+      if (started) setState("requesting");
+      return started;
+    }
+    return startBrowserRecognition();
   };
-  return { start, stop, isListening: () => listening };
+
+  const stop = () => {
+    if (!["requesting", "recording"].includes(voiceState)) return;
+    setState("recognizing", { message: "正在识别……" });
+    if (nativeSpeechBridge) sendNativeCommand("stop");
+    else recognition?.stop();
+  };
+
+  const cancel = () => {
+    if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
+    if (nativeSpeechBridge) sendNativeCommand("cancel");
+    else recognition?.abort();
+    setState("cancelled", { message: "已取消语音输入" });
+  };
+
+  window.addEventListener("xuecheng:speech", event => {
+    const detail = event.detail || {};
+    switch (detail.state) {
+      case "recording": setState("recording", { message: "正在听，松开结束" }); break;
+      case "recognizing": setState("recognizing", { message: "正在识别……" }); break;
+      case "success": setState("success", { transcript: String(detail.transcript || ""), message: "已转成文字，请确认后发送" }); break;
+      case "permission-denied": setState("failure", { message: "麦克风或语音识别权限未开启，请到系统设置中允许" }); break;
+      case "cloud-consent-required": {
+        setState("idle");
+        const accepted = window.confirm("这台设备无法完全在本机识别。是否允许 Apple 处理本次语音以生成文字？音频仅用于本次转写。");
+        if (accepted) {
+          setState("requesting");
+          sendNativeCommand("start", { allowCloud: true, locale: "zh-CN" });
+        } else {
+          sendNativeCommand("cancel");
+          setState("cancelled", { message: "未上传音频，已取消语音输入" });
+        }
+        break;
+      }
+      case "cancelled": setState("cancelled", { message: "已取消语音输入" }); break;
+      default: setState("failure", { message: String(detail.message || "没有听清，可以再试一次") });
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancel();
+  });
+  setState("idle");
+  return { start, stop, cancel, isListening: () => ["requesting", "recording", "recognizing"].includes(voiceState) };
 }
 
 const voiceController = createVoiceController($("#chat-form"));
@@ -1098,7 +1205,48 @@ function bindHoldToTalk(surface) {
       holding = voiceController.start();
     }, 360);
   });
-  ["pointerup", "pointercancel", "pointerleave"].forEach(type => surface.addEventListener(type, stop));
+  surface.addEventListener("pointerup", stop);
+  surface.addEventListener("pointerleave", stop);
+  surface.addEventListener("pointercancel", () => {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding) voiceController.cancel();
+    holding = false;
+  });
+}
+
+function bindVoiceButton(button) {
+  let holdTimer = null;
+  let holding = false;
+  button.addEventListener("pointerdown", event => {
+    if (!button.classList.contains("voice-mode")) return;
+    event.preventDefault();
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      holding = voiceController.start();
+    }, 260);
+  });
+  button.addEventListener("pointerup", event => {
+    if (!button.classList.contains("voice-mode")) return;
+    event.preventDefault();
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      showToast("按住麦克风说话，松开后转成文字");
+    } else if (holding) {
+      holding = false;
+      voiceController.stop();
+    }
+  });
+  button.addEventListener("pointercancel", () => {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding) voiceController.cancel();
+    holding = false;
+  });
+  button.addEventListener("click", event => {
+    if (button.classList.contains("voice-mode")) event.preventDefault();
+  });
 }
 
 function insertSpaceAtCursor(input) {
@@ -1140,6 +1288,7 @@ function bindDesktopSpaceToTalk(input) {
   });
 }
 bindHoldToTalk($("#chat-form"));
+bindVoiceButton($(".send-button"));
 bindDesktopSpaceToTalk(chatInput);
 
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());

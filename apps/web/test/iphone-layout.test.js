@@ -34,8 +34,31 @@ test("dialogs and chat use the visible keyboard viewport instead of the stale sh
   assert.match(css, /\.action-dialog:not\(#model-dialog\)\s*\{/);
   assert.match(css, /top:calc\(var\(--visible-viewport-height,100dvh\) \/ 2\)/);
   assert.match(css, /max-height:calc\(var\(--visible-viewport-height,100dvh\) - 24px\)/);
-  assert.match(css, /\.keyboard-open \.composer\s*\{[^}]*bottom:calc\(8px \+ var\(--keyboard-inset,0px\)/);
+  assert.match(css, /\.keyboard-open \.composer\s*\{[^}]*bottom:max\(8px,var\(--safe-bottom\)/);
   assert.match(css, /\.keyboard-open \.chat-screen\s*\{[^}]*height:var\(--visible-viewport-height,var\(--app-height\)\)/);
+});
+
+test("bottom chrome shares one safe-area contract so composer and tab bar cannot intersect", async () => {
+  const css = await readFile(refinementCssPath, "utf8");
+
+  assert.match(css, /--bottom-nav-offset:max\(10px,var\(--safe-bottom\)\)/);
+  assert.match(css, /\.composer\{[^}]*bottom:calc\(var\(--bottom-nav-offset\) \+ var\(--bottom-nav-height\) \+ var\(--composer-nav-gap\)\)/s);
+  assert.match(css, /\.bottom-nav\{[^}]*bottom:var\(--bottom-nav-offset\)[^}]*height:var\(--bottom-nav-height\)/s);
+});
+
+test("native chat header starts at the real safe-area edge without extra top padding", async () => {
+  const css = await readFile(refinementCssPath, "utf8");
+
+  assert.match(css, /:root\.native-shell \.chat-screen\{[^}]*padding-top:var\(--safe-top\)/s);
+  assert.match(css, /:root\.native-shell \.companion-header\{[^}]*top:var\(--safe-top\)[^}]*height:64px/s);
+});
+
+test("model picker keeps its close action reachable inside the visible viewport", async () => {
+  const css = await readFile(refinementCssPath, "utf8");
+
+  assert.match(css, /#model-dialog\{[^}]*overflow:hidden/s);
+  assert.match(css, /#model-dialog form\{[^}]*overflow-y:auto/s);
+  assert.match(css, /#model-dialog form>button\[value="cancel"\]\{[^}]*position:sticky/s);
 });
 
 test("conversation state distinguishes an empty start, a restored history, and an in-flight reply", async () => {

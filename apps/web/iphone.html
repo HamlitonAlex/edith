@@ -113,12 +113,12 @@
         </article>
       </div>
 
-      <form class="composer" id="chat-form">
+      <form class="composer" id="chat-form" data-voice-state="idle">
         <div class="attachment-preview" id="attachment-preview" hidden></div>
         <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
         <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
-        <button class="send-button" type="submit" aria-label="发送"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
+        <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
       </form>
     </section>
 

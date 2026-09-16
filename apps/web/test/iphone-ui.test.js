@@ -306,6 +306,29 @@ test("the entire composer supports hold to talk", () => {
   assert.match(infoPlist, /NSMicrophoneUsageDescription/);
 });
 
+test("iOS voice input uses a real native Speech framework bridge", () => {
+  const controller = readFileSync(new URL("../../../ios/App/App/XuechengBridgeViewController.swift", import.meta.url), "utf8");
+
+  assert.match(controller, /import Speech/);
+  assert.match(controller, /import AVFoundation/);
+  assert.match(controller, /SFSpeechRecognizer/);
+  assert.match(controller, /AVAudioEngine/);
+  assert.match(controller, /xuechengSpeech/);
+  assert.match(controller, /requiresOnDeviceRecognition/);
+  assert.match(controller, /xuecheng:speech/);
+  assert.match(js, /window\.webkit\?\.messageHandlers\?\.xuechengSpeech/);
+  assert.match(js, /data-voice-state/);
+  assert.doesNotMatch(js, /confidence\s*>=\s*\.72\)\s*surface\.requestSubmit/);
+});
+
+test("short greetings stay local and assistant markdown is rendered safely", () => {
+  assert.match(js, /function isSimpleGreeting/);
+  assert.match(js, /&& !simpleGreeting/);
+  assert.match(js, /function formatMessageHtml/);
+  assert.match(js, /<strong>\$1<\/strong>/);
+  assert.match(js, /formatMessageHtml\(message\.text\)/);
+});
+
 test("selected controls use botanical green and the tab bar has restrained depth", () => {
   assert.match(css, /--action:#315443/);
   assert.match(css, /--action-strong:#234536/);
