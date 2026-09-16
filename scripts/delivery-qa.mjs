@@ -285,7 +285,9 @@ async function runUserJourney(browser, origin) {
 
 async function runLayoutSweep(browser, origin) {
   const devices = [
-    { name: "iPhone SE", viewport: { width: 375, height: 667 } },
+    { name: "iPhone narrow", viewport: { width: 320, height: 568 } },
+    { name: "iPhone 11/13 mini", viewport: { width: 375, height: 812 } },
+    { name: "iPhone 14", viewport: { width: 390, height: 844 } },
     { name: "iPhone 15", viewport: { width: 393, height: 852 } },
     { name: "iPhone Plus", viewport: { width: 430, height: 932 } },
   ];
@@ -369,6 +371,121 @@ async function runNativeKeyboardCase(browser, origin) {
   }
 }
 
+async function runModalKeyboardCase(browser, origin) {
+  const { context, page, faults } = await createMobilePage(browser, initialState(), { native: true, viewport: { width: 393, height: 852 } });
+  const readSurfaces = () => page.evaluate(() => {
+    const rect = selector => {
+      const element = document.querySelector(selector);
+      if (!element) return null;
+      const { top, right, bottom, left, width, height } = element.getBoundingClientRect();
+      return { top, right, bottom, left, width, height };
+    };
+    return {
+      viewport: { width: document.documentElement.clientWidth, height: document.documentElement.clientHeight },
+      horizontalOverflow: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - document.documentElement.clientWidth,
+      visibleHeight: getComputedStyle(document.documentElement).getPropertyValue("--visible-viewport-height").trim(),
+      dialog: rect("#paste-dialog"),
+      focused: rect("#pasted-text"),
+      conversation: rect("#conversation"),
+      composer: rect(".composer"),
+    };
+  });
+  try {
+    await page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
+    await page.locator("#attachment-trigger").click();
+    await page.locator('[data-attachment-source="paste"]').click();
+    await page.locator("#paste-dialog").waitFor({ state: "visible" });
+    await page.locator("#pasted-text").focus();
+    const before = await readSurfaces();
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("xuecheng:native-keyboard", { detail: { visible: true, inset: 336 } })));
+    await page.waitForFunction(() => document.body.classList.contains("keyboard-open") && getComputedStyle(document.documentElement).getPropertyValue("--visible-viewport-height").trim() === "516px");
+    const during = await readSurfaces();
+    verify(before.dialog && before.focused, "modal keyboard: paste dialog and field must open before keyboard simulation");
+    verify(during.visibleHeight === "516px", "modal keyboard: visible viewport height must subtract the native keyboard inset");
+    verify(during.dialog.top >= -1 && during.dialog.bottom <= 517, "modal keyboard: dialog must stay inside the visible viewport");
+    verify(during.focused.top >= -1 && during.focused.bottom <= 517, "modal keyboard: focused field must stay visible above the keyboard");
+    verify(during.conversation.bottom <= 517 && during.composer.bottom <= 517, "modal keyboard: chat surface and composer must end above the keyboard");
+    verify(during.horizontalOverflow <= 1, "modal keyboard: keyboard mode must not introduce horizontal overflow");
+    await page.evaluate(() => window.dispatchEvent(new CustomEvent("xuecheng:native-keyboard", { detail: { visible: false, inset: 0 } })));
+    await page.waitForFunction(() => !document.body.classList.contains("keyboard-open") && getComputedStyle(document.documentElement).getPropertyValue("--visible-viewport-height").trim() === "852px");
+    const after = await readSurfaces();
+    verify(after.dialog.bottom > 517 && after.dialog.bottom <= 853, "modal keyboard: dialog must restore after the keyboard closes");
+    verify(after.composer.bottom > 517 && after.conversation.bottom <= 853, "modal keyboard: chat surfaces must restore after the keyboard closes");
+    await page.locator('#paste-dialog button[value="cancel"]').click();
+    verify(faults.length === 0, `modal keyboard: runtime errors: ${faults.join(" | ")}`);
+  } finally {
+    await context.close();
+  }
+}
+
+async function runConversationStateCase(browser, origin) {
+  const fresh = await createMobilePage(browser, initialState(), { native: true, viewport: { width: 393, height: 852 } });
+  try {
+    await fresh.page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
+    const empty = await fresh.page.evaluate(() => ({
+      status: document.querySelector("#conversation")?.dataset.conversationState,
+      emptyHidden: document.querySelector("#empty-conversation")?.hidden,
+      messages: document.querySelector("#dynamic-messages")?.textContent || "",
+    }));
+    equal(empty.status, "idle_empty", "conversation state: a fresh install must start empty");
+    equal(empty.emptyHidden, false, "conversation state: the fresh welcome must be visible");
+    verify(!empty.messages.includes("刚才"), "conversation state: an empty conversation must not imply prior user speech");
+    await fresh.page.locator("#chat-input").fill("我想聊聊今天的状态");
+    await fresh.page.locator("#chat-form").evaluate(form => form.requestSubmit());
+    await fresh.page.waitForFunction(() => document.querySelector("#conversation")?.dataset.conversationState === "conversation_active");
+    verify(await fresh.page.locator("#dynamic-messages .message").count() >= 2, "conversation state: a sent message must produce an active exchange");
+    verify(fresh.faults.length === 0, `conversation state: fresh flow runtime errors: ${fresh.faults.join(" | ")}`);
+  } finally {
+    await fresh.context.close();
+  }
+
+  const restored = await createMobilePage(browser, initialState({
+    messages: [{ role: "assistant", text: "上一轮留下的真实记录", kind: "conversation", createdAt: "2026-09-16T08:00:00.000Z" }],
+  }), { native: true, viewport: { width: 393, height: 852 } });
+  try {
+    await restored.page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
+    const history = await restored.page.evaluate(() => ({
+      status: document.querySelector("#conversation")?.dataset.conversationState,
+      emptyHidden: document.querySelector("#empty-conversation")?.hidden,
+      text: document.querySelector("#dynamic-messages")?.textContent || "",
+    }));
+    equal(history.status, "conversation_restored", "conversation state: stored history must be marked as restored");
+    equal(history.emptyHidden, true, "conversation state: restored history must hide the empty welcome");
+    verify(history.text.includes("上一轮留下的真实记录"), "conversation state: restored history must remain visible");
+    verify(!history.text.includes("正在整理你的想法"), "conversation state: restored history must not show a generating placeholder");
+    verify(restored.faults.length === 0, `conversation state: restored flow runtime errors: ${restored.faults.join(" | ")}`);
+  } finally {
+    await restored.context.close();
+  }
+
+  let releaseRequest;
+  let releaseCloud;
+  const cloud = await createMobilePage(browser, initialState({
+    cloudConsent: true,
+    currentConversationModel: "gpt-delivery-test",
+    modelConfig: { providerId: "openai", endpoint: "https://api.openai.com/v1", model: "gpt-delivery-test" },
+  }), { native: true, viewport: { width: 393, height: 852 } });
+  try {
+    await cloud.page.route("**/chat/completions", async route => {
+      releaseRequest = true;
+      await new Promise(resolve => { releaseCloud = resolve; });
+      await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ choices: [{ message: { content: "云端回复已返回" } }] }) });
+    });
+    await cloud.page.goto(`${origin}/?screen=chat`, { waitUntil: "networkidle" });
+    await cloud.page.locator("#chat-input").fill("请暂时停在生成状态");
+    await cloud.page.locator("#chat-form").evaluate(form => form.requestSubmit());
+    await cloud.page.waitForFunction(() => document.querySelector("#conversation")?.dataset.conversationState === "generating" && document.querySelector("#dynamic-messages .work-state"));
+    verify(releaseRequest === true, "conversation state: cloud request must enter the generating state");
+    verify((await cloud.page.locator("#dynamic-messages .work-state").textContent()).includes("正在整理你的想法"), "conversation state: generating copy must describe the current send");
+    releaseCloud?.();
+    await cloud.page.waitForFunction(() => document.querySelector("#conversation")?.dataset.conversationState === "conversation_active");
+    verify(cloud.faults.length === 0, `conversation state: generating flow runtime errors: ${cloud.faults.join(" | ")}`);
+  } finally {
+    releaseCloud?.();
+    await cloud.context.close();
+  }
+}
+
 const server = createStaticServer();
 const origin = await listen(server);
 let browser;
@@ -378,7 +495,9 @@ try {
   await runUserJourney(browser, origin);
   await runLayoutSweep(browser, origin);
   await runNativeKeyboardCase(browser, origin);
-  console.log(`delivery QA passed: ${checks} assertions across smoke, black-box, responsive, native keyboard, backup, and BYOK flows`);
+  await runModalKeyboardCase(browser, origin);
+  await runConversationStateCase(browser, origin);
+  console.log(`delivery QA passed: ${checks} assertions across smoke, black-box, responsive, native keyboard, modal keyboard, conversation state, backup, and BYOK flows`);
 } finally {
   await browser?.close();
   await close(server);

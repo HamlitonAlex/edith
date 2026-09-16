@@ -42,6 +42,12 @@ const screenOrder = ["chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
 let isSending = false;
+const conversationStatuses = new Set(["idle_empty", "generating", "conversation_active", "conversation_restored"]);
+let conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+
+function setConversationStatus(status) {
+  if (conversationStatuses.has(status)) conversationStatus = status;
+}
 
 function parseStoredObject(value) {
   try {
@@ -66,6 +72,8 @@ function normalizePreferences(saved = {}, { legacyMessages = [], currentMessages
   const gender = ["female", "male", "neutral"].includes(source.gender) ? source.gender : defaults.gender;
   const theme = legacyThemes[source.theme] || (["day", "night"].includes(source.theme) ? source.theme : defaults.theme);
   const modelConfig = objectValue(source.modelConfig);
+  const messages = mergeStoredConversation(legacyMessages, Array.isArray(currentMessages) && currentMessages.length ? currentMessages : source.messages)
+    .filter(message => !(message.role === "assistant" && message.kind === "work-state"));
   return {
     ...defaults,
     ...source,
@@ -76,7 +84,7 @@ function normalizePreferences(saved = {}, { legacyMessages = [], currentMessages
     initiative: ratio(source.initiative, defaults.initiative),
     directness: ratio(source.directness, defaults.directness),
     avatar: normalizeAvatar(source.avatar),
-    messages: mergeStoredConversation(legacyMessages, Array.isArray(currentMessages) && currentMessages.length ? currentMessages : source.messages),
+    messages,
     sources: stringList(source.sources),
     calendarEvents: objectList(source.calendarEvents),
     pendingSourceNames: stringList(source.pendingSourceNames),
@@ -310,6 +318,9 @@ function renderUnderstanding() {
 }
 
 function render() {
+  if (conversationStatus !== "generating" && conversationStatus !== "conversation_active") {
+    conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+  }
   const pronoun = pronounFor(state.gender);
   document.documentElement.dataset.theme = state.theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[state.theme] || themeColors.day);
@@ -338,6 +349,8 @@ function render() {
   $("#conversation-model").setAttribute("aria-label", `选择对话模型，当前：${selectedModel}`);
   $("#conversation-model").title = `当前：${selectedModel}`;
   let previousDay = "";
+  const conversation = $("#conversation");
+  conversation.dataset.conversationState = conversationStatus;
   $("#dynamic-messages").innerHTML = state.messages.map(message => {
     const day = conversationDayLabel(message.createdAt);
     const divider = day !== previousDay ? `<div class="conversation-day-divider"><span>${escapeHtml(day)}</span></div>` : "";
@@ -348,7 +361,7 @@ function render() {
       : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
     return divider + content;
   }).join("");
-  $("#empty-conversation").hidden = state.messages.length > 0 || Boolean(agentState.next_recommended_action);
+  $("#empty-conversation").hidden = conversationStatus !== "idle_empty" || state.messages.length > 0 || Boolean(agentState.next_recommended_action);
   renderToday(pronoun);
   renderPath();
   renderUnderstanding();
@@ -536,6 +549,7 @@ $("#chat-form").addEventListener("submit", async event => {
     return;
   }
   isSending = true;
+  setConversationStatus("generating");
   const sendButton = $(".send-button");
   sendButton.disabled = true;
   try {
@@ -556,7 +570,7 @@ $("#chat-form").addEventListener("submit", async event => {
     if (useCloud) {
       const working = document.createElement("article");
       working.className = "message companion-message work-state";
-      working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
+      working.innerHTML = "<div><p>正在整理你的想法……</p></div>";
       $("#dynamic-messages").append(working);
       const conversation = $("#conversation");
       conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
@@ -572,6 +586,7 @@ $("#chat-form").addEventListener("submit", async event => {
       } finally { working.remove(); }
     }
     addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+    setConversationStatus("conversation_active");
     if (submittedAttachments.length) {
       state.pendingSourceNames = submittedAttachments.map(item => item.name);
       addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
@@ -593,6 +608,8 @@ $("#chat-form").addEventListener("submit", async event => {
       conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
     });
   } catch (error) {
+    setConversationStatus(state.messages.length ? "conversation_active" : "idle_empty");
+    render();
     showToast(`这次发送没有完成：${error?.message || "请稍后再试"}`);
   } finally {
     isSending = false;
@@ -608,6 +625,7 @@ function acceptCurrentAction() {
   const result = runAgentTurn(agentState, "接受这个安排，现在开始");
   agentState = result.state;
   addMessage({ role: "assistant", text: result.reply, kind: result.kind });
+  setConversationStatus("conversation_active");
   save();
   saveAgent();
   render();
@@ -624,6 +642,7 @@ function discussCurrentAction(prompt = "这个安排有些地方不适合我，�
   openScreen("chat");
   $("#agent-proposal").classList.add("discussing");
   addMessage({ role: "assistant", text: action ? `可以。先不急着执行。${action.title}这件事里，是时间、内容、方式，还是我对“为什么现在”的判断让你觉得不合适？` : "可以，我们一起调整。你最想先改变哪一部分？" });
+  setConversationStatus("conversation_active");
   save();
   render();
   const input = $("#chat-input");
@@ -665,6 +684,7 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || !leftForExternalAction) return;
   leftForExternalAction = false;
   addMessage({ role: "assistant", text: "你回来了。刚才看到哪里？不用总结，随口说一句最让你停顿或意外的地方就行。", kind: "follow-up" });
+  setConversationStatus("conversation_active");
   save();
   render();
   openScreen("chat");
@@ -807,6 +827,7 @@ $("#backup-file").addEventListener("change", async event => {
     if (!window.confirm("恢复会覆盖这台设备上当前的学程记忆。确定继续吗？")) return;
     state = normalizePreferences(restored.preferences);
     agentState = hydrateAgentState(restored.agent);
+    setConversationStatus(state.messages.length ? "conversation_restored" : "idle_empty");
     save();
     saveAgent();
     render();
@@ -978,6 +999,8 @@ function syncVisualViewport() {
   };
   document.documentElement.style.setProperty("--app-height", `${viewport.appHeight}px`);
   document.documentElement.style.setProperty("--keyboard-inset", `${viewport.keyboardInset || 0}px`);
+  const visibleHeight = Math.max(1, Math.round(viewport.appHeight - (viewport.keyboardInset || 0)));
+  document.documentElement.style.setProperty("--visible-viewport-height", `${visibleHeight}px`);
   const { keyboardOpen } = viewport;
   document.body.classList.toggle("keyboard-open", keyboardOpen);
   if (keyboardOpen) requestAnimationFrame(keepFocusedControlVisible);

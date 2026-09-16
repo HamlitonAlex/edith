@@ -278,3 +278,36 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
     padding-top:calc(19px + env(safe-area-inset-top));
   }
 }
+
+/* Keep shared dialogs and the conversation surface inside the visual viewport when WKWebView overlays the keyboard. */
+@media (max-width:600px) {
+  .action-dialog:not(#model-dialog) {
+    position:fixed;
+    top:calc(var(--visible-viewport-height,100dvh) / 2);
+    right:auto;
+    bottom:auto;
+    left:50%;
+    width:min(350px,calc(100% - 34px));
+    max-width:calc(100% - 34px);
+    max-height:calc(var(--visible-viewport-height,100dvh) - 24px);
+    margin:0;
+    transform:translate(-50%,-50%);
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  #model-dialog {
+    max-height:calc(var(--visible-viewport-height,100dvh) - 96px);
+  }
+
+  .keyboard-open .composer {
+    bottom:calc(8px + var(--keyboard-inset,0px));
+  }
+
+  .keyboard-open .chat-screen {
+    inset:0 auto auto 0;
+    width:100%;
+    height:var(--visible-viewport-height,var(--app-height));
+  }
+}

@@ -69,8 +69,8 @@
         <button class="conversation-model" id="conversation-model" type="button" aria-label="切换当前对话模型">本地判断</button>
       </header>
 
-      <div class="conversation" id="conversation" aria-live="polite">
-        <div class="empty-conversation" id="empty-conversation"><b>你最近想学会什么？</b><p>也可以聊聊正在做的项目、卡住的地方，或今天有多少时间。我们一起找出值得先走的一小步。</p></div>
+      <div class="conversation" id="conversation" data-conversation-state="idle_empty" aria-live="polite">
+        <div class="empty-conversation" id="empty-conversation"><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div>
         <div id="dynamic-messages"></div>
         <article class="plan-proposal" id="agent-proposal" hidden>
           <header><span>我觉得现在值得做</span><time id="proposal-time">20 分钟</time></header>
