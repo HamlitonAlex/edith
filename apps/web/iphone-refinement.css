@@ -266,3 +266,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
     font-size:16px;
   }
 }
+
+/* Full-bleed hero media owns the screen edge; keep only its overlay content in the safe area. */
+@media (max-width:600px) {
+  :root.native-shell .us-screen,
+  :root.native-shell .settings-screen {
+    padding-top:0;
+  }
+
+  :root.native-shell .settings-header {
+    padding-top:calc(19px + env(safe-area-inset-top));
+  }
+}
