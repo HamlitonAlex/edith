@@ -1,0 +1,116 @@
+name: iOS Simulator QA
+
+on:
+  pull_request:
+    paths:
+      - "apps/web/**"
+      - "ios/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "capacitor.config.json"
+      - ".github/workflows/ios-simulator-qa.yml"
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-simulator-qa-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  simulator-smoke:
+    name: Build, install, and launch on iPhone Simulator
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate and sync the iPhone app
+        run: npm run mobile:sync
+
+      - name: Run behavior and package checks
+        run: |
+          npm test
+          npm run test:mobile-package
+
+      - name: Run browser delivery QA
+        run: |
+          npx playwright install chromium
+          npm run test:delivery
+
+      - name: Select and boot an available iPhone simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          SIMULATOR_UDID="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ { print $2; exit }')"
+          test -n "$SIMULATOR_UDID"
+          echo "SIMULATOR_UDID=$SIMULATOR_UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$SIMULATOR_UDID" || true
+          xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+
+      - name: Build for the selected simulator
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+            -derivedDataPath "$GITHUB_WORKSPACE/build/ios/SimulatorDerivedData" \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build
+
+      - name: Install and launch the iPhone app
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$GITHUB_WORKSPACE/build/ios/SimulatorDerivedData/Build/Products/Debug-iphonesimulator/App.app"
+          test -d "$APP_PATH"
+          xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
+          xcrun simctl get_app_container "$SIMULATOR_UDID" com.xuecheng.companion app
+          xcrun simctl launch "$SIMULATOR_UDID" com.xuecheng.companion
+          sleep 8
+
+      - name: Capture simulator evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p build/ios
+          if [ -n "${SIMULATOR_UDID:-}" ]; then
+            xcrun simctl io "$SIMULATOR_UDID" screenshot "$GITHUB_WORKSPACE/build/ios/simulator-launch.png" || true
+          fi
+
+      - name: Upload simulator evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-qa
+          path: |
+            build/ios/simulator-launch.png
+            build/ios/SimulatorDerivedData/Logs
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Shut down simulator
+        if: always()
+        shell: bash
+        run: xcrun simctl shutdown "$SIMULATOR_UDID" || true

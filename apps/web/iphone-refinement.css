@@ -62,6 +62,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 .proposal-details,.agenda-details{margin-top:12px;border-top:1px solid var(--line)}
 .proposal-details summary,.agenda-details summary{position:relative;padding:13px 22px 3px 0;color:var(--action-strong);font-size:10px;font-weight:750;list-style:none;cursor:pointer}.proposal-details summary::-webkit-details-marker,.agenda-details summary::-webkit-details-marker{display:none}.proposal-details summary::after,.agenda-details summary::after{position:absolute;top:13px;right:2px;content:"+";font-size:16px;font-weight:400;line-height:1;transition:transform .2s var(--ease-out-quart)}.proposal-details[open] summary::after,.agenda-details[open] summary::after{transform:rotate(45deg)}
 .proposal-details .task-detail-list{padding-top:6px}.proposal-details .task-detail-list div{grid-template-columns:70px 1fr}.agenda-details p{margin-top:10px!important}
+.proposal-evidence dd{white-space:pre-line}
 .settings-screen{background:linear-gradient(180deg,color-mix(in srgb,var(--canvas-soft) 96%,var(--surface)),var(--canvas-soft))}.settings-header{padding-bottom:12px}.settings-section{margin:0;padding:22px 2px;border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;box-shadow:none}.settings-section:first-of-type{border-top:0}.settings-title{align-items:center;margin-bottom:14px}.settings-title h2{font-size:15px;letter-spacing:-.01em}.settings-title>span,.text-link{font-size:9px}.appearance-switch{border-radius:var(--radius-control);background:var(--surface-strong)}.appearance-switch button{border-radius:calc(var(--radius-control) - 3px)}
 .setting-row,.source-row{border-top-color:color-mix(in srgb,var(--line) 75%,transparent)}.model-field input,.model-field select,.model-actions button,.source-row button,.backup-actions button{background:var(--surface)}
 .bottom-nav{border:1px solid color-mix(in srgb,var(--glass-line) 82%,transparent);background:color-mix(in srgb,var(--glass) 88%,transparent);box-shadow:0 14px 36px color-mix(in srgb,var(--ink) 12%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 68%,transparent);backdrop-filter:blur(30px) saturate(1.18)}
@@ -122,7 +123,7 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 :root[data-theme="night"] .phone{background:radial-gradient(circle at 108% 3%,color-mix(in srgb,var(--accent-reflection) 6%,transparent),transparent 31%),radial-gradient(circle at -10% 82%,color-mix(in srgb,var(--action) 8%,transparent),transparent 40%),linear-gradient(165deg,var(--canvas-soft),var(--canvas))}:root[data-theme="night"] .companion-header{background:color-mix(in srgb,var(--canvas-soft) 84%,transparent)}:root[data-theme="night"] .plan-proposal{background:var(--surface);box-shadow:0 20px 46px rgba(5,10,7,.24)}
 
 /* No framed task card: the atmosphere leads, the decision sits directly on the page. */
-.plan-proposal{margin:16px 2px 24px;padding:0 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}.plan-proposal>header,.plan-proposal>.proposal-route,.plan-proposal>.platform-line,.plan-proposal>h2,.plan-proposal>.task-detail-list,.plan-proposal>.proposal-details,.plan-proposal>.plan-actions{margin-right:0;margin-left:0}.proposal-atmosphere{position:relative;height:154px;margin:0 -2px 18px;overflow:hidden;border-radius:0 0 24px 24px;background:var(--surface-strong);transition:height .34s var(--ease-out-quart),margin-bottom .34s ease,border-radius .34s ease}.proposal-atmosphere img{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(.78) contrast(.98);transition:filter .34s ease,transform .5s var(--ease-out-quart)}.proposal-atmosphere::after{position:absolute;inset:38% 0 0;background:linear-gradient(transparent,color-mix(in srgb,var(--ink) 67%,transparent));content:""}.proposal-atmosphere figcaption{position:absolute;z-index:1;right:16px;bottom:13px;left:16px;display:flex;align-items:baseline;gap:9px;color:var(--surface);transition:opacity .25s ease}.proposal-atmosphere figcaption small{font-size:9px;letter-spacing:.12em;text-transform:uppercase}.proposal-atmosphere figcaption span{font-family:"Songti SC","STSong",serif;font-size:14px}.plan-proposal.started .proposal-atmosphere{height:70px;margin-bottom:16px;border-radius:0 0 16px 16px}.plan-proposal.started .proposal-atmosphere img{filter:saturate(.6) brightness(.84);transform:scale(1.03)}.plan-proposal.started .proposal-atmosphere figcaption{opacity:.78}.proposal-route{margin-top:0}.plan-proposal h2{font-size:25px}.plan-proposal .proposal-reason{border-top:1px solid var(--line)}.plan-actions{grid-template-columns:max-content max-content;justify-content:start;gap:22px}.plan-actions #start-action{min-width:136px;justify-content:flex-start;padding:0 28px 0 0;border-bottom:1px solid var(--action);border-radius:0;background:transparent;color:var(--action-strong);box-shadow:none}.plan-actions #start-action::after{right:2px}.plan-actions #discuss-action{min-width:0;border-bottom:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:0}.plan-actions #start-action:hover{background:transparent;color:var(--action);box-shadow:none}.plan-actions #discuss-action:hover{color:var(--ink)}
+.plan-proposal{margin:16px 2px 24px;padding:0 0 8px;border:0;border-radius:0;background:transparent;box-shadow:none}.plan-proposal>header,.plan-proposal>.proposal-route,.plan-proposal>.platform-line,.plan-proposal>h2,.plan-proposal>.task-detail-list,.plan-proposal>.proposal-details,.plan-proposal>.plan-actions{margin-right:0;margin-left:0}.proposal-atmosphere{position:relative;height:154px;margin:0 -2px 18px;overflow:hidden;border-radius:0 0 24px 24px;background:var(--surface-strong);transition:height .34s var(--ease-out-quart),margin-bottom .34s ease,border-radius .34s ease}.proposal-atmosphere img{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(.78) contrast(.98);transition:filter .34s ease,transform .5s var(--ease-out-quart)}.proposal-atmosphere::after{position:absolute;inset:38% 0 0;background:linear-gradient(transparent,color-mix(in srgb,var(--ink) 67%,transparent));content:""}.proposal-atmosphere figcaption{position:absolute;z-index:1;right:16px;bottom:13px;left:16px;display:flex;align-items:baseline;gap:9px;color:var(--surface);transition:opacity .25s ease}.proposal-atmosphere figcaption small{font-size:9px;letter-spacing:.12em;text-transform:uppercase}.proposal-atmosphere figcaption span{font-family:"Songti SC","STSong",serif;font-size:14px}.plan-proposal.started .proposal-atmosphere{height:70px;margin-bottom:16px;border-radius:0 0 16px 16px}.plan-proposal.started .proposal-atmosphere img{filter:saturate(.6) brightness(.84);transform:scale(1.03)}.plan-proposal.started .proposal-atmosphere figcaption{opacity:.78}.proposal-route{margin-top:0}.plan-proposal h2{font-size:25px}.plan-proposal .proposal-reason{border-top:1px solid var(--line)}.plan-actions{grid-template-columns:max-content max-content max-content;justify-content:start;gap:18px}.plan-actions #start-action{min-width:136px;justify-content:flex-start;padding:0 28px 0 0;border-bottom:1px solid var(--action);border-radius:0;background:transparent;color:var(--action-strong);box-shadow:none}.plan-actions #start-action::after{right:2px}.plan-actions #discuss-action,.plan-actions #change-action{min-width:0;border-bottom:1px solid color-mix(in srgb,var(--line) 80%,transparent);border-radius:0}.plan-actions #start-action:hover{background:transparent;color:var(--action);box-shadow:none}.plan-actions #discuss-action:hover,.plan-actions #change-action:hover{color:var(--ink)}
 :root[data-theme="night"] .plan-proposal{background:transparent;box-shadow:none}:root[data-theme="night"] .plan-actions #start-action{background:transparent;color:var(--action-strong)}
 @media(prefers-reduced-motion:reduce){.proposal-atmosphere,.proposal-atmosphere img,.proposal-atmosphere figcaption{transition:none}}
 
@@ -190,6 +191,8 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 /* Immersive companion and settings space: one atmosphere, two content densities. */
 .us-screen,.settings-screen{padding-right:0;padding-left:0;background:var(--canvas-soft)!important}
 .profile-hero{padding:0 0 26px;text-align:center}
+.understanding-section{position:relative;margin:0 18px 18px;padding:20px;border:1px solid color-mix(in srgb,var(--action) 18%,var(--line));border-radius:18px;background:color-mix(in srgb,var(--surface) 82%,transparent);box-shadow:0 12px 30px color-mix(in srgb,var(--action-strong) 7%,transparent);backdrop-filter:blur(14px)}.understanding-section>small{color:var(--action-strong);font-size:10px;letter-spacing:.1em}.understanding-section h2{margin:7px 0 5px;font-family:"Songti SC","STSong",serif;font-size:21px;line-height:1.3}.understanding-list{display:grid;gap:0;margin-top:14px}.understanding-list>div{display:grid;grid-template-columns:92px 1fr;gap:8px;padding:10px 0;border-top:1px solid var(--line)}.understanding-list small{color:var(--muted);font-size:10px}.understanding-list p{margin:0;color:var(--ink);font-size:12px;line-height:1.5}.correct-understanding{min-height:38px;margin-top:14px;padding:0;border:0;border-bottom:1px solid color-mix(in srgb,var(--action) 46%,var(--line));background:transparent;color:var(--action-strong);font-size:11px;font-weight:700}
+.companion-preferences{margin:0 18px 26px;border-top:1px solid var(--line)}.companion-preferences>summary{position:relative;padding:20px 24px 14px 0;color:var(--action-strong);font-size:12px;font-weight:750;list-style:none;cursor:pointer}.companion-preferences>summary::-webkit-details-marker{display:none}.companion-preferences>summary::after{position:absolute;top:21px;right:3px;width:7px;height:7px;border-right:1px solid currentColor;border-bottom:1px solid currentColor;content:"";transform:rotate(45deg);transition:transform .18s var(--ease-out-quart)}.companion-preferences[open]>summary::after{transform:translateY(3px) rotate(225deg)}.companion-preferences>p{margin:-2px 0 2px;color:var(--muted);font-size:10px;line-height:1.55}.companion-preferences .preference-section{padding:20px 0}.companion-preferences .settings-entry{margin-top:4px}
 .profile-hero::before{display:none}
 .profile-atmosphere{position:relative;height:244px;margin:0 0 -55px;overflow:hidden;background:var(--surface-strong)}
 .profile-atmosphere>img{width:100%;height:100%;object-fit:cover;object-position:center 52%;filter:saturate(.72) contrast(.96)}
@@ -251,3 +254,104 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 
 /* An accepted next step is a calm state, not a disabled-looking second start button. */
 .plan-proposal.started #start-action{border-bottom-color:color-mix(in srgb,var(--action) 32%,var(--line));color:var(--action-strong);opacity:1}.plan-proposal.started #start-action::after{display:none}.agenda li.next.started [data-start-current]{background:color-mix(in srgb,var(--action) 14%,var(--surface));color:var(--action-strong);opacity:1}
+
+/* Keep long model output readable and make an in-flight send visible. */
+.message p,.message li,.plan-proposal p{overflow-wrap:anywhere;word-break:break-word}
+.send-button:disabled{cursor:wait;opacity:.58;pointer-events:none}
+.send-button.voice-mode{background:var(--surface-strong);color:var(--action)}
+.composer[data-voice-state="recording"]{border-color:var(--action);box-shadow:0 0 0 5px color-mix(in srgb,var(--action) 12%,transparent),0 12px 32px color-mix(in srgb,var(--ink) 13%,transparent)}
+.composer[data-voice-state="recording"] .send-button{animation:voice-pulse 1.15s ease-in-out infinite;background:var(--action);color:var(--on-action)}
+.composer[data-voice-state="recognizing"] .send-button{background:var(--action);color:var(--on-action)}
+.composer[data-voice-state="recognizing"] .send-button svg{animation:voice-listen .85s linear infinite}
+@keyframes voice-pulse{50%{box-shadow:0 0 0 7px color-mix(in srgb,var(--action) 13%,transparent)}}
+@keyframes voice-listen{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.composer[data-voice-state="recording"] .send-button,.composer[data-voice-state="recognizing"] .send-button svg{animation:none}}
+
+/* iOS Safari/WKWebView zooms focused text controls below 16px. Keep BYOK fields stable on narrow screens. */
+@media (max-width:600px) {
+  .settings-screen .model-field input,
+  .settings-screen .model-field select {
+    font-size:16px;
+  }
+}
+
+/* Full-bleed hero media owns the screen edge; keep only its overlay content in the safe area. */
+@media (max-width:600px) {
+  :root.native-shell .us-screen,
+  :root.native-shell .settings-screen {
+    padding-top:0;
+  }
+
+  :root.native-shell .settings-header {
+    padding-top:calc(19px + env(safe-area-inset-top));
+  }
+}
+
+/* Keep shared dialogs and the conversation surface inside the visual viewport when WKWebView overlays the keyboard. */
+@media (max-width:600px) {
+  .action-dialog:not(#model-dialog) {
+    position:fixed;
+    top:calc(var(--visible-viewport-height,100dvh) / 2);
+    right:auto;
+    bottom:auto;
+    left:50%;
+    width:min(350px,calc(100% - 34px));
+    max-width:calc(100% - 34px);
+    max-height:calc(var(--visible-viewport-height,100dvh) - 24px);
+    margin:0;
+    transform:translate(-50%,-50%);
+    overflow:auto;
+    overscroll-behavior:contain;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  #model-dialog {
+    max-height:calc(var(--visible-viewport-height,100dvh) - 96px);
+  }
+
+  .keyboard-open .composer {
+    bottom:calc(8px + var(--keyboard-inset,0px));
+  }
+
+  .keyboard-open .chat-screen {
+    inset:0 auto auto 0;
+    width:100%;
+    height:var(--visible-viewport-height,var(--app-height));
+  }
+}
+
+/* Mobile reliability contract: one safe-area owner for bottom chrome and one visible viewport owner while typing. */
+:root{--safe-top:env(safe-area-inset-top);--safe-bottom:env(safe-area-inset-bottom);--bottom-nav-offset:max(10px,var(--safe-bottom));--bottom-nav-height:64px;--composer-nav-gap:10px}
+.composer{bottom:calc(var(--bottom-nav-offset) + var(--bottom-nav-height) + var(--composer-nav-gap))}
+.bottom-nav{bottom:var(--bottom-nav-offset);height:var(--bottom-nav-height)}
+#model-dialog{overflow:hidden;max-height:calc(var(--visible-viewport-height,100dvh) - 82px - var(--safe-top))}
+#model-dialog form{max-height:inherit;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+#model-dialog form>button[value="cancel"]{position:sticky;z-index:2;bottom:0;background:var(--surface)}
+@media(max-width:600px){
+  :root.native-shell .chat-screen{padding-top:var(--safe-top)}
+  :root.native-shell .companion-header{top:var(--safe-top);height:64px;padding-top:6px;padding-bottom:6px}
+  .keyboard-open .composer{bottom:max(8px,var(--safe-bottom));transition:none}
+  .keyboard-open .chat-screen{inset:0 auto auto 0;width:100%;height:var(--visible-viewport-height,var(--app-height))}
+}
+
+/* Moonlit study: a warm-paper learning space with restrained blue, plum, and gold cues. */
+:root[data-theme="day"] .phone{background:radial-gradient(circle at 96% 4%,color-mix(in srgb,var(--accent-general) 21%,transparent),transparent 29%),radial-gradient(circle at -12% 74%,color-mix(in srgb,var(--spark) 19%,transparent),transparent 37%),linear-gradient(160deg,var(--canvas-soft),var(--canvas))}
+:root[data-theme="night"] .phone{background:radial-gradient(circle at 100% 2%,color-mix(in srgb,var(--accent-general) 18%,transparent),transparent 31%),radial-gradient(circle at -12% 77%,color-mix(in srgb,var(--accent-reflection) 22%,transparent),transparent 39%),linear-gradient(160deg,var(--canvas-soft),var(--canvas))}
+.chat-atmosphere::after{background:linear-gradient(180deg,color-mix(in srgb,var(--accent-reflection) 12%,transparent) 0%,transparent 36%,color-mix(in srgb,var(--canvas) 22%,transparent) 68%,var(--canvas) 98%)}
+.companion-header{border-color:color-mix(in srgb,var(--accent-reflection) 15%,var(--glass-line));box-shadow:0 12px 32px color-mix(in srgb,var(--accent-reflection) 11%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 64%,transparent)}
+.companion-header .conversation-model{border-color:color-mix(in srgb,var(--accent-general) 24%,var(--glass-line));color:var(--action-strong)}
+.conversation-model .model-status-dot{background:var(--accent-general);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent-general) 16%,transparent)}
+.bottom-nav{border-color:color-mix(in srgb,var(--accent-reflection) 14%,var(--glass-line));box-shadow:0 17px 38px color-mix(in srgb,var(--accent-reflection) 14%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 70%,transparent)}
+.bottom-nav button.active{background:linear-gradient(135deg,color-mix(in srgb,var(--accent-reflection) 16%,transparent),color-mix(in srgb,var(--accent-general) 10%,transparent));box-shadow:inset 0 1px 0 color-mix(in srgb,#fff 52%,transparent);color:var(--action-strong)}
+.composer{border-color:color-mix(in srgb,var(--accent-reflection) 16%,var(--glass-line));box-shadow:0 17px 38px color-mix(in srgb,var(--accent-reflection) 14%,transparent),inset 0 1px 0 color-mix(in srgb,#fff 72%,transparent)}
+.composer:focus-within{border-color:color-mix(in srgb,var(--accent-general) 54%,var(--line));box-shadow:0 18px 40px color-mix(in srgb,var(--accent-reflection) 17%,transparent),0 0 0 3px color-mix(in srgb,var(--accent-general) 13%,transparent)}
+.proposal-atmosphere::after{background:linear-gradient(112deg,color-mix(in srgb,var(--accent-reflection) 29%,transparent),transparent 46%),linear-gradient(0deg,color-mix(in srgb,var(--ink) 69%,transparent),transparent 64%)}
+.proposal-route path{stroke:var(--accent-general)}
+.proposal-route circle{fill:var(--accent-growth)}
+.proposal-route .route-now{fill:var(--spark)}
+.page-header::before,.energy-check::before,.agenda li.next::before,.current-direction::before{background:linear-gradient(90deg,var(--accent-general),var(--spark),transparent)}
+.agenda li.next::after,.current-direction::after{background:radial-gradient(ellipse at 112% 116%,color-mix(in srgb,var(--accent-general) 33%,transparent),transparent 54%),linear-gradient(108deg,color-mix(in srgb,var(--task) 81%,transparent),color-mix(in srgb,var(--task) 61%,transparent) 53%,color-mix(in srgb,var(--accent-reflection) 18%,transparent))}
+.settings-atmosphere::after{background:linear-gradient(112deg,color-mix(in srgb,var(--accent-reflection) 58%,transparent),color-mix(in srgb,var(--accent-general) 12%,transparent) 60%),linear-gradient(180deg,transparent 45%,var(--canvas-soft) 100%)}
+.settings-section::before{background:linear-gradient(90deg,color-mix(in srgb,var(--accent-general) 85%,transparent),color-mix(in srgb,var(--spark) 46%,transparent),transparent)}
+:root[data-theme="night"] .chat-atmosphere::after{background:linear-gradient(180deg,color-mix(in srgb,var(--accent-reflection) 22%,transparent),color-mix(in srgb,var(--canvas) 8%,transparent) 36%,color-mix(in srgb,var(--canvas) 73%,transparent) 74%,var(--canvas) 98%)}
+:root[data-theme="night"] .settings-atmosphere::after{background:linear-gradient(112deg,color-mix(in srgb,var(--accent-reflection) 46%,transparent),color-mix(in srgb,var(--accent-general) 12%,transparent) 60%),linear-gradient(180deg,transparent 42%,var(--canvas-soft) 100%)}

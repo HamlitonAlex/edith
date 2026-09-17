@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f5f6f3">
+  <meta name="theme-color" content="#e9e5d9">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
@@ -69,11 +69,11 @@
         <button class="conversation-model" id="conversation-model" type="button" aria-label="切换当前对话模型">本地判断</button>
       </header>
 
-      <div class="conversation" id="conversation" aria-live="polite">
-        <div class="empty-conversation" id="empty-conversation"><b>你最近想学会什么？</b><p>也可以聊聊正在做的项目、卡住的地方，或今天有多少时间。我们一起找出值得先走的一小步。</p></div>
+      <div class="conversation" id="conversation" data-conversation-state="idle_empty" aria-live="polite">
+        <div class="empty-conversation" id="empty-conversation"><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div>
         <div id="dynamic-messages"></div>
         <article class="plan-proposal" id="agent-proposal" hidden>
-          <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
+          <header><span>我觉得现在值得做</span><time id="proposal-time">20 分钟</time></header>
           <figure class="proposal-atmosphere" id="proposal-atmosphere">
             <img src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌，作为进入下一步前的氛围提示" loading="lazy">
             <figcaption><small>现在</small><span>先把这一小步放进今天。</span></figcaption>
@@ -92,31 +92,39 @@
           <figure class="proposal-media" id="proposal-media" hidden><img id="proposal-media-image" alt="" loading="lazy" referrerpolicy="no-referrer"></figure>
           <dl class="task-detail-list proposal-reason"><div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why"></dd></div></dl>
           <details class="proposal-details">
-            <summary>查看怎么做和完成标准</summary>
-            <dl class="task-detail-list">
+            <summary>为什么</summary>
+            <dl class="task-detail-list proposal-evidence">
+              <div><dt>我观察到</dt><dd id="proposal-observation" data-proposal-observation></dd></div>
+              <div><dt>当前情境</dt><dd id="proposal-context"></dd></div>
+              <div><dt>关联方向</dt><dd id="proposal-related"></dd></div>
+              <div><dt>当前缺口</dt><dd id="proposal-gap"></dd></div>
+              <div><dt>为什么不是别的方向</dt><dd id="proposal-alternatives" data-proposal-alternatives></dd></div>
+              <div><dt>预期收益</dt><dd id="proposal-gain"></dd></div>
+              <div><dt>置信度</dt><dd id="proposal-confidence" data-proposal-confidence></dd></div>
               <div><dt>怎么做</dt><dd id="proposal-instructions"></dd></div>
               <div><dt>完成标准</dt><dd id="proposal-completion"></dd></div>
             </dl>
           </details>
           <div class="plan-actions">
-            <button id="start-action" type="button">开始</button>
-            <button id="discuss-action" type="button">和她讨论</button>
+            <button id="start-action" type="button">就这样做</button>
+            <button id="discuss-action" type="button">和她聊聊</button>
+            <button id="change-action" type="button">换个方向</button>
           </div>
         </article>
       </div>
 
-      <form class="composer" id="chat-form">
+      <form class="composer" id="chat-form" data-voice-state="idle">
         <div class="attachment-preview" id="attachment-preview" hidden></div>
         <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
         <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
-        <button class="send-button" type="submit" aria-label="发送"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
+        <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
       </form>
     </section>
 
     <section class="screen today-screen" data-screen="today" hidden>
-      <header class="page-header"><small id="today-date">今天</small><h1><span data-pronoun>她</span>替你理好的今天</h1><p>不是固定课表。每一项都会根据你的状态重新判断。</p></header>
-      <div class="energy-check" id="energy-check"><div><span>傍晚精力确认</span><b>17:45 主动询问</b></div><button data-open-screen="chat">现在告诉<span data-pronoun>她</span></button></div>
+      <header class="page-header"><small id="today-date">今天</small><h1>今天走到哪里了</h1><p>这里留下已经发生的事、现在的状态，以及她此刻认为值得看的下一步。</p></header>
+      <div class="energy-check" id="energy-check"><div><span>现在的状态</span><b>需要时，再告诉<span data-pronoun>她</span></b></div><button data-open-screen="chat">聊两句</button></div>
       <div class="empty-state" id="today-empty"><b>今天还没有替你下结论。</b><p>先聊聊你正在经历什么。信息不够时，学程不会用通用任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
       <ol class="agenda" id="today-agenda"></ol>
     </section>
@@ -145,6 +153,17 @@
         <p id="relationship-copy">她会像一位了解你的朋友，也会在需要时挑战你。</p>
       </header>
 
+      <section class="understanding-section preference-section" aria-labelledby="understanding-title">
+        <small>她现在知道的我</small>
+        <h2 id="understanding-title">从一起经历的事里慢慢形成</h2>
+        <p class="section-hint">不是档案，也不会替你定义自己；有理解错的地方，告诉她就好。</p>
+        <div class="understanding-list" id="understanding-list"></div>
+        <button class="correct-understanding" id="correct-understanding" type="button">这里有理解错的吗？</button>
+      </section>
+
+      <details class="companion-preferences">
+        <summary>调整相处方式</summary>
+        <p>这些只影响她表达和主动出现的分寸，不会取代从相处里形成的理解。</p>
       <section class="preference-section"><h2>你希望<span data-pronoun>她</span>更像谁</h2><div class="role-options">
         <button type="button" data-role="guide">引路人</button><button type="button" data-role="friend">朋友</button><button type="button" data-role="family">家人</button><button type="button" data-role="partner">伴侣式伙伴</button>
       </div></section>
@@ -157,6 +176,7 @@
         <span><b>系统设置</b><small>模型、本地数据与通知</small></span>
         <i class="ph ph-caret-right settings-entry-chevron" aria-hidden="true"></i>
       </button>
+      </details>
     </section>
 
     <section class="screen settings-screen" data-screen="settings" hidden>
@@ -167,7 +187,7 @@
       </header>
       <section class="settings-section" aria-labelledby="appearance-title">
         <div class="settings-title"><div><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
-        <p class="settings-note appearance-note">只改变空间明暗，森林绿与微光点缀保持不变。</p>
+        <p class="settings-note appearance-note">只改变空间明暗；月影紫、雾蓝与暖金的层次保持不变。</p>
         <div class="appearance-switch" role="group" aria-label="界面氛围"><button type="button" data-theme-option="day">日间</button><button type="button" data-theme-option="night">夜间</button></div>
       </section>
       <section class="settings-section" aria-labelledby="plan-title">

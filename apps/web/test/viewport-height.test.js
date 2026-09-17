@@ -119,6 +119,28 @@ test("uses an iOS native keyboard signal when WKWebView leaves the visual viewpo
   });
 });
 
+test("does not subtract the native keyboard twice when WKWebView already resized", () => {
+  const result = resolveAppViewport({
+    layoutHeight: 516,
+    visualHeight: 516,
+    layoutWidth: 393,
+    focusedTextEntry: true,
+    viewportBaseline: 852,
+    viewportWidth: 393,
+    keyboardWasOpen: false,
+    nativeKeyboardOpen: true,
+    nativeKeyboardInset: 336,
+  });
+
+  assert.deepEqual(result, {
+    appHeight: 516,
+    keyboardOpen: true,
+    keyboardInset: 0,
+    viewportBaseline: 852,
+    viewportWidth: 393,
+  });
+});
+
 test("resets the baseline for an actual width-changing orientation transition", () => {
   const result = resolveAppViewport({
     layoutHeight: 393,

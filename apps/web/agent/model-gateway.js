@@ -1,4 +1,39 @@
+import { deriveTutorFeedback } from "./user-model.js";
+
 const cleanText = value => String(value || "").trim();
+
+function tutorMetricsContext(state) {
+  const metrics = state.tutor_metrics || {};
+  const compactSession = session => {
+    const item = session || {};
+    return {
+      id: item.id,
+      action_id: item.action_id,
+      domain: item.domain,
+      topic: item.topic,
+      started_at: item.started_at,
+      ended_at: item.ended_at,
+      duration_minutes: item.duration_minutes,
+      status: item.status,
+      turn_count: item.turn_count,
+      hints_used: item.hints_used,
+      adaptations: item.adaptations,
+      verification_attempts: item.verification_attempts,
+      last_stage: item.last_stage,
+      last_difficulty: item.last_difficulty,
+      teaching_style: item.teaching_style,
+      feedback_applied: item.feedback_applied,
+      result_id: item.result_id,
+      confidence: item.confidence,
+    };
+  };
+  const current = metrics.current;
+  return {
+    current: current ? compactSession(current) : null,
+    recent_sessions: (metrics.history || []).slice(-5).map(compactSession),
+    totals: metrics.totals || {},
+  };
+}
 
 export function createModelContext(state, latestMessage) {
   return {
@@ -7,6 +42,9 @@ export function createModelContext(state, latestMessage) {
     active_goals: state.active_goals,
     skills: Object.fromEntries(Object.entries(state.skills).map(([id, skill]) => [id, { label: skill.label, level: skill.level, confidence: skill.confidence, evidence: skill.evidence.slice(-3) }])),
     recent_learning: state.recent_learning.slice(-7),
+    learning_results: (state.learning_results || []).slice(-5),
+    tutor_metrics: tutorMetricsContext(state),
+    tutor_feedback: deriveTutorFeedback(state),
     current_constraints: state.current_constraints.slice(-8),
     current_action: state.next_recommended_action,
     principles: state.principles,

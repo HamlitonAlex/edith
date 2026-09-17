@@ -29,7 +29,7 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the visual system uses quiet neutrals with directional accent colors", () => {
+test("the visual system uses a warm-paper palette with restrained directional accents", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
@@ -40,8 +40,11 @@ test("the visual system uses quiet neutrals with directional accent colors", () 
   assert.match(refinementCss, /onboarding-visual:before/);
   assert.match(refinementCss, /onboarding-visual figcaption\{[^}]*backdrop-filter:blur\(16px\)/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
-  assert.match(html, /name="theme-color" content="#f5f6f3"/);
+  assert.match(css, /--action:#4b4e72/);
+  assert.match(css, /--accent-general:#5fa3b0/);
+  assert.match(css, /--spark:#e4a268/);
+  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
+  assert.match(html, /name="theme-color" content="#e9e5d9"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -65,8 +68,10 @@ test("daily work names the platform, action, content and completion", () => {
 
 test("the primary recommendation reveals detail progressively", () => {
   assert.match(html, /<details class="proposal-details"/);
-  assert.match(html, /<summary>查看怎么做和完成标准<\/summary>/);
+  assert.match(html, /<summary>为什么<\/summary>/);
   assert.match(html, /id="proposal-why"/);
+  assert.match(html, /id="proposal-observation"/);
+  assert.match(html, /id="proposal-alternatives"/);
   assert.ok(html.indexOf('id="proposal-why"') < html.indexOf('class="proposal-details"'));
   assert.ok(html.indexOf('id="dynamic-messages"') < html.indexOf('id="agent-proposal"'));
 });
@@ -77,14 +82,14 @@ test("settings read like a finished product instead of a numbered design spec", 
   assert.match(html, /id="model-title">模型与智能/);
 });
 
-test("the refined visual system uses forest neutrals and one radius scale", () => {
+test("the refined visual system uses moonlit neutrals and one radius scale", () => {
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(css, /--canvas:#191d1b/);
-  assert.match(css, /--canvas-soft:#202522/);
-  assert.doesNotMatch(css, /--canvas:#211d1c|--canvas-soft:#282321/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
+  assert.match(css, /--canvas:#191b2a/);
+  assert.match(css, /--canvas-soft:#222535/);
+  assert.doesNotMatch(css, /--canvas:#191d1b/);
+  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
 });
 
 test("visible product copy avoids typographic dash decoration", () => {
@@ -131,7 +136,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
 });
 
 test("shared brand actions keep readable text in both atmospheres", () => {
-  assert.match(css, /--on-action:#f8f5eb/);
+  assert.match(css, /--on-action:#fdfcf8/);
   assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
@@ -145,6 +150,13 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.doesNotMatch(html, /user-scalable=no/);
   assert.match(refinementCss, /\.composer textarea:focus-visible\{outline:0\}/);
   assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
+});
+
+test("model configuration controls avoid iOS focus zoom", () => {
+  assert.match(
+    refinementCss,
+    /@media\s*\(max-width:600px\)\s*\{\s*\.settings-screen \.model-field input,\s*\.settings-screen \.model-field select\s*\{[^}]*font-size\s*:\s*16px/
+  );
 });
 
 test("the native shell uses the real iOS status bar and keeps the focused control in view", () => {
@@ -221,6 +233,22 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(refinementCss, /button:focus-visible/);
 });
 
+test("the next-step layer speaks like a judgment and gives three human exits", () => {
+  assert.match(html, /我觉得现在值得做/);
+  assert.match(html, /id="start-action"[^>]*>就这样做/);
+  assert.match(html, /id="discuss-action"[^>]*>和她聊聊/);
+  assert.match(html, /id="change-action"[^>]*>换个方向/);
+  assert.match(js, /change-action/);
+  assert.doesNotMatch(html, /今天的任务/);
+});
+
+test("the us page surfaces the companion's understanding before configuration", () => {
+  assert.match(html, /她现在知道的我/);
+  assert.match(html, /id="understanding-list"/);
+  assert.match(html, /这里有理解错的吗？/);
+  assert.match(js, /function renderUnderstanding\(\)/);
+});
+
 test("an accepted next step clearly becomes an in-progress state everywhere it appears", () => {
   assert.match(js, /const started = action\?\.status === "accepted"/);
   assert.match(js, /const actionLabel = started \? "进行中"/);
@@ -281,17 +309,40 @@ test("the entire composer supports hold to talk", () => {
   assert.match(infoPlist, /NSMicrophoneUsageDescription/);
 });
 
-test("selected controls use botanical green and the tab bar has restrained depth", () => {
-  assert.match(css, /--action:#315443/);
-  assert.match(css, /--action-strong:#234536/);
-  assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
+test("iOS voice input uses a real native Speech framework bridge", () => {
+  const controller = readFileSync(new URL("../../../ios/App/App/XuechengBridgeViewController.swift", import.meta.url), "utf8");
+
+  assert.match(controller, /import Speech/);
+  assert.match(controller, /import AVFoundation/);
+  assert.match(controller, /SFSpeechRecognizer/);
+  assert.match(controller, /AVAudioEngine/);
+  assert.match(controller, /xuechengSpeech/);
+  assert.match(controller, /requiresOnDeviceRecognition/);
+  assert.match(controller, /xuecheng:speech/);
+  assert.match(js, /window\.webkit\?\.messageHandlers\?\.xuechengSpeech/);
+  assert.match(js, /data-voice-state/);
+  assert.doesNotMatch(js, /confidence\s*>=\s*\.72\)\s*surface\.requestSubmit/);
 });
 
-test("the chosen production direction leads with botanical immersion and editorial clarity", () => {
-  assert.match(refinementCss, /Chosen direction: 70% botanical immersion, 30% warm editorial clarity/);
-  assert.match(css, /--canvas-soft:#f4f0e7/);
-  assert.match(css, /--surface:#fbf8f0/);
+test("short greetings stay local and assistant markdown is rendered safely", () => {
+  assert.match(js, /function isSimpleGreeting/);
+  assert.match(js, /&& !simpleGreeting/);
+  assert.match(js, /function formatMessageHtml/);
+  assert.match(js, /<strong>\$1<\/strong>/);
+  assert.match(js, /formatMessageHtml\(message\.text\)/);
+});
+
+test("selected controls use wood violet and the tab bar has restrained depth", () => {
+  assert.match(css, /--action:#4b4e72/);
+  assert.match(css, /--action-strong:#393c5b/);
+  assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:linear-gradient\(135deg,color-mix\(in srgb,var\(--accent-reflection\)/s);
+});
+
+test("the chosen production direction leads with moonlit study warmth and editorial clarity", () => {
+  assert.match(refinementCss, /Moonlit study: a warm-paper learning space/);
+  assert.match(css, /--canvas-soft:#f6f4e7/);
+  assert.match(css, /--surface:#fcfbf7/);
   assert.match(css, /--radius-card:16px/);
   assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent/);
   assert.match(refinementCss, /\.chat-atmosphere\{[^}]*height:256px/);
