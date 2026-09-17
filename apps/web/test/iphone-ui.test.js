@@ -29,7 +29,7 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the visual system uses quiet neutrals with directional accent colors", () => {
+test("the visual system uses a warm-paper palette with restrained directional accents", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
@@ -40,8 +40,11 @@ test("the visual system uses quiet neutrals with directional accent colors", () 
   assert.match(refinementCss, /onboarding-visual:before/);
   assert.match(refinementCss, /onboarding-visual figcaption\{[^}]*backdrop-filter:blur\(16px\)/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
-  assert.match(html, /name="theme-color" content="#f5f6f3"/);
+  assert.match(css, /--action:#4b4e72/);
+  assert.match(css, /--accent-general:#5fa3b0/);
+  assert.match(css, /--spark:#e4a268/);
+  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
+  assert.match(html, /name="theme-color" content="#e9e5d9"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -79,14 +82,14 @@ test("settings read like a finished product instead of a numbered design spec", 
   assert.match(html, /id="model-title">模型与智能/);
 });
 
-test("the refined visual system uses forest neutrals and one radius scale", () => {
+test("the refined visual system uses moonlit neutrals and one radius scale", () => {
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(css, /--canvas:#191d1b/);
-  assert.match(css, /--canvas-soft:#202522/);
-  assert.doesNotMatch(css, /--canvas:#211d1c|--canvas-soft:#282321/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
+  assert.match(css, /--canvas:#191b2a/);
+  assert.match(css, /--canvas-soft:#222535/);
+  assert.doesNotMatch(css, /--canvas:#191d1b/);
+  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
 });
 
 test("visible product copy avoids typographic dash decoration", () => {
@@ -133,7 +136,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
 });
 
 test("shared brand actions keep readable text in both atmospheres", () => {
-  assert.match(css, /--on-action:#f8f5eb/);
+  assert.match(css, /--on-action:#fdfcf8/);
   assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
@@ -329,17 +332,17 @@ test("short greetings stay local and assistant markdown is rendered safely", () 
   assert.match(js, /formatMessageHtml\(message\.text\)/);
 });
 
-test("selected controls use botanical green and the tab bar has restrained depth", () => {
-  assert.match(css, /--action:#315443/);
-  assert.match(css, /--action-strong:#234536/);
+test("selected controls use wood violet and the tab bar has restrained depth", () => {
+  assert.match(css, /--action:#4b4e72/);
+  assert.match(css, /--action-strong:#393c5b/);
   assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:linear-gradient\(135deg,color-mix\(in srgb,var\(--accent-reflection\)/s);
 });
 
-test("the chosen production direction leads with botanical immersion and editorial clarity", () => {
-  assert.match(refinementCss, /Chosen direction: 70% botanical immersion, 30% warm editorial clarity/);
-  assert.match(css, /--canvas-soft:#f4f0e7/);
-  assert.match(css, /--surface:#fbf8f0/);
+test("the chosen production direction leads with moonlit study warmth and editorial clarity", () => {
+  assert.match(refinementCss, /Moonlit study: a warm-paper learning space/);
+  assert.match(css, /--canvas-soft:#f6f4e7/);
+  assert.match(css, /--surface:#fcfbf7/);
   assert.match(css, /--radius-card:16px/);
   assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent/);
   assert.match(refinementCss, /\.chat-atmosphere\{[^}]*height:256px/);
