@@ -280,7 +280,10 @@ async function runUserJourney(browser, origin) {
     await page.keyboard.up("Space");
     verify((await input.inputValue()).includes(" "), "black-box: a short Space press must keep its typing behavior");
     await page.keyboard.down("Space");
-    await page.waitForTimeout(420);
+    // The product threshold is 360ms.  Wait for the actual start signal rather
+    // than releasing on a fixed 420ms wall-clock deadline: hosted runners can
+    // be briefly busy while Playwright has already delivered the key event.
+    await page.waitForFunction(() => window.__voiceStarts === 1, null, { timeout: 1500 });
     await page.keyboard.up("Space");
     equal(await page.evaluate(() => window.__voiceStarts), 1, "black-box: long Space press did not start voice input");
     equal(await page.evaluate(() => window.__voiceStops), 1, "black-box: long Space press did not stop voice input");
