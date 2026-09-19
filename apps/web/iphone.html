@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#e9e5d9">
+  <meta name="theme-color" content="#fcfcfb">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
@@ -59,7 +59,43 @@
       </span>
     </div>
 
-    <section class="screen active chat-screen" id="chat-screen" data-screen="chat">
+    <section class="screen active home-screen" id="home-screen" data-screen="home">
+      <header class="home-header">
+        <div class="home-brand" aria-label="学程">
+          <img src="./assets/xuecheng-mark.svg" alt="学程图标">
+          <span><b>学程</b><small>陪你，走更远的路</small></span>
+        </div>
+        <div class="home-date"><b id="home-date">今天</b><span id="home-date-note">从一小步开始</span></div>
+      </header>
+      <section class="home-welcome" aria-labelledby="home-welcome-title">
+        <small id="home-greeting">你好，</small>
+        <h1 id="home-welcome-title">今天想从哪里开始？</h1>
+      </section>
+      <section class="home-next-card" id="home-next-card" aria-labelledby="home-next-title" hidden>
+        <div class="home-card-kicker"><span></span>下一步 <small id="home-next-source">基于你确认的方向</small></div>
+        <h2 id="home-next-title"></h2>
+        <p id="home-next-why"></p>
+        <div class="home-next-footer"><span><i class="ph ph-clock" aria-hidden="true"></i><b id="home-next-time"></b></span><button type="button" data-start-current>开始学习 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
+        <button class="home-discuss" type="button" data-discuss="我想先和你讨论一下这个安排。"><i class="ph ph-chat-circle" aria-hidden="true"></i> 和小程讨论这个任务 <i class="ph ph-caret-right" aria-hidden="true"></i></button>
+      </section>
+      <section class="home-empty" id="home-empty">
+        <span class="home-empty-mark"><i class="ph ph-sparkle" aria-hidden="true"></i></span>
+        <h2>还不急着替你安排。</h2>
+        <p>告诉小程你现在的状态、想做的事或可用时间，她会和你一起找到下一步。</p>
+        <button type="button" data-open-screen="chat">和小程聊聊</button>
+      </section>
+      <section class="home-schedule" aria-labelledby="home-schedule-title">
+        <div class="home-section-heading"><h2 id="home-schedule-title">下一条日程</h2><button type="button" data-open-screen="today">查看日程 <i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
+        <div id="home-schedule-content" class="home-schedule-content"></div>
+      </section>
+      <button class="home-path-summary" type="button" data-open-screen="path">
+        <span class="home-path-icon"><i class="ph ph-path" aria-hidden="true"></i></span>
+        <span><small>学习路径</small><b id="home-path-title">从真实的目标慢慢长出来</b><em id="home-path-copy">不预设方向，也不替你定义。</em></span>
+        <i class="ph ph-caret-right" aria-hidden="true"></i>
+      </button>
+    </section>
+
+    <section class="screen chat-screen" id="chat-screen" data-screen="chat" hidden>
       <div class="chat-atmosphere" aria-hidden="true">
         <img src="./assets/onboarding-morning-v2.png" alt="" loading="eager" decoding="async">
       </div>
@@ -117,15 +153,18 @@
         <div class="attachment-preview" id="attachment-preview" hidden></div>
         <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
-        <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
+        <textarea id="chat-input" rows="1" placeholder="和小程说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
         <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
+        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b>正在听</b><small>松开后转成文字 · 上滑取消</small></div>
       </form>
     </section>
 
     <section class="screen today-screen" data-screen="today" hidden>
-      <header class="page-header"><small id="today-date">今天</small><h1>今天走到哪里了</h1><p>这里留下已经发生的事、现在的状态，以及她此刻认为值得看的下一步。</p></header>
+      <header class="page-header"><small>我的日程</small><h1>把今天留给重要的事</h1><p>日历里的安排属于你；学程的建议会先说明，再由你确认。</p></header>
+      <div class="calendar-controls" aria-label="切换日程日期"><button type="button" data-calendar-offset="-1" aria-label="前一天"><i class="ph ph-caret-left" aria-hidden="true"></i></button><b id="today-date">今天</b><button type="button" data-calendar-offset="1" aria-label="后一天"><i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
       <div class="energy-check" id="energy-check"><div><span>现在的状态</span><b>需要时，再告诉<span data-pronoun>她</span></b></div><button data-open-screen="chat">聊两句</button></div>
-      <div class="empty-state" id="today-empty"><b>今天还没有替你下结论。</b><p>先聊聊你正在经历什么。信息不够时，学程不会用通用任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
+      <div class="calendar-actions"><button type="button" id="calendar-import-today">导入日历</button><button type="button" id="calendar-add">手动添加</button></div>
+      <div class="empty-state" id="today-empty"><b>这一天还没有日程或建议。</b><p>你可以导入真实日历，也可以先和小程聊聊；她不会拿固定任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
       <ol class="agenda" id="today-agenda"></ol>
     </section>
 
@@ -187,7 +226,7 @@
       </header>
       <section class="settings-section" aria-labelledby="appearance-title">
         <div class="settings-title"><div><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
-        <p class="settings-note appearance-note">只改变空间明暗；月影紫、雾蓝与暖金的层次保持不变。</p>
+        <p class="settings-note appearance-note">只改变空间明暗；雾绿、深绿与陶土橙的层次保持不变。</p>
         <div class="appearance-switch" role="group" aria-label="界面氛围"><button type="button" data-theme-option="day">日间</button><button type="button" data-theme-option="night">夜间</button></div>
       </section>
       <section class="settings-section" aria-labelledby="plan-title">
@@ -234,15 +273,19 @@
       <form method="dialog"><small>补充当前对话</small><h2>把现实里的内容带进来</h2><div class="attachment-options"><button value="camera" data-attachment-source="camera">拍照</button><button value="photo" data-attachment-source="photo">选择照片</button><button value="file" data-attachment-source="file">选择文件</button><button value="paste" data-attachment-source="paste">粘贴文字</button></div><button value="cancel">取消</button></form>
     </dialog>
 
+    <dialog class="action-dialog schedule-dialog" id="schedule-dialog">
+      <form method="dialog"><small>仅保存到当前设备</small><h2>添加日程</h2><label class="model-field"><span>事项</span><input id="schedule-title" maxlength="60" placeholder="例如：Python 练习"></label><label class="model-field"><span>时间</span><input id="schedule-time" type="datetime-local"></label><div><button value="cancel">取消</button><button value="confirm" id="save-schedule">保存</button></div></form>
+    </dialog>
+
     <dialog class="action-dialog" id="paste-dialog">
       <form method="dialog"><small>补充当前对话</small><h2>粘贴一段文字</h2><textarea id="pasted-text" rows="7" placeholder="笔记、聊天内容、网页片段……"></textarea><div><button value="cancel">取消</button><button value="confirm" id="confirm-paste">加入对话</button></div></form>
     </dialog>
 
     <nav class="bottom-nav" aria-label="主要页面">
-      <button type="button" class="active" data-nav="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i><span>对话</span></button>
-      <button type="button" data-nav="today"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>今天</span></button>
-      <button type="button" data-nav="path"><i class="ph ph-path" aria-hidden="true"></i><span>路径</span></button>
-      <button type="button" data-nav="us"><i class="ph ph-user-circle" aria-hidden="true"></i><span>我们</span></button>
+      <button type="button" class="active" data-nav="home"><i class="ph ph-house" aria-hidden="true"></i><span>首页</span></button>
+      <button type="button" data-nav="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i><span>对话</span></button>
+      <button type="button" data-nav="today"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>日程</span></button>
+      <button type="button" data-nav="us"><i class="ph ph-user-circle" aria-hidden="true"></i><span>我的</span></button>
     </nav>
     <div class="app-toast" id="app-toast" role="status" aria-live="polite"></div>
   </main>

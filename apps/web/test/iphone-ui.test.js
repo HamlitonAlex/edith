@@ -29,7 +29,7 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the visual system uses a warm-paper palette with restrained directional accents", () => {
+test("the V3.1 visual system uses a quiet morning palette with restrained directional accents", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
@@ -37,14 +37,14 @@ test("the visual system uses a warm-paper palette with restrained directional ac
   assert.match(html, /assets\/onboarding-morning-v2\.png/);
   assert.match(html, /onboarding-morning-v2\.png[^>]*as="image"/);
   assert.match(html, /onboarding-morning-v2\.png[^>]*fetchpriority="high"/);
-  assert.match(refinementCss, /onboarding-visual:before/);
-  assert.match(refinementCss, /onboarding-visual figcaption\{[^}]*backdrop-filter:blur\(16px\)/);
+  assert.match(refinementCss, /V3\.1 — quiet morning/);
+  assert.match(refinementCss, /\.onboarding-visual>img\{display:none\}/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(css, /--action:#4b4e72/);
-  assert.match(css, /--accent-general:#5fa3b0/);
-  assert.match(css, /--spark:#e4a268/);
-  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
-  assert.match(html, /name="theme-color" content="#e9e5d9"/);
+  assert.match(refinementCss, /--action:#304b3d/);
+  assert.match(refinementCss, /--accent-general:#8ba99b/);
+  assert.match(refinementCss, /--spark:#c88d77/);
+  assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
+  assert.match(html, /name="theme-color" content="#fcfcfb"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -82,14 +82,14 @@ test("settings read like a finished product instead of a numbered design spec", 
   assert.match(html, /id="model-title">模型与智能/);
 });
 
-test("the refined visual system uses moonlit neutrals and one radius scale", () => {
+test("the refined visual system uses morning neutrals and one radius scale", () => {
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(css, /--canvas:#191b2a/);
-  assert.match(css, /--canvas-soft:#222535/);
+  assert.match(refinementCss, /--canvas:#1f2a25/);
+  assert.match(refinementCss, /--canvas-soft:#24322c/);
   assert.doesNotMatch(css, /--canvas:#191d1b/);
-  assert.match(js, /day: "#e9e5d9", night: "#191b2a"/);
+  assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
 });
 
 test("visible product copy avoids typographic dash decoration", () => {
@@ -251,9 +251,10 @@ test("the us page surfaces the companion's understanding before configuration", 
 
 test("an accepted next step clearly becomes an in-progress state everywhere it appears", () => {
   assert.match(js, /const started = action\?\.status === "accepted"/);
-  assert.match(js, /const actionLabel = started \? "进行中"/);
+  assert.match(js, /started \? "进行中" : "开始学习"/);
   assert.match(js, /data-start-current \$\{started \? "disabled" : ""\}/);
   assert.match(js, /start\.textContent = started \? "进行中"/);
+  assert.match(js, /#home-next-card \[data-start-current\]/);
   assert.match(refinementCss, /\.plan-proposal\.started #start-action/);
   assert.match(refinementCss, /\.agenda li\.next\.started \[data-start-current\]/);
 });
@@ -278,7 +279,7 @@ test("settings exposes real BYOK and backup controls", () => {
   assert.match(html, /id="save-model-config"/);
   assert.match(html, /id="quiet-start"/);
   assert.match(html, /id="agent-proposal"/);
-  assert.match(js, /name === "settings" \? "us" : name/);
+  assert.match(js, /name === "settings" \? "us" : name === "path" \? "home" : name/);
 });
 
 test("the companion identity is quiet, personal and gender configurable", () => {
@@ -349,12 +350,28 @@ test("the chosen production direction leads with moonlit study warmth and editor
   assert.match(refinementCss, /\.bottom-nav\{[^}]*right:14px[^}]*left:14px[^}]*border-radius:23px/);
 });
 
-test("the chat surface carries the immersive image without duplicating a live resource", () => {
-  assert.match(html, /class="screen active chat-screen" id="chat-screen"/);
+test("the V3.1 home is the active work surface and chat stays abstract", () => {
+  assert.match(html, /class="screen active home-screen" id="home-screen"/);
+  assert.match(html, /class="screen chat-screen" id="chat-screen" data-screen="chat" hidden/);
+  assert.match(html, /id="home-next-card"/);
+  assert.match(html, /id="home-schedule-content"/);
+  assert.match(html, /class="home-path-summary"[^>]*data-open-screen="path"/);
   assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true"/);
   assert.match(html, /class="chat-atmosphere"[\s\S]*?loading="eager"/);
   assert.match(js, /classList\.toggle\("has-proposal", Boolean\(action\)\)/);
-  assert.match(refinementCss, /\.chat-screen\.has-proposal \.chat-atmosphere\{[^}]*opacity:0/);
+  assert.match(refinementCss, /\.chat-atmosphere img\{display:none\}/);
+});
+
+test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedback", () => {
+  assert.match(html, /data-nav="home"/);
+  assert.match(html, /data-nav="chat"/);
+  assert.match(html, /data-nav="today"/);
+  assert.match(html, /data-nav="us"/);
+  assert.equal((html.match(/data-nav="/g) || []).length, 4);
+  assert.match(html, /class="voice-gesture"/);
+  assert.match(refinementCss, /\.composer\{[^}]*grid-template-columns:40px minmax\(0,1fr\) 42px/s);
+  assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture/);
+  assert.match(js, /event\.clientY >= startY - 54/);
 });
 
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {
@@ -402,13 +419,11 @@ test("the current mobile release fixes full bleed and stays portrait-first", () 
   assert.doesNotMatch(phoneOrientations, /Landscape/);
 });
 
-test("selected decision layers can carry quiet imagery without making every surface a card", () => {
-  assert.match(js, /className = "agenda-atmosphere"/);
+test("selected decision layers use CSS atmosphere without making every surface a card", () => {
   assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
-  assert.match(js, /className = "direction-atmosphere"/);
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*position:absolute/);
-  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*linear-gradient/);
-  assert.match(refinementCss, /:root\[data-theme="night"\] \.agenda-atmosphere,:root\[data-theme="night"\] \.direction-atmosphere/);
+  assert.match(refinementCss, /\.phone\{[\s\S]*?radial-gradient/s);
+  assert.match(refinementCss, /\.chat-atmosphere img\{display:none\}/);
+  assert.match(refinementCss, /\.direction-atmosphere,.agenda-atmosphere\{display:none!important\}/);
   assert.match(refinementCss, /prefers-reduced-transparency:reduce/);
 });
 

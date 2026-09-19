@@ -167,6 +167,7 @@ async function runUserJourney(browser, origin) {
     await page.goto(origin, { waitUntil: "networkidle" });
     await page.locator('[data-onboarding-step="partner"]').waitFor({ state: "visible" });
     for (let step = 0; step < 3; step += 1) await page.locator('[data-onboarding-skip]:visible').click();
+    await page.locator('[data-nav="chat"]').click();
     await page.locator("#empty-conversation").waitFor({ state: "visible" });
 
     await page.locator("#attachment-trigger").click();
@@ -197,9 +198,11 @@ async function runUserJourney(browser, origin) {
     await page.locator("#start-action").click();
     await page.waitForFunction(() => document.querySelector("#start-action")?.disabled);
     equal(await page.locator("#start-action").textContent(), "进行中", "black-box: starting a task must change the primary action to its in-progress state");
-    equal(await page.locator("[data-start-current]").textContent(), "进行中", "black-box: the today surface must mirror the in-progress task state");
-    verify(await page.locator("[data-start-current]").isDisabled(), "black-box: today must not offer a second start action for an active task");
-    await page.locator('[data-nav="path"]').click();
+    await page.locator('[data-nav="home"]').click();
+    await page.locator("#home-next-card").waitFor({ state: "visible" });
+    equal(await page.locator("#home-next-card [data-start-current]").textContent(), "进行中", "black-box: the home surface must mirror the in-progress task state");
+    verify(await page.locator("#home-next-card [data-start-current]").isDisabled(), "black-box: home must not offer a second start action for an active task");
+    await page.locator(".home-path-summary").click();
     await page.locator("#current-direction").waitFor({ state: "visible" });
 
     await page.evaluate(() => {
@@ -301,7 +304,7 @@ async function runLayoutSweep(browser, origin) {
     { name: "iPhone 15", viewport: { width: 393, height: 852 } },
     { name: "iPhone Plus", viewport: { width: 430, height: 932 } },
   ];
-  const screens = ["chat", "today", "path", "us", "settings"];
+  const screens = ["home", "chat", "today", "path", "us", "settings"];
   const themes = ["day", "night"];
   for (const device of devices) {
     for (const theme of themes) {

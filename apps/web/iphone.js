@@ -12,7 +12,7 @@ const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
-const themeColors = { day: "#e9e5d9", night: "#191b2a" };
+const themeColors = { day: "#fcfcfb", night: "#1f2a25" };
 const ratio = (value, fallback) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
@@ -38,7 +38,8 @@ let state = load();
 let agentState = loadAgent();
 let pendingAttachments = [];
 let onboardingIndex = 0;
-const screenOrder = ["chat", "today", "path", "us", "settings"];
+let calendarViewDate = new Date();
+const screenOrder = ["home", "chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
 let isSending = false;
@@ -284,28 +285,86 @@ function showDialog(selector) {
   }
 }
 
+function calendarDateKey(date) {
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function calendarEventDate(event) {
+  const match = String(event?.start || "").match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+  if (!match) return null;
+  return { key: `${match[1]}${match[2]}${match[3]}`, time: match[4] ? `${match[4]}:${match[5] || "00"}` : "全天" };
+}
+
+function calendarTimestamp(date, time = "09:00") {
+  const [hour, minute] = time.split(":");
+  return `${calendarDateKey(date)}T${String(hour || "09").padStart(2, "0")}${String(minute || "00").padStart(2, "0")}00`;
+}
+
 function renderToday(pronoun) {
   const action = agentState.next_recommended_action;
   const agenda = $("#today-agenda");
+  const targetKey = calendarDateKey(calendarViewDate);
+  const isToday = targetKey === calendarDateKey(new Date());
+  $("#today-date").textContent = isToday
+    ? "今天"
+    : new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(calendarViewDate);
   $("#energy-check").hidden = !agentState.long_term_goals.length;
-  $("#today-empty").hidden = Boolean(action);
+  const calendarEntries = state.calendarEvents
+    .map(event => ({ event, parsed: calendarEventDate(event) }))
+    .filter(item => item.parsed?.key === targetKey)
+    .sort((left, right) => left.parsed.time.localeCompare(right.parsed.time));
   const started = action?.status === "accepted";
-  const actionLabel = started ? "进行中" : "就这样做";
-  agenda.innerHTML = action ? `<li class="next ${started ? "started" : ""}"><time>现在<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么是现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${actionLabel}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-change-current>换个方向</button></div></div><span>${started ? "正在推进" : "她觉得值得一试"}</span></li>` : "";
-  const next = agenda.querySelector(".next");
-  if (!next || !action) return;
-  const atmosphere = document.createElement("img");
-  atmosphere.className = "agenda-atmosphere";
-  atmosphere.alt = "";
-  atmosphere.setAttribute("aria-hidden", "true");
-  atmosphere.loading = "lazy";
-  atmosphere.src = safeImageUrl(action.resource?.image_url) || "./assets/onboarding-path.webp";
-  atmosphere.addEventListener("error", () => {
-    if (atmosphere.dataset.fallback) { atmosphere.remove(); return; }
-    atmosphere.dataset.fallback = "true";
-    atmosphere.src = "./assets/onboarding-path.webp";
-  });
-  next.prepend(atmosphere);
+  const suggestion = action && isToday
+    ? `<li class="next ${started ? "started" : ""}"><time>建议<small>${action.duration_minutes} 分钟</small></time><div><small>AI 建议 · 未写入日程</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么是现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button>${started ? "" : '<button type="button" data-add-action-calendar>添加到日程</button>'}</div></div><span>${started ? "正在推进" : "等待确认"}</span></li>`
+    : "";
+  const events = calendarEntries.map(({ event, parsed }) => `<li class="calendar-entry"><time>${escapeHtml(parsed.time)}</time><div><small>你的日程</small><h2>${escapeHtml(event.summary || "未命名安排")}</h2><p>已保存在当前设备</p></div><span>已确认</span></li>`).join("");
+  $("#today-empty").hidden = Boolean(events || suggestion);
+  agenda.innerHTML = events + suggestion;
+}
+
+function formatCalendarEvent(event) {
+  const raw = String(event?.start || "").trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+  if (!match) return { time: "未设时间", detail: "已从你的本地日历导入" };
+  const [, year, month, day, hour, minute] = match;
+  const date = `${Number(month)}月${Number(day)}日`;
+  return { time: hour ? `${hour}:${minute || "00"}` : date, detail: year ? `${date} · 已从你的本地日历导入` : "已从你的本地日历导入" };
+}
+
+function renderHome() {
+  const action = agentState.next_recommended_action;
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 11 ? "早上好，" : hour < 18 ? "下午好，" : "晚上好，";
+  $("#home-greeting").textContent = greeting;
+  $("#home-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(now);
+  $("#home-date-note").textContent = state.messages.length ? "继续从你真实的状态出发" : "从一小步开始";
+  $("#home-next-card").hidden = !action;
+  $("#home-empty").hidden = Boolean(action);
+  if (action) {
+    const started = action.status === "accepted";
+    $("#home-next-title").textContent = action.title;
+    $("#home-next-why").textContent = action.why_now;
+    $("#home-next-time").textContent = `${action.duration_minutes} 分钟`;
+    $("#home-next-source").textContent = started ? "正在进行" : `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
+    const start = $("#home-next-card [data-start-current]");
+    start.textContent = started ? "进行中" : "开始学习";
+    start.disabled = started;
+  }
+  const todayKey = calendarDateKey(now);
+  const nextEvent = [...state.calendarEvents]
+    .map(event => ({ event, date: calendarEventDate(event) }))
+    .filter(({ date }) => date?.key >= todayKey)
+    .sort((left, right) => `${left.date.key}${left.date.time}`.localeCompare(`${right.date.key}${right.date.time}`))[0]?.event
+    || state.calendarEvents[0];
+  $("#home-schedule-content").innerHTML = nextEvent
+    ? `<span class="home-schedule-time">${escapeHtml(formatCalendarEvent(nextEvent).time)}</span><span><b>${escapeHtml(nextEvent.summary || "未命名安排")}</b><small>${escapeHtml(formatCalendarEvent(nextEvent).detail)}</small></span>`
+    : `<span class="home-schedule-empty"><i class="ph ph-calendar-dots" aria-hidden="true"></i><span><b>还没有导入日程</b><small>导入 .ics 日历后，学程会把真实安排作为判断依据。</small></span></span>`;
+  const goal = agentState.long_term_goals[0];
+  $("#home-path-title").textContent = goal?.text || "从真实的目标慢慢长出来";
+  $("#home-path-copy").textContent = goal
+    ? `${Object.values(agentState.skills).filter(skill => skill.evidence.length).length} 个正在积累的证据`
+    : "不预设方向，也不替你定义。";
 }
 
 function renderPath() {
@@ -389,6 +448,7 @@ function render() {
     return divider + content;
   }).join("");
   $("#empty-conversation").hidden = conversationStatus !== "idle_empty" || state.messages.length > 0 || Boolean(agentState.next_recommended_action);
+  renderHome();
   renderToday(pronoun);
   renderPath();
   renderUnderstanding();
@@ -453,6 +513,7 @@ function openScreen(name) {
   const currentName = currentScreen?.dataset.screen;
   if (currentName === name) return;
   const nextScreen = document.querySelector(`.screen[data-screen="${name}"]`);
+  if (!nextScreen) return;
   const phone = $(".phone");
   const direction = screenOrder.indexOf(name) < screenOrder.indexOf(currentName) ? -1 : 1;
   phone.dataset.direction = direction < 0 ? "backward" : "forward";
@@ -495,7 +556,7 @@ function openScreen(name) {
     }
   }
   document.querySelectorAll("[data-nav]").forEach(button => {
-    const navName = name === "settings" ? "us" : name;
+    const navName = name === "settings" ? "us" : name === "path" ? "home" : name;
     const active = button.dataset.nav === navName;
     button.classList.toggle("active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
@@ -703,6 +764,15 @@ document.addEventListener("click", event => {
   if (discuss) discussCurrentAction(discuss.dataset.discuss);
   if (event.target.closest("[data-change-current]")) $("#change-action").click();
   if (event.target.closest("[data-start-current]")) $("#start-action").click();
+  if (event.target.closest("[data-add-action-calendar]")) {
+    const action = agentState.next_recommended_action;
+    if (!action) return;
+    if (!window.confirm(`把“${action.title}”添加到今天的日程吗？`)) return;
+    state.calendarEvents.push({ summary: action.title, start: calendarTimestamp(calendarViewDate), source: "confirmed-ai-suggestion" });
+    save();
+    render();
+    showToast("已添加到你的本地日程");
+  }
 });
 $("#confirm-external-action").addEventListener("click", () => {
   const url = pendingExternalUrl;
@@ -967,6 +1037,34 @@ $("#confirm-paste").addEventListener("click", event => {
 });
 
 $("#calendar-import").addEventListener("click", () => $("#calendar-file").click());
+$("#calendar-import-today").addEventListener("click", () => $("#calendar-file").click());
+document.querySelectorAll("[data-calendar-offset]").forEach(button => button.addEventListener("click", () => {
+  calendarViewDate.setDate(calendarViewDate.getDate() + Number(button.dataset.calendarOffset || 0));
+  renderToday(pronounFor(state.gender));
+}));
+$("#calendar-add").addEventListener("click", () => {
+  const local = new Date(calendarViewDate);
+  local.setHours(9, 0, 0, 0);
+  $("#schedule-time").value = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}T09:00`;
+  $("#schedule-title").value = "";
+  showDialog("#schedule-dialog");
+});
+$("#save-schedule").addEventListener("click", event => {
+  const title = $("#schedule-title").value.trim();
+  const value = $("#schedule-time").value;
+  if (!title || !value) {
+    event.preventDefault();
+    showToast("请补充事项和时间");
+    return;
+  }
+  const [date, time] = value.split("T");
+  const [year, month, day] = date.split("-");
+  state.calendarEvents.push({ summary: title, start: `${year}${month}${day}T${time.replace(":", "")}00`, source: "manual" });
+  save();
+  calendarViewDate = new Date(`${value}:00`);
+  render();
+  showToast("日程已保存到当前设备");
+});
 $("#calendar-file").addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
@@ -1218,17 +1316,33 @@ function bindHoldToTalk(surface) {
 function bindVoiceButton(button) {
   let holdTimer = null;
   let holding = false;
+  let startY = 0;
+  let cancelledBySlide = false;
   button.addEventListener("pointerdown", event => {
     if (!button.classList.contains("voice-mode")) return;
     event.preventDefault();
+    startY = event.clientY;
+    cancelledBySlide = false;
+    if (Number.isFinite(event.pointerId)) {
+      try { button.setPointerCapture?.(event.pointerId); } catch { /* synthetic events may not expose a capturable pointer */ }
+    }
     holdTimer = setTimeout(() => {
       holdTimer = null;
       holding = voiceController.start();
     }, 260);
   });
+  button.addEventListener("pointermove", event => {
+    if (!button.classList.contains("voice-mode") || cancelledBySlide || event.clientY >= startY - 54) return;
+    cancelledBySlide = true;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding || voiceController.isListening()) voiceController.cancel();
+    holding = false;
+  });
   button.addEventListener("pointerup", event => {
     if (!button.classList.contains("voice-mode")) return;
     event.preventDefault();
+    if (cancelledBySlide) return;
     if (holdTimer) {
       clearTimeout(holdTimer);
       holdTimer = null;
@@ -1243,6 +1357,7 @@ function bindVoiceButton(button) {
     holdTimer = null;
     if (holding) voiceController.cancel();
     holding = false;
+    cancelledBySlide = false;
   });
   button.addEventListener("click", event => {
     if (button.classList.contains("voice-mode")) event.preventDefault();
@@ -1294,7 +1409,7 @@ bindDesktopSpaceToTalk(chatInput);
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 const initialScreen = new URLSearchParams(location.search).get("screen");
-if (["chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
+if (["home", "chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
 syncVisualViewport();
 resizeComposer();
 render();
