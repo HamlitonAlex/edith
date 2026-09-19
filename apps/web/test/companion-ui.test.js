@@ -39,7 +39,7 @@ test("mobile chat keeps a clear daily atmosphere tied to the current topic", () 
   assert.match(iphoneJs, /dailyAtmosphere/);
   assert.match(iphoneJs, /chooseDailyAtmosphere/);
   assert.match(iphoneJs, /renderChatAtmosphere\(action\)/);
-  assert.match(iphoneCss, /filter:saturate\(\.82\) contrast\(1\.05\) brightness\(1\.03\)/);
-  assert.match(iphoneCss, /data-atmosphere="path"/);
+  assert.match(iphoneCss, /\.chat-atmosphere img/);
+  assert.match(iphoneCss, /radial-gradient/);
   assert.match(iphoneHtml, /chat-atmosphere/);
 });

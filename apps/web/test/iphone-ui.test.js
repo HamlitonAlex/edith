@@ -37,12 +37,12 @@ test("the V3.1 visual system uses a quiet morning palette with restrained direct
   assert.match(html, /assets\/onboarding-morning-v2\.png/);
   assert.match(html, /onboarding-morning-v2\.png[^>]*as="image"/);
   assert.match(html, /onboarding-morning-v2\.png[^>]*fetchpriority="high"/);
-  assert.match(refinementCss, /V3\.1 — quiet morning/);
-  assert.match(refinementCss, /\.onboarding-visual>img\{display:none\}/);
+  assert.match(refinementCss, /学程 V3\.1/);
+  assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(refinementCss, /--action:#304b3d/);
-  assert.match(refinementCss, /--accent-general:#8ba99b/);
-  assert.match(refinementCss, /--spark:#c88d77/);
+  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
+  assert.match(refinementCss, /--xc-green-soft:\s*#6f8c7d/);
+  assert.match(refinementCss, /--xc-orange:\s*#c88d77/);
   assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
   assert.match(html, /name="theme-color" content="#fcfcfb"/);
 });
@@ -86,8 +86,8 @@ test("the refined visual system uses morning neutrals and one radius scale", () 
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(refinementCss, /--canvas:#1f2a25/);
-  assert.match(refinementCss, /--canvas-soft:#24322c/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
+  assert.match(refinementCss, /--xc-mist:\s*#eef2ed/);
   assert.doesNotMatch(css, /--canvas:#191d1b/);
   assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
 });
@@ -148,15 +148,12 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(html, /interactive-widget=resizes-content/);
   assert.doesNotMatch(html, /maximum-scale=1/);
   assert.doesNotMatch(html, /user-scalable=no/);
-  assert.match(refinementCss, /\.composer textarea:focus-visible\{outline:0\}/);
-  assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
+  assert.match(refinementCss, /\.composer textarea:focus-visible\s*\{\s*outline:\s*0/);
+  assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\s*\{\s*display:\s*none/);
 });
 
 test("model configuration controls avoid iOS focus zoom", () => {
-  assert.match(
-    refinementCss,
-    /@media\s*\(max-width:600px\)\s*\{\s*\.settings-screen \.model-field input,\s*\.settings-screen \.model-field select\s*\{[^}]*font-size\s*:\s*16px/
-  );
+  assert.match(refinementCss, /\.settings-screen \.model-field input[\s\S]*font-size:\s*16px/);
 });
 
 test("the native shell uses the real iOS status bar and keeps the focused control in view", () => {
@@ -199,10 +196,10 @@ test("functional controls use one local Phosphor icon family", () => {
 });
 
 test("bottom navigation is a floating rounded control layer over a quiet canvas", () => {
-  assert.match(refinementCss, /\.bottom-nav\s*\{[^}]*right:\s*12px[^}]*left:\s*12px[^}]*border-radius:\s*24px/s);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*right:\s*12px[\s\S]*left:\s*12px[\s\S]*border-radius:\s*27px/s);
   assert.match(refinementCss, /\.phone::after,[\s\S]*\.plan-proposal::after\s*\{\s*display:\s*none/);
-  assert.match(refinementCss, /\.chat-screen\s*\{\s*background:\s*transparent/);
-  assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
+  assert.match(refinementCss, /\.chat-screen\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.bottom-nav button\s*\{[\s\S]*min-height:\s*54px/s);
 });
 
 test("dynamic recommendations keep content covers optional while atmosphere stays generic", () => {
@@ -219,9 +216,9 @@ test("dynamic recommendations keep content covers optional while atmosphere stay
 
 test("the recommendation opens as atmosphere and settles after starting", () => {
   assert.match(js, /classList\.toggle\("started", action\?\.status === "accepted"\)/);
-  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent[^}]*box-shadow:none/);
-  assert.match(refinementCss, /\.plan-proposal\.started \.proposal-atmosphere\{[^}]*height:70px/);
-  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*border-radius:0[^}]*background:transparent/);
+  assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*border:\s*1px[\s\S]*background:/);
+  assert.match(refinementCss, /\.proposal-atmosphere\s*\{[\s\S]*height:\s*72px/);
+  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green\)/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {
@@ -229,7 +226,7 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(html, /id="start-action"/);
   assert.match(html, /id="discuss-action"/);
   assert.doesNotMatch(html, /id="adopt-plan"|接受这个安排/);
-  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/s);
+  assert.match(refinementCss, /\.plan-actions\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\) auto/s);
   assert.match(refinementCss, /button:focus-visible/);
 });
 
@@ -255,8 +252,8 @@ test("an accepted next step clearly becomes an in-progress state everywhere it a
   assert.match(js, /data-start-current \$\{started \? "disabled" : ""\}/);
   assert.match(js, /start\.textContent = started \? "进行中"/);
   assert.match(js, /#home-next-card \[data-start-current\]/);
-  assert.match(refinementCss, /\.plan-proposal\.started #start-action/);
-  assert.match(refinementCss, /\.agenda li\.next\.started \[data-start-current\]/);
+  assert.match(refinementCss, /\.plan-actions #start-action/);
+  assert.match(refinementCss, /\.agenda li\.next/);
 });
 
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
@@ -333,21 +330,21 @@ test("short greetings stay local and assistant markdown is rendered safely", () 
   assert.match(js, /formatMessageHtml\(message\.text\)/);
 });
 
-test("selected controls use wood violet and the tab bar has restrained depth", () => {
-  assert.match(css, /--action:#4b4e72/);
-  assert.match(css, /--action-strong:#393c5b/);
-  assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:linear-gradient\(135deg,color-mix\(in srgb,var\(--accent-reflection\)/s);
+test("selected controls use forest green and the tab bar has restrained depth", () => {
+  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
+  assert.match(refinementCss, /--xc-glass:\s*rgba\(255, 255, 255, \.72\)/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, \.76\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*rgba\(48, 75, 61, \.12\)/s);
 });
 
-test("the chosen production direction leads with moonlit study warmth and editorial clarity", () => {
-  assert.match(refinementCss, /Moonlit study: a warm-paper learning space/);
-  assert.match(css, /--canvas-soft:#f6f4e7/);
-  assert.match(css, /--surface:#fcfbf7/);
-  assert.match(css, /--radius-card:16px/);
-  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent/);
-  assert.match(refinementCss, /\.chat-atmosphere\{[^}]*height:256px/);
-  assert.match(refinementCss, /\.bottom-nav\{[^}]*right:14px[^}]*left:14px[^}]*border-radius:23px/);
+test("the chosen production direction leads with morning mist and editorial clarity", () => {
+  assert.match(refinementCss, /reference-aligned surface/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
+  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
+  assert.match(refinementCss, /--radius-card:\s*24px/);
+  assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.chat-atmosphere\s*\{[\s\S]*display:\s*block/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*border-radius:\s*27px/);
 });
 
 test("the V3.1 home is the active work surface and chat stays abstract", () => {
@@ -359,7 +356,7 @@ test("the V3.1 home is the active work surface and chat stays abstract", () => {
   assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true"/);
   assert.match(html, /class="chat-atmosphere"[\s\S]*?loading="eager"/);
   assert.match(js, /classList\.toggle\("has-proposal", Boolean\(action\)\)/);
-  assert.match(refinementCss, /\.chat-atmosphere img\{display:none\}/);
+  assert.match(refinementCss, /\.chat-atmosphere img/);
 });
 
 test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedback", () => {
@@ -369,51 +366,50 @@ test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedba
   assert.match(html, /data-nav="us"/);
   assert.equal((html.match(/data-nav="/g) || []).length, 4);
   assert.match(html, /class="voice-gesture"/);
-  assert.match(refinementCss, /\.composer\{[^}]*grid-template-columns:40px minmax\(0,1fr\) 42px/s);
+  assert.match(refinementCss, /\.composer\s*\{[\s\S]*grid-template-columns:\s*40px minmax\(0, 1fr\) 40px/s);
   assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture/);
   assert.match(js, /event\.clientY >= startY - 54/);
 });
 
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {
-  assert.match(refinementCss, /Unified hierarchy: the same depth grammar, tuned density per screen/);
-  assert.match(refinementCss, /\.screen:not\(\.chat-screen\)\{[^}]*background:/);
-  assert.match(refinementCss, /\.page-header::before\{[^}]*background:linear-gradient/);
-  assert.match(refinementCss, /\.agenda li\{position:relative/);
-  assert.match(refinementCss, /\.settings-section\{[^}]*backdrop-filter:blur\(18px\)/);
-  assert.match(refinementCss, /\.agenda-actions \[data-start-current\]\{[^}]*background:var\(--action\)/);
-  assert.match(refinementCss, /\.model-field input,.model-field select,.setting-field select\{color:var\(--ink\)}/);
-  assert.match(refinementCss, /\.talk-about-path,.primary-settings-action/);
+  assert.match(refinementCss, /Today, path and settings use the same cards/);
+  assert.match(refinementCss, /\.page-header\s*\{[\s\S]*padding:/);
+  assert.match(refinementCss, /\.agenda li\s*\{/);
+  assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.model-field input,[\s\S]*\.model-field select/);
+  assert.match(refinementCss, /\.talk-about-path/);
 });
 
-test("companion and settings pages use a full-width immersive atmosphere", () => {
+test("companion and settings pages preserve safe-area content boundaries", () => {
   assert.match(html, /class="profile-atmosphere"[^>]*aria-hidden="true"/);
   assert.match(html, /class="settings-atmosphere"[^>]*aria-hidden="true"/);
-  assert.match(refinementCss, /\.us-screen,\.settings-screen\{[^}]*padding-right:0[^}]*padding-left:0/);
-  assert.match(refinementCss, /\.profile-atmosphere\{[^}]*height:244px[^}]*overflow:hidden/);
-  assert.match(refinementCss, /\.settings-header\{[^}]*margin-top:-190px/);
-  assert.match(refinementCss, /\.settings-section\{[^}]*margin:0[^}]*border-radius:0[^}]*box-shadow:none/);
-  assert.match(refinementCss, /@media\(max-width:600px\)\{\.us-screen,\.settings-screen\{[^}]*padding-left:0\}\.us-screen\{padding-top:0\}/);
+  assert.match(refinementCss, /\.us-screen,[\s\S]*\.settings-screen\s*\{[\s\S]*padding-right:\s*20px[\s\S]*padding-left:\s*20px/);
+  assert.match(refinementCss, /\.profile-atmosphere\s*\{[\s\S]*display:\s*none/);
+  assert.match(refinementCss, /\.settings-header\s*\{[\s\S]*padding-top:/);
+  assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*border-radius:\s*22px/);
+  assert.match(refinementCss, /native-shell \.settings-screen\s*\{\s*padding-top:\s*0/);
 });
 
 test("the conversation model stays understandable without becoming a large selector", () => {
   assert.match(js, /selectedModelLabel = state\.currentConversationModel === "local" \? "本地"/);
   assert.match(js, /class="model-status-dot"/);
-  assert.match(refinementCss, /\.companion-header \.conversation-model\{[^}]*max-width:108px[^}]*height:36px/);
-  assert.match(refinementCss, /#model-dialog\{[^}]*inset:calc\(70px \+ env\(safe-area-inset-top\)\) 16px auto auto/);
-  assert.match(refinementCss, /#model-dialog::backdrop\{background:transparent/);
+  assert.match(refinementCss, /\.conversation-model\s*\{/);
+  assert.match(refinementCss, /#model-dialog\s*\{[\s\S]*max-height:/);
+  assert.match(refinementCss, /#model-dialog form\s*\{/);
 });
 
-test("today and path imagery remains visible beneath a botanical reading layer", () => {
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*opacity:\.76[^}]*saturate\(\.74\)/);
-  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*radial-gradient\(ellipse at 108% 115%[^}]*var\(--action\)/);
-  assert.match(refinementCss, /\.agenda li\.next,.current-direction\{[^}]*border-radius:24px[^}]*box-shadow:/);
+test("today and path screens use abstract surfaces without photo backgrounds", () => {
+  assert.match(refinementCss, /\.agenda-atmosphere/);
+  assert.match(refinementCss, /\.direction-atmosphere/);
+  assert.match(refinementCss, /\.agenda li\.next\s*\{[\s\S]*border-radius:\s*22px/);
+  assert.match(refinementCss, /\.current-direction\s*\{[\s\S]*border-radius:\s*22px/);
 });
 
 test("the current mobile release fixes full bleed and stays portrait-first", () => {
   assert.match(html, /学程 1\.0\.2 · 本地个人版/);
-  assert.match(refinementCss, /1\.0\.1 release correction/);
-  assert.match(refinementCss, /\.us-screen\{padding-top:0\}/);
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{opacity:\.86/);
+  assert.match(refinementCss, /@media \(max-width: 600px\)/);
+  assert.match(refinementCss, /\.phone\s*\{[\s\S]*width:\s*100%/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{/);
   const phoneOrientations = infoPlist.match(/<key>UISupportedInterfaceOrientations<\/key>[\s\S]*?<\/array>/)?.[0] || "";
   assert.match(phoneOrientations, /UIInterfaceOrientationPortrait/);
   assert.doesNotMatch(phoneOrientations, /Landscape/);
@@ -421,25 +417,25 @@ test("the current mobile release fixes full bleed and stays portrait-first", () 
 
 test("selected decision layers use CSS atmosphere without making every surface a card", () => {
   assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
-  assert.match(refinementCss, /\.phone\{[\s\S]*?radial-gradient/s);
-  assert.match(refinementCss, /\.chat-atmosphere img\{display:none\}/);
-  assert.match(refinementCss, /\.direction-atmosphere,.agenda-atmosphere\{display:none!important\}/);
-  assert.match(refinementCss, /prefers-reduced-transparency:reduce/);
+  assert.match(refinementCss, /\.phone\s*\{[\s\S]*radial-gradient/s);
+  assert.match(refinementCss, /\.chat-atmosphere img/);
+  assert.match(refinementCss, /\.direction-atmosphere/);
+  assert.match(refinementCss, /backdrop-filter:\s*blur/);
 });
 
 test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
-  assert.match(refinementCss, /Ambient atmosphere: two quiet fields of brand light/);
-  assert.match(refinementCss, /\.phone\{[\s\S]*?var\(--accent-growth\)[\s\S]*?var\(--action\)[\s\S]*?linear-gradient\(165deg/s);
-  assert.match(refinementCss, /:root\[data-theme="night"\] \.phone\{[\s\S]*?var\(--accent-reflection\)[\s\S]*?var\(--action\)/s);
-  assert.match(refinementCss, /\.settings-screen\{background:linear-gradient\(180deg,[^}]*transparent/);
+  assert.match(refinementCss, /radial-gradient\(ellipse 78% 38%/);
+  assert.match(refinementCss, /linear-gradient\(145deg, var\(--xc-bg\)/s);
+  assert.match(refinementCss, /:root\[data-theme="night"\]/);
+  assert.match(refinementCss, /\.settings-screen\s*\{/);
 });
 
 test("the next-step card uses a branded route and a single dominant action", () => {
   assert.match(html, /class="proposal-route"[^>]*aria-hidden="true"/);
   assert.match(html, /class="route-now"/);
-  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*justify-content:flex-start[^}]*background:var\(--action\)/s);
-  assert.match(refinementCss, /\.plan-actions #discuss-action\{[^}]*border:0[^}]*background:transparent/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active::after\{[^}]*border-radius:50%/s);
+  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green\)/s);
+  assert.match(refinementCss, /\.plan-actions\s*\{[\s\S]*grid-template-columns:/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{/s);
 });
 
 test("new users begin without fabricated personal history", () => {

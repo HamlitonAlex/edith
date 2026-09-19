@@ -62,16 +62,16 @@
 
     <section class="screen active home-screen" id="home-screen" data-screen="home">
       <header class="home-header">
-        <div class="home-brand" aria-label="学程">
-          <img src="./assets/xuecheng-mark.svg" alt="学程图标">
-          <span><b>学程</b><small>陪你，走更远的路</small></span>
+        <div class="home-welcome" aria-labelledby="home-welcome-title">
+          <small id="home-greeting">你好，</small>
+          <h1 id="home-welcome-title">你。</h1>
+          <p id="home-welcome-subtitle">今天也在靠近更好的自己。</p>
         </div>
-        <div class="home-date"><b id="home-date">今天</b><span id="home-date-note">从一小步开始</span></div>
+        <button class="home-assistant" type="button" data-open-screen="chat" aria-label="和小程聊聊">
+          <img src="./assets/xuecheng-mark.svg" alt="小程图标">
+          <span>和小程聊聊</span>
+        </button>
       </header>
-      <section class="home-welcome" aria-labelledby="home-welcome-title">
-        <small id="home-greeting">你好，</small>
-        <h1 id="home-welcome-title">今天想从哪里开始？</h1>
-      </section>
       <section class="home-next-card" id="home-next-card" aria-labelledby="home-next-title" hidden>
         <div class="home-card-kicker"><span></span>下一步 <small id="home-next-source">基于你确认的方向</small></div>
         <h2 id="home-next-title"></h2>
@@ -79,11 +79,12 @@
         <div class="home-next-footer"><span><i class="ph ph-clock" aria-hidden="true"></i><b id="home-next-time"></b></span><button type="button" data-start-current>开始学习 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
         <button class="home-discuss" type="button" data-discuss="我想先和你讨论一下这个安排。"><i class="ph ph-chat-circle" aria-hidden="true"></i> 和小程讨论这个任务 <i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </section>
-      <section class="home-empty" id="home-empty">
-        <span class="home-empty-mark" aria-hidden="true"><span class="home-empty-orbit"></span></span>
-        <h2>还不急着替你安排。</h2>
-        <p>告诉小程你现在的状态、想做的事或可用时间，她会和你一起找到下一步。</p>
-        <button type="button" data-open-screen="chat">和小程聊聊</button>
+      <section class="home-empty home-next-card" id="home-empty" aria-labelledby="home-empty-title">
+        <div class="home-card-kicker"><span></span>下一步 <small>等你告诉我现在的状态</small></div>
+        <h2 id="home-empty-title">还不急着替你安排。</h2>
+        <p>先和小程说说现在的状态、想做的事或可用时间，再一起找到值得做的一小步。</p>
+        <div class="home-next-footer"><span><i class="ph ph-chat-circle" aria-hidden="true"></i><b>从一次对话开始</b></span><button type="button" data-open-screen="chat">开始聊天 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
+        <button class="home-discuss" type="button" data-open-screen="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i> 和小程讨论现在的状态 <i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </section>
       <section class="home-schedule" aria-labelledby="home-schedule-title">
         <div class="home-section-heading"><h2 id="home-schedule-title">下一条日程</h2><button type="button" data-open-screen="today">查看日程 <i class="ph ph-caret-right" aria-hidden="true"></i></button></div>

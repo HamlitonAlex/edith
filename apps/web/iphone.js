@@ -337,8 +337,10 @@ function renderHome() {
   const hour = now.getHours();
   const greeting = hour < 11 ? "早上好，" : hour < 18 ? "下午好，" : "晚上好，";
   $("#home-greeting").textContent = greeting;
-  $("#home-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(now);
-  $("#home-date-note").textContent = state.messages.length ? "继续从你真实的状态出发" : "从一小步开始";
+  const userLabel = typeof state.userName === "string" && state.userName.trim() ? state.userName.trim().slice(0, 24) : "你";
+  $("#home-welcome-title").textContent = `${userLabel}。`;
+  const subtitle = $("#home-welcome-subtitle");
+  if (subtitle) subtitle.textContent = state.messages.length ? "今天也在靠近更好的自己。" : "从一小步开始，也从真实的状态开始。";
   $("#home-next-card").hidden = !action;
   $("#home-empty").hidden = Boolean(action);
   if (action) {
