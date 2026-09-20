@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1400" viewBox="0 0 1000 1400" fill="none" role="img" aria-labelledby="title desc">
+  <title id="title">学程清晨雾感抽象图形</title>
+  <desc id="desc">透明背景上的低对比雾绿流线与少量陶土橙暖光，中央保留大面积留白。</desc>
+  <defs>
+    <linearGradient id="sageLeft" x1="56" y1="720" x2="520" y2="1370" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6F8C7D" stop-opacity="0"/>
+      <stop offset="0.42" stop-color="#6F8C7D" stop-opacity="0.27"/>
+      <stop offset="1" stop-color="#4E7161" stop-opacity="0.17"/>
+    </linearGradient>
+    <linearGradient id="sageRight" x1="1000" y1="760" x2="550" y2="1350" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7F988A" stop-opacity="0.04"/>
+      <stop offset="0.45" stop-color="#6F8C7D" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#304B3D" stop-opacity="0.12"/>
+    </linearGradient>
+    <linearGradient id="sageUpper" x1="990" y1="0" x2="770" y2="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#91A69A" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#91A69A" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="terracottaGlow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(730 390) rotate(126) scale(290 260)">
+      <stop stop-color="#C88D77" stop-opacity="0.25"/>
+      <stop offset="0.58" stop-color="#C88D77" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#C88D77" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="warmCenter" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(475 620) rotate(90) scale(450 410)">
+      <stop stop-color="#FFFDFC" stop-opacity="0.9"/>
+      <stop offset="0.8" stop-color="#FFFDFC" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="soft24" x="-25%" y="-25%" width="150%" height="150%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+    <filter id="soft12" x="-18%" y="-18%" width="136%" height="136%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <filter id="soft6" x="-12%" y="-12%" width="124%" height="124%" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <!-- Broad, non-representational mist bands. The middle stays intentionally quiet. -->
+  <path d="M-110 770C65 672 216 725 329 857C420 964 473 1114 651 1262C746 1342 841 1378 918 1434H-110V770Z" fill="url(#sageLeft)" filter="url(#soft24)"/>
+  <path d="M-140 1001C47 868 208 930 312 1042C428 1167 498 1338 690 1434H-140V1001Z" fill="#6F8C7D" fill-opacity="0.12" filter="url(#soft12)"/>
+  <path d="M1118 730C935 687 799 773 723 906C645 1041 647 1184 488 1362C444 1412 411 1435 411 1435H1118V730Z" fill="url(#sageRight)" filter="url(#soft24)"/>
+  <path d="M1108 1050C929 935 798 1012 705 1119C620 1215 568 1337 473 1432H1108V1050Z" fill="#5E7E6D" fill-opacity="0.1" filter="url(#soft12)"/>
+  <path d="M1035 -80C995 150 968 294 862 439C808 512 761 570 731 685C708 771 718 831 718 831C822 740 896 658 940 535C989 396 1030 205 1095 75L1035 -80Z" fill="url(#sageUpper)" filter="url(#soft24)"/>
+
+  <!-- A small warm counterpoint, kept quiet and away from the center. -->
+  <ellipse cx="730" cy="390" rx="272" ry="248" fill="url(#terracottaGlow)" filter="url(#soft12)"/>
+  <ellipse cx="486" cy="548" rx="290" ry="210" fill="url(#warmCenter)" filter="url(#soft24)"/>
+
+  <!-- Barely visible contour lines create the reference's layered, airy rhythm. -->
+  <g stroke="#FFFDFC" stroke-linecap="round" fill="none">
+    <path d="M-50 790C145 706 288 784 396 930C488 1052 577 1209 812 1308" stroke-width="2" stroke-opacity="0.28" filter="url(#soft6)"/>
+    <path d="M-48 826C148 745 267 811 374 955C474 1091 578 1240 835 1340" stroke-width="1.5" stroke-opacity="0.24"/>
+    <path d="M467 704C598 630 679 547 798 499C876 467 961 467 1050 494" stroke-width="1.7" stroke-opacity="0.35" filter="url(#soft6)"/>
+    <path d="M468 738C599 665 690 585 806 545C894 516 969 523 1047 550" stroke-width="1" stroke-opacity="0.3"/>
+    <path d="M-20 1128C163 1012 298 1050 410 1168C486 1247 558 1330 665 1401" stroke-width="1.2" stroke-opacity="0.2"/>
+  </g>
+</svg>
