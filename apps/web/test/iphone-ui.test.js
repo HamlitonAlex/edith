@@ -87,7 +87,7 @@ test("the refined visual system uses morning neutrals and one radius scale", () 
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
-  assert.match(refinementCss, /--xc-mist:\s*#eef2ed/);
+  assert.match(refinementCss, /--xc-mist:\s*#f4f6f3/);
   assert.doesNotMatch(css, /--canvas:#191d1b/);
   assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
 });
@@ -379,7 +379,7 @@ test("the production surfaces use the standalone mist asset and protect text edi
   assert.match(refinementCss, /xuecheng-voice-mist-vector\.svg/);
   assert.doesNotMatch(html, /assets\/brand-mist\.svg/);
   assert.doesNotMatch(js, /assets\/brand-mist\.svg/);
-  assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: block !important/);
+  assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: none !important/);
   assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: block !important/);
   assert.match(js, /event\.target\.closest\("button,input,textarea,select,a"\)/);
   assert.match(js, /if \(chatInput\.value\.trim\(\) \|\| pendingAttachments\.length\) return/);
@@ -388,13 +388,14 @@ test("the production surfaces use the standalone mist asset and protect text edi
   assert.doesNotMatch(refinementCss, /voice-volume/);
 });
 
-test("the approved mist redraws are local offline assets, not a page screenshot", () => {
+test("the approved mist redraws are transparent local assets, not a page screenshot", () => {
   for (const asset of ["xuecheng-morning-mist-vector.svg", "xuecheng-voice-mist-vector.svg"]) {
     const path = new URL(`../assets/${asset}`, import.meta.url);
     assert.equal(existsSync(path), true);
     const source = readFileSync(path, "utf8");
-    assert.match(source, /Approximate vector redraw/);
+    assert.match(source, /Transparent/);
     assert.doesNotMatch(source, /<image\b/i);
+    assert.doesNotMatch(source, /<rect[^>]+width="(?:1200|1440)"[^>]+height="(?:760|900|1440|1600)"/i);
   }
 });
 
@@ -450,8 +451,8 @@ test("selected decision layers use CSS atmosphere without making every surface a
   assert.match(refinementCss, /backdrop-filter:\s*blur/);
 });
 
-test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
-  assert.match(refinementCss, /radial-gradient\(ellipse 78% 38%/);
+test("the shared canvas stays white-led with restrained daytime and nighttime atmosphere", () => {
+  assert.match(refinementCss, /radial-gradient\(ellipse 52% 24%/);
   assert.match(refinementCss, /linear-gradient\(145deg, var\(--xc-bg\)/s);
   assert.match(refinementCss, /:root\[data-theme="night"\]/);
   assert.match(refinementCss, /\.settings-screen\s*\{/);

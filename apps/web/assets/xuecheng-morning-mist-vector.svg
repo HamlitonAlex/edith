@@ -1,69 +1,37 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 1440" role="img" aria-labelledby="title desc">
-  <title id="title">Xuecheng morning mist abstract vector redraw</title>
-  <desc id="desc">Approximate vector redraw of the approved morning mist direction for the Xuecheng splash and home screens. This is not the original generated bitmap or an extracted source SVG.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" role="img" aria-labelledby="title desc">
+  <title id="title">学程清晨雾感透明品牌素材</title>
+  <desc id="desc">Transparent abstract mist with irregular low-contrast grey-green folds, broad clear space, and a restrained clay-orange glow.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#273C35"/>
-      <stop offset="0.46" stop-color="#172721"/>
-      <stop offset="1" stop-color="#0F1A17"/>
+    <linearGradient id="sageLeft" x1="0" y1="1" x2="0.78" y2="0.18">
+      <stop offset="0" stop-color="#53685D" stop-opacity=".46"/><stop offset=".42" stop-color="#71847A" stop-opacity=".25"/><stop offset="1" stop-color="#AAB6AF" stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="dawn" cx="47%" cy="36%" r="58%">
-      <stop offset="0" stop-color="#F5E3C7" stop-opacity="0.42"/>
-      <stop offset="0.28" stop-color="#D88B62" stop-opacity="0.22"/>
-      <stop offset="0.68" stop-color="#6B7E6E" stop-opacity="0.13"/>
-      <stop offset="1" stop-color="#172721" stop-opacity="0"/>
+    <linearGradient id="sageRight" x1="1" y1="1" x2=".18" y2=".08">
+      <stop offset="0" stop-color="#465D52" stop-opacity=".42"/><stop offset=".46" stop-color="#84958C" stop-opacity=".22"/><stop offset="1" stop-color="#CBD2CD" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pearl" x1=".05" y1=".9" x2=".88" y2=".12">
+      <stop offset="0" stop-color="#E6E9E3" stop-opacity=".7"/><stop offset=".55" stop-color="#F7F5EF" stop-opacity=".3"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="clay" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#C88D77" stop-opacity=".34"/><stop offset=".46" stop-color="#DDB7A7" stop-opacity=".14"/><stop offset="1" stop-color="#DDB7A7" stop-opacity="0"/>
     </radialGradient>
-    <radialGradient id="clayCore" cx="50%" cy="48%" r="42%">
-      <stop offset="0" stop-color="#D27A55" stop-opacity="0.68"/>
-      <stop offset="0.45" stop-color="#AE624B" stop-opacity="0.26"/>
-      <stop offset="1" stop-color="#AE624B" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="softBlur" x="-35%" y="-35%" width="170%" height="170%">
-      <feGaussianBlur stdDeviation="34"/>
-    </filter>
-    <filter id="wideBlur" x="-45%" y="-45%" width="190%" height="190%">
-      <feGaussianBlur stdDeviation="64"/>
-    </filter>
-    <filter id="grain" x="0" y="0" width="100%" height="100%">
-      <feTurbulence type="fractalNoise" baseFrequency="0.82" numOctaves="2" seed="18" result="noise"/>
-      <feColorMatrix in="noise" type="saturate" values="0"/>
-      <feComponentTransfer>
-        <feFuncA type="table" tableValues="0 0.055"/>
-      </feComponentTransfer>
-    </filter>
-    <clipPath id="round">
-      <rect width="1440" height="1440" rx="0"/>
-    </clipPath>
+    <filter id="blur36" x="-28%" y="-28%" width="156%" height="156%"><feGaussianBlur stdDeviation="36"/></filter>
+    <filter id="blur64" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="64"/></filter>
+    <filter id="blur92" x="-42%" y="-42%" width="184%" height="184%"><feGaussianBlur stdDeviation="72"/></filter>
   </defs>
-  <g clip-path="url(#round)">
-    <rect width="1440" height="1440" fill="url(#bg)"/>
-    <rect width="1440" height="1440" fill="url(#dawn)"/>
-
-    <g opacity="0.94" filter="url(#wideBlur)">
-      <path d="M-170 1000C90 830 310 790 536 874c178 66 324 76 478-38 206-152 386-96 612 40v420H-170Z" fill="#E8EFE0" opacity="0.17"/>
-      <path d="M-70 755c226-143 431-161 640-80 230 89 418 23 592-64 162-81 286-76 430 4v302c-225-72-395-65-572 39-192 113-382 128-585 40-172-74-320-60-505 36Z" fill="#BACAB5" opacity="0.22"/>
-      <path d="M130 1017c220-168 384-169 560-71 170 95 320 117 500-8 129-90 272-103 420-38v326c-198-41-350-29-511 65-206 120-426 89-625-7-144-70-244-49-344 28Z" fill="#F7F3E8" opacity="0.18"/>
-    </g>
-
-    <g filter="url(#softBlur)">
-      <path d="M264 816c91-142 223-227 382-232 176-6 287 80 346 197 58 115 45 236-34 330-91 109-236 132-382 72-158-64-270-186-312-367Z" fill="url(#clayCore)" opacity="0.78"/>
-      <path d="M560 452c115-43 230-18 320 66 100 93 119 210 52 322-67 113-201 174-338 133-130-40-204-141-190-268 12-112 65-206 156-253Z" fill="#F2DED0" opacity="0.20"/>
-      <path d="M777 535c122 42 192 146 188 273-4 128-82 232-202 270-97 31-203 4-304-78 96 16 187-6 271-65 116-82 148-218 47-400Z" fill="#C47455" opacity="0.36"/>
-    </g>
-
-    <g fill="none" stroke-linecap="round" filter="url(#softBlur)">
-      <path d="M208 719c183-116 342-148 509-75 165 72 315 65 482-34" stroke="#F2EFE3" stroke-width="46" opacity="0.16"/>
-      <path d="M141 837c216-114 398-121 548-37 144 81 286 78 491-40 108-62 209-79 322-46" stroke="#DDE7D6" stroke-width="72" opacity="0.15"/>
-      <path d="M311 929c162-53 298-41 429 35 164 95 331 88 524-37" stroke="#F1C7AC" stroke-width="40" opacity="0.18"/>
-      <path d="M404 628c112-118 247-165 405-141 144 22 250 89 317 203" stroke="#B9C4AD" stroke-width="30" opacity="0.13"/>
-    </g>
-
-    <g opacity="0.32">
-      <path d="M432 1014c128 38 250 32 365-16 123-52 240-55 351-8" fill="none" stroke="#F6F1E5" stroke-width="6" stroke-linecap="round"/>
-      <path d="M386 718c154-71 304-70 449 6 123 64 246 63 369-2" fill="none" stroke="#E4C2A8" stroke-width="5" stroke-linecap="round"/>
-    </g>
-
-    <rect width="1440" height="1440" filter="url(#grain)" opacity="0.72"/>
-    <rect width="1440" height="1440" fill="#07100D" opacity="0.08"/>
+  <!-- The centre is intentionally empty. These edge fields are designed to be cropped. -->
+  <g filter="url(#blur92)">
+    <path d="M-210 1040C-38 886 116 842 275 912c148 65 197 228 362 300 95 42 183 43 266 23-116 184-282 300-500 344-231 47-436 17-613-66Z" fill="url(#sageLeft)"/>
+    <path d="M1356 878c-174 15-296 74-364 176-67 101-66 221-182 310-98 76-215 107-352 94 144 124 317 191 519 181 207-10 368-79 482-204Z" fill="url(#sageRight)"/>
+    <path d="M795-174c-19 140 17 246 108 319 90 72 200 79 276 175 56 71 79 157 69 257 94-127 129-281 96-463-33-184-110-314-231-390Z" fill="#87988F" opacity=".1"/>
+  </g>
+  <g filter="url(#blur64)">
+    <path d="M-126 1320c204-244 396-301 574-173 113 82 187 183 349 217-117 82-247 123-391 123-210 0-388-56-532-167Z" fill="url(#pearl)" opacity=".86"/>
+    <path d="M1288 1192c-172-120-332-128-481-23-96 68-159 171-287 241 166 38 331 20 493-53 145-66 237-121 275-165Z" fill="#DDE3DE" opacity=".35"/>
+    <ellipse cx="976" cy="405" rx="164" ry="128" fill="url(#clay)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" filter="url(#blur36)">
+    <path d="M-70 1214c171-134 314-171 428-111 101 53 173 162 318 202" stroke="#F7F6F0" stroke-width="42" opacity=".42"/>
+    <path d="M628 1392c136-45 233-124 291-237 47-91 130-158 250-200" stroke="#F9F8F4" stroke-width="34" opacity=".36"/>
+    <path d="M867 188c87 31 151 84 192 159" stroke="#EDF0EC" stroke-width="28" opacity=".24"/>
   </g>
 </svg>

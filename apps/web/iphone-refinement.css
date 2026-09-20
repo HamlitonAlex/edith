@@ -5,7 +5,7 @@
 :root,
 :root[data-theme="day"] {
   --xc-bg: #fcfcfb;
-  --xc-mist: #eef2ed;
+  --xc-mist: #f4f6f3;
   --xc-green: #304b3d;
   --xc-green-deep: #283e34;
   --xc-green-soft: #6f8c7d;
@@ -22,7 +22,7 @@
   --bottom-nav-offset: max(10px, var(--xc-safe-bottom));
   --bottom-nav-height: 68px;
 
-  --canvas: var(--xc-mist);
+  --canvas: var(--xc-bg);
   --canvas-soft: var(--xc-bg);
   --surface: var(--xc-glass-strong);
   --surface-strong: #e7eee9;
@@ -103,9 +103,9 @@ textarea {
 
 .phone {
   background:
-    radial-gradient(ellipse 78% 38% at 108% 2%, rgba(126, 157, 140, .22), transparent 68%),
-    radial-gradient(ellipse 70% 36% at -14% 92%, rgba(200, 141, 119, .13), transparent 72%),
-    linear-gradient(145deg, var(--xc-bg) 0%, #f7f9f6 54%, var(--xc-mist) 100%);
+    radial-gradient(ellipse 52% 24% at 108% 2%, rgba(91, 113, 102, .045), transparent 72%),
+    radial-gradient(ellipse 42% 20% at -12% 94%, rgba(200, 141, 119, .035), transparent 74%),
+    linear-gradient(145deg, var(--xc-bg) 0%, #fbfbfa 58%, #f7f8f6 100%);
   box-shadow: var(--shadow);
 }
 
@@ -141,9 +141,8 @@ textarea {
   overscroll-behavior: contain;
   padding: calc(28px + var(--xc-safe-top)) 24px calc(24px + var(--xc-safe-bottom));
   background:
-    radial-gradient(ellipse 85% 36% at 112% 14%, rgba(200, 141, 119, .16), transparent 70%),
-    radial-gradient(ellipse 82% 42% at -10% 88%, rgba(111, 140, 125, .28), transparent 72%),
-    linear-gradient(155deg, var(--xc-bg), #f2f6f1 58%, #e8eee8);
+    radial-gradient(ellipse 52% 26% at 108% 12%, rgba(200, 141, 119, .055), transparent 72%),
+    linear-gradient(155deg, #fdfdfc, #fbfbf9 58%, #f6f7f4);
 }
 .onboarding[hidden],
 .onboarding article[hidden] { display: none; }
@@ -152,13 +151,14 @@ textarea {
 .onboarding-visual > img[src$="xuecheng-morning-mist-vector.svg"] {
   position: absolute;
   z-index: 0;
-  inset: -8% -12%;
+  inset: -18% -14% -24%;
   display: block !important;
   width: 124%;
-  height: 116%;
-  object-fit: cover;
-  opacity: .58;
-  mix-blend-mode: screen;
+  height: 142%;
+  object-fit: fill;
+  object-position: center 76%;
+  opacity: 1;
+  mix-blend-mode: normal;
   pointer-events: none;
 }
 .onboarding-progress { gap: 6px; margin-bottom: 18px; }
@@ -173,9 +173,8 @@ textarea {
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 34px;
   background:
-    radial-gradient(ellipse 56% 52% at 70% 28%, rgba(255, 235, 219, .74), transparent 72%),
-    radial-gradient(ellipse 74% 55% at 2% 92%, rgba(111, 140, 125, .48), transparent 70%),
-    linear-gradient(145deg, rgba(255, 255, 255, .94), rgba(228, 237, 230, .8));
+    radial-gradient(ellipse 38% 24% at 76% 22%, rgba(200, 141, 119, .07), transparent 74%),
+    linear-gradient(145deg, rgba(255, 255, 255, .98), rgba(248, 249, 246, .94));
   box-shadow: inset 0 1px rgba(255, 255, 255, .95), 0 24px 54px rgba(48, 75, 61, .14);
 }
 .onboarding-visual::before {
@@ -316,7 +315,7 @@ textarea {
   isolation: isolate;
   border: 1px solid rgba(255, 255, 255, .9);
   border-radius: 28px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, .88), rgba(238, 242, 237, .74));
+  background: linear-gradient(135deg, rgba(255, 255, 255, .94), rgba(249, 250, 248, .88));
   box-shadow: 0 18px 42px rgba(48, 75, 61, .11), inset 0 1px rgba(255, 255, 255, .92);
   backdrop-filter: blur(20px) saturate(1.06);
 }
@@ -340,12 +339,12 @@ textarea {
 .home-empty::after {
   position: absolute;
   z-index: -2;
-  inset: -22% -16% -28% 34%;
-  background: url("./assets/xuecheng-morning-mist-vector.svg") center 76% / cover no-repeat;
+  inset: -12% -7% -18% 45%;
+  background: url("./assets/xuecheng-morning-mist-vector.svg") center / 100% 100% no-repeat;
   content: "";
-  opacity: .23;
+  opacity: .82;
   pointer-events: none;
-  transform: rotate(4deg) scale(1.18);
+  transform: none;
 }
 .home-next-card > *,
 .home-empty > * { position: relative; z-index: 1; }
@@ -494,8 +493,8 @@ textarea {
 .chat-screen {
   padding: 0 !important;
   background:
-    radial-gradient(ellipse 72% 34% at 110% 8%, rgba(126, 157, 140, .2), transparent 72%),
-    linear-gradient(155deg, var(--xc-bg), #f7f9f6 58%, var(--xc-mist)) !important;
+    radial-gradient(ellipse 42% 18% at 108% 7%, rgba(91, 113, 102, .035), transparent 74%),
+    linear-gradient(155deg, #fdfdfc, #fbfbfa 62%, #f7f8f6) !important;
 }
 .chat-screen.active { display: flex; flex-direction: column; }
 .chat-atmosphere {
@@ -520,7 +519,7 @@ textarea {
   position: absolute;
   z-index: 0;
   inset: 20% -12% -4%;
-  display: block !important;
+  display: none !important;
   width: 124%;
   height: 84%;
   object-fit: cover;
@@ -642,9 +641,7 @@ textarea {
   overflow: hidden;
   border-radius: 28px 28px 0 0;
   background:
-    radial-gradient(circle at var(--voice-origin-x, 50%) var(--voice-origin-y, 68%), rgba(200, 141, 119, .18), transparent 30%),
-    linear-gradient(160deg, rgba(238, 242, 237, .96), rgba(255, 255, 255, .9)),
-    url("./assets/xuecheng-voice-mist-vector.svg") center bottom / cover no-repeat;
+    linear-gradient(180deg, rgba(255, 255, 255, .08), rgba(248, 250, 247, .94));
   color: var(--xc-green);
   opacity: 0;
   pointer-events: none;
@@ -667,8 +664,18 @@ textarea {
 .voice-gesture-rings i:nth-child(2) { height: 30px; }
 .voice-gesture-rings i:nth-child(3) { height: 20px; }
 .composer[data-voice-state="requesting"] .voice-gesture,
-.composer[data-voice-state="recording"] .voice-gesture,
 .composer[data-voice-state="recognizing"] .voice-gesture { z-index: 1; bottom: 52px; min-height: 168px; opacity: 1; transform: translateY(0); }
+.composer[data-voice-state="recording"] .voice-gesture {
+  z-index: 1;
+  bottom: 52px;
+  min-height: min(46dvh, 360px);
+  background:
+    url("./assets/xuecheng-voice-mist-vector.svg") var(--voice-origin-x, 50%) 100% / 140% 100% no-repeat,
+    radial-gradient(circle at var(--voice-origin-x, 50%) 100%, rgba(200, 141, 119, .1), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(249, 250, 248, .7));
+  opacity: 1;
+  transform: translateY(0);
+}
 .composer[data-voice-state="recording"] .voice-gesture-rings i { opacity: .86; }
 .bottom-nav {
   right: 14px !important;
@@ -864,7 +871,7 @@ textarea {
 #model-dialog form>button[value="cancel"]{position:sticky;}
 .keyboard-open .composer { bottom:max(8px,var(--safe-bottom)); }
 
-/* Approved vector redraws: local atmosphere only, never a replacement for product content. */
+/* Reference baseline: transparent mist is local, never a page-wide colour wash. */
 .onboarding-visual::before,
 .onboarding-visual::after,
 .home-next-card::before,
@@ -873,36 +880,27 @@ textarea {
 .proposal-atmosphere::after,
 .voice-gesture::before { display: none; }
 .onboarding-visual > img[src$="xuecheng-morning-mist-vector.svg"] {
-  opacity: .18;
+  opacity: 1;
   mix-blend-mode: normal;
-  filter: saturate(1.1) brightness(1.65);
+  filter: none;
 }
 .home-next-card::after,
 .home-empty::after {
-  inset: -22% -16% -28% -16%;
-  background-position: center 76%;
+  inset: -12% -7% -18% 45%;
+  background-position: center;
+  background-size: 100% 100%;
   mix-blend-mode: normal;
-  opacity: .18;
-  filter: saturate(1.05) brightness(1.55);
-  transform: rotate(2deg) scale(1.2);
+  opacity: .82;
+  filter: none;
+  transform: none;
 }
 .chat-atmosphere img {
-  display: block !important;
-  inset: 18% -10% -8%;
-  width: 120%;
-  height: 90%;
-  object-position: center 76%;
-  opacity: .1;
-  mix-blend-mode: normal;
-  filter: saturate(1.05) brightness(1.55);
+  display: none !important;
 }
 .proposal-atmosphere img {
   mix-blend-mode: normal;
-  opacity: .12;
-  filter: saturate(1.05) brightness(1.45);
-}
-.voice-gesture {
-  background-blend-mode: screen, screen, screen;
+  opacity: .2;
+  filter: none;
 }
 .keyboard-open .chat-screen { height:var(--visible-viewport-height,var(--app-height)); }
 .settings-section { border-radius:22px; }
