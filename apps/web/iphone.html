@@ -101,8 +101,8 @@
       <div class="chat-atmosphere" aria-hidden="true">
       </div>
       <header class="companion-header">
-        <span class="companion-mark" aria-hidden="true"><img data-avatar src="./assets/xuecheng-mark.svg" alt=""></span>
-        <div><small>在你身边</small><h1 data-name>小程</h1></div>
+        <button class="chat-back" type="button" data-chat-back aria-label="返回首页"><i class="ph ph-caret-left" aria-hidden="true"></i></button>
+        <div class="chat-header-title"><h1>和小程对话</h1><small>随时聊聊你的学习与成长</small></div>
         <button class="conversation-model" id="conversation-model" type="button" aria-label="切换当前对话模型">本地判断</button>
       </header>
 
@@ -156,7 +156,7 @@
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
         <textarea id="chat-input" rows="1" placeholder="和小程说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
         <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
-        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b>正在听</b><small>松开后转成文字 · 上滑取消</small></div>
+        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b>正在聆听</b><small>松开后转成文字 · 上滑取消</small></div>
       </form>
     </section>
 

@@ -29,7 +29,7 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the V3.1 visual system uses a quiet morning palette with restrained directional accents", () => {
+test("the V3.2 visual system uses cream, mist blue and restrained directional accents", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
@@ -40,8 +40,10 @@ test("the V3.1 visual system uses a quiet morning palette with restrained direct
   assert.match(refinementCss, /学程 V3\.1/);
   assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
-  assert.match(refinementCss, /--xc-green-soft:\s*#6f8c7d/);
+  assert.match(refinementCss, /--xc-cream:\s*#f7f3ea/);
+  assert.match(refinementCss, /--xc-blue:\s*#87aabd/);
+  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
+  assert.match(refinementCss, /--xc-green-soft:\s*#71877c/);
   assert.match(refinementCss, /--xc-orange:\s*#c88d77/);
   assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
   assert.match(html, /name="theme-color" content="#fcfcfb"/);
@@ -87,7 +89,7 @@ test("the refined visual system uses morning neutrals and one radius scale", () 
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
-  assert.match(refinementCss, /--xc-mist:\s*#f4f6f3/);
+  assert.match(refinementCss, /--xc-mist:\s*#f1f5f4/);
   assert.doesNotMatch(css, /--canvas:#191d1b/);
   assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
 });
@@ -217,8 +219,9 @@ test("dynamic recommendations keep content covers optional while atmosphere stay
 test("the recommendation opens as atmosphere and settles after starting", () => {
   assert.match(js, /classList\.toggle\("started", action\?\.status === "accepted"\)/);
   assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*border:\s*1px[\s\S]*background:/);
-  assert.match(refinementCss, /\.proposal-atmosphere\s*\{[\s\S]*height:\s*72px/);
-  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green\)/);
+  assert.match(refinementCss, /\.proposal-atmosphere\s*\{\s*display:\s*none/);
+  assert.match(refinementCss, /\.plan-proposal::before\s*\{[\s\S]*width:\s*38%[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green-deep\)/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {
@@ -280,8 +283,9 @@ test("settings exposes real BYOK and backup controls", () => {
 });
 
 test("the companion identity is quiet, personal and gender configurable", () => {
-  assert.match(html, /class="companion-mark"/);
-  assert.doesNotMatch(html, /class="avatar-button"|class="quiet-action"/);
+  assert.match(html, /class="chat-header-title"/);
+  assert.match(html, /和小程对话/);
+  assert.doesNotMatch(html, /class="quiet-action"/);
   for (const gender of ["female", "male", "neutral"]) assert.match(html, new RegExp(`data-gender="${gender}"`));
   assert.match(js, /gender: "female"/);
   assert.match(js, /pronounFor/);
@@ -303,6 +307,9 @@ test("the entire composer supports hold to talk", () => {
   assert.match(js, /document\.activeElement !== chatInput/);
   assert.match(js, /holdTimer/);
   assert.match(js, /confidence/);
+  assert.match(js, /inputRevision/);
+  assert.match(js, /revisionAtStart/);
+  assert.match(js, /旧结果没有覆盖当前文字/);
   assert.match(infoPlist, /NSSpeechRecognitionUsageDescription/);
   assert.match(infoPlist, /NSMicrophoneUsageDescription/);
 });
@@ -328,22 +335,24 @@ test("short greetings stay local and assistant markdown is rendered safely", () 
   assert.match(js, /function formatMessageHtml/);
   assert.match(js, /<strong>\$1<\/strong>/);
   assert.match(js, /formatMessageHtml\(message\.text\)/);
+  assert.match(js, /welcomeTitle\.hidden = !userLabel/);
+  assert.match(html, /class="chat-header-title"[\s\S]*和小程对话/);
 });
 
 test("selected controls use forest green and the tab bar has restrained depth", () => {
-  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
+  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
   assert.match(refinementCss, /--xc-glass:\s*rgba\(255, 255, 255, \.72\)/);
-  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, \.76\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*rgba\(48, 75, 61, \.12\)/s);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(247, 249, 248, \.44\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*rgba\(48, 75, 61, \.08\)/s);
 });
 
 test("the chosen production direction leads with morning mist and editorial clarity", () => {
   assert.match(refinementCss, /reference-aligned surface/);
   assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
-  assert.match(refinementCss, /--xc-green:\s*#304b3d/);
+  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
   assert.match(refinementCss, /--radius-card:\s*24px/);
   assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*background:/);
-  assert.match(refinementCss, /\.chat-atmosphere\s*\{[\s\S]*display:\s*block/);
+  assert.match(refinementCss, /\.chat-atmosphere\s*\{[\s\S]*display:\s*none/);
   assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*border-radius:\s*27px/);
 });
 
@@ -359,12 +368,13 @@ test("the V3.1 home is the active work surface and chat stays abstract", () => {
   assert.match(refinementCss, /\.chat-atmosphere img/);
 });
 
-test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedback", () => {
+test("V3.2 keeps four primary bottom tabs, a unified composer, and bounded voice feedback", () => {
   assert.match(html, /data-nav="home"/);
   assert.match(html, /data-nav="chat"/);
   assert.match(html, /data-nav="today"/);
   assert.match(html, /data-nav="us"/);
-  assert.equal((html.match(/data-nav="/g) || []).length, 4);
+  const bottomNav = html.match(/<nav class="bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+  assert.equal((bottomNav.match(/data-nav="/g) || []).length, 4);
   assert.match(html, /class="voice-gesture"/);
   assert.match(refinementCss, /\.composer\s*\{[\s\S]*grid-template-columns:\s*40px minmax\(0, 1fr\) 40px/s);
   assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture/);
@@ -381,7 +391,7 @@ test("the production surfaces place the three supplied mist images only in their
   assert.doesNotMatch(html, /assets\/brand-mist\.svg/);
   assert.doesNotMatch(js, /assets\/brand-mist\.svg/);
   assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: none !important/);
-  assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: block !important/);
+  assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: none !important/);
   assert.match(js, /event\.target\.closest\("button,input,textarea,select,a"\)/);
   assert.match(js, /if \(chatInput\.value\.trim\(\) \|\| pendingAttachments\.length\) return/);
   assert.match(js, /surface\.addEventListener\("pointermove"/);
@@ -420,7 +430,8 @@ test("companion and settings pages preserve safe-area content boundaries", () =>
 
 test("the conversation model stays understandable without becoming a large selector", () => {
   assert.match(js, /selectedModelLabel = state\.currentConversationModel === "local" \? "本地"/);
-  assert.match(js, /class="model-status-dot"/);
+  assert.match(js, /class="visually-hidden"/);
+  assert.match(js, /ph-dots-three/);
   assert.match(refinementCss, /\.conversation-model\s*\{/);
   assert.match(refinementCss, /#model-dialog\s*\{[\s\S]*max-height:/);
   assert.match(refinementCss, /#model-dialog form\s*\{/);
@@ -486,8 +497,9 @@ test("composer owns attachment capture and preview", () => {
   assert.match(html, /拍照|选择照片|选择文件|粘贴文字/);
 });
 
-test("assistant messages do not repeat an avatar", () => {
-  assert.doesNotMatch(js, /companion-message"><img/);
+test("assistant messages use the saved companion mark without affecting user bubbles", () => {
+  assert.match(js, /companion-message"><img/);
+  assert.doesNotMatch(js, /user-message"><img/);
 });
 
 test("source permissions are real settings rather than development placeholders", () => {

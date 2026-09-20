@@ -327,10 +327,12 @@ function renderHome() {
   const action = agentState.next_recommended_action;
   const now = new Date();
   const hour = now.getHours();
-  const greeting = hour < 11 ? "早上好，" : hour < 18 ? "下午好，" : "晚上好，";
-  $("#home-greeting").textContent = greeting;
-  const userLabel = typeof state.userName === "string" && state.userName.trim() ? state.userName.trim().slice(0, 24) : "你";
-  $("#home-welcome-title").textContent = `${userLabel}。`;
+  const userLabel = typeof state.userName === "string" && state.userName.trim() ? state.userName.trim().slice(0, 24) : "";
+  const greeting = hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
+  $("#home-greeting").textContent = userLabel ? `${greeting}，` : greeting;
+  const welcomeTitle = $("#home-welcome-title");
+  welcomeTitle.textContent = userLabel ? `${userLabel}。` : "";
+  welcomeTitle.hidden = !userLabel;
   const subtitle = $("#home-welcome-subtitle");
   if (subtitle) subtitle.textContent = state.messages.length ? "今天也在靠近更好的自己。" : "从一小步开始，也从真实的状态开始。";
   $("#home-next-card").hidden = !action;
@@ -425,7 +427,7 @@ function render() {
   const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
   const selectedModelLabel = state.currentConversationModel === "local" ? "本地" : selectedModel.replace(/^models\//, "").slice(0, 12);
   $("#model-summary").textContent = selectedModel;
-  $("#conversation-model").innerHTML = `<span class="model-status-dot" aria-hidden="true"></span><b>${escapeHtml(selectedModelLabel)}</b><i class="ph ph-caret-down" aria-hidden="true"></i>`;
+  $("#conversation-model").innerHTML = `<span class="visually-hidden">${escapeHtml(selectedModelLabel)}</span><i class="ph ph-dots-three" aria-hidden="true"></i>`;
   $("#conversation-model").setAttribute("aria-label", `选择对话模型，当前：${selectedModel}`);
   $("#conversation-model").title = `当前：${selectedModel}`;
   let previousDay = "";
@@ -438,7 +440,7 @@ function render() {
     const time = formatConversationTime(message.createdAt);
     const content = message.role === "user"
       ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>${time}</time></div></article>`
-      : `<article class="message companion-message"><div><p>${formatMessageHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${formatMessageHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
+      : `<article class="message companion-message"><img src="${escapeHtml(state.avatar)}" alt="" aria-hidden="true"><div><p>${formatMessageHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${formatMessageHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
     return divider + content;
   }).join("");
   $("#empty-conversation").hidden = conversationStatus !== "idle_empty" || state.messages.length > 0 || Boolean(agentState.next_recommended_action);
@@ -566,6 +568,7 @@ function openTaskConversation(prompt) {
 }
 
 document.querySelectorAll("[data-nav]").forEach(button => button.addEventListener("click", () => openScreen(button.dataset.nav)));
+document.querySelector("[data-chat-back]")?.addEventListener("click", () => openScreen("home"));
 document.querySelectorAll("[data-open-screen]").forEach(button => button.addEventListener("click", () => openScreen(button.dataset.openScreen)));
 document.querySelectorAll("[data-task-chat]").forEach(button => button.addEventListener("click", () => openTaskConversation(button.dataset.taskChat)));
 
@@ -1154,17 +1157,29 @@ let voiceResetTimer = null;
 function createVoiceController(surface) {
   let voiceState = "idle";
   let confidence = 0;
+  let inputRevision = 0;
+  let revisionAtStart = 0;
+  let applyingTranscript = false;
+
+  chatInput.addEventListener("input", () => {
+    if (!applyingTranscript) inputRevision += 1;
+  });
 
   const setState = (next, { message = "", transcript = "" } = {}) => {
+    const wasActive = ["requesting", "recording", "recognizing"].includes(voiceState);
     voiceState = next;
     surface.setAttribute("data-voice-state", next);
     surface.classList.toggle("listening", next === "recording");
     surface.classList.toggle("recognizing", next === "recognizing");
     clearTimeout(voiceResetTimer);
-    if (transcript.trim()) {
+    if (transcript.trim() && wasActive && inputRevision === revisionAtStart) {
+      applyingTranscript = true;
       chatInput.value = transcript.trim();
       chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+      applyingTranscript = false;
       resizeComposer();
+    } else if (transcript.trim() && inputRevision !== revisionAtStart) {
+      message = "识别已完成，但你已经修改了输入内容；旧结果没有覆盖当前文字";
     }
     chatInput.placeholder = next === "recording"
       ? "正在听，松开结束"
@@ -1197,6 +1212,7 @@ function createVoiceController(surface) {
     recognition.continuous = false;
     recognition.onstart = () => setState("recording", { message: "正在听，松开结束" });
     recognition.onresult = result => {
+      if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
       const best = result.results[0][0];
       confidence = Number(best.confidence || 0);
       setState("success", {
@@ -1205,6 +1221,7 @@ function createVoiceController(surface) {
       });
     };
     recognition.onerror = event => {
+      if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
       const denied = ["not-allowed", "service-not-allowed"].includes(event.error);
       setState("failure", { message: denied ? "麦克风或语音识别权限未开启，请到系统设置中允许" : "没有听清，可以再按住说一次" });
     };
@@ -1226,6 +1243,7 @@ function createVoiceController(surface) {
   const start = () => {
     if (["recording", "recognizing"].includes(voiceState)) return true;
     confidence = 0;
+    revisionAtStart = inputRevision;
     clearTimeout(voiceResetTimer);
     if (nativeSpeechBridge) {
       const started = sendNativeCommand("start", { allowCloud: false, locale: "zh-CN" });
@@ -1254,7 +1272,11 @@ function createVoiceController(surface) {
     switch (detail.state) {
       case "recording": setState("recording", { message: "正在听，松开结束" }); break;
       case "recognizing": setState("recognizing", { message: "正在识别……" }); break;
-      case "success": setState("success", { transcript: String(detail.transcript || ""), message: "已转成文字，请确认后发送" }); break;
+      case "success": {
+        if (!["requesting", "recording", "recognizing"].includes(voiceState)) break;
+        setState("success", { transcript: String(detail.transcript || ""), message: "已转成文字，请确认后发送" });
+        break;
+      }
       case "permission-denied": setState("failure", { message: "麦克风或语音识别权限未开启，请到系统设置中允许" }); break;
       case "cloud-consent-required": {
         setState("idle");
