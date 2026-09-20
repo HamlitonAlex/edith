@@ -21,8 +21,7 @@ const objectValue = value => value && typeof value === "object" && !Array.isArra
 const stringList = value => Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
 const objectList = value => Array.isArray(value) ? value.filter(item => item && typeof item === "object" && !Array.isArray(item)) : [];
 const dailyAtmospheres = [
-  { id: "desk", src: "./assets/onboarding-morning-v2.png" },
-  { id: "path", src: "./assets/onboarding-path.webp" },
+  { id: "mist", src: "./assets/brand-mist.svg" },
 ];
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
@@ -146,19 +145,12 @@ function localDayKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function chooseDailyAtmosphere(action) {
+function chooseDailyAtmosphere(_action) {
   const day = localDayKey();
   if (state.dailyAtmosphere?.day === day) {
     return dailyAtmospheres.find(item => item.id === state.dailyAtmosphere.id) || dailyAtmospheres[0];
   }
-  const topic = `${action?.skill_id || ""} ${action?.title || ""}`;
-  let hash = 0;
-  for (const character of `${day}|${topic || "welcome"}`) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
-  const id = /历史|农业|社会|哲学|人文|艺术|通识/.test(topic)
-    ? "path"
-    : /网络|编程|AI|产品|项目|软件/.test(topic)
-      ? "desk"
-      : dailyAtmospheres[hash % dailyAtmospheres.length].id;
+  const id = dailyAtmospheres[0].id;
   state.dailyAtmosphere = { day, id };
   save();
   return dailyAtmospheres.find(item => item.id === id) || dailyAtmospheres[0];
@@ -382,7 +374,7 @@ function renderPath() {
     atmosphere.alt = "";
     atmosphere.setAttribute("aria-hidden", "true");
     atmosphere.loading = "lazy";
-    atmosphere.src = "./assets/onboarding-path.webp";
+    atmosphere.src = "./assets/brand-mist.svg";
     direction.prepend(atmosphere);
   }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
@@ -1292,26 +1284,66 @@ const voiceController = createVoiceController($("#chat-form"));
 function bindHoldToTalk(surface) {
   let holdTimer = null;
   let holding = false;
+  let startY = 0;
+  let cancelledBySlide = false;
+  const setOrigin = event => {
+    const bounds = surface.getBoundingClientRect();
+    const x = bounds.width ? ((event.clientX - bounds.left) / bounds.width) * 100 : 50;
+    const y = bounds.height ? ((event.clientY - bounds.top) / bounds.height) * 100 : 68;
+    surface.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    surface.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+  };
+  const clearOrigin = () => {
+    surface.style.removeProperty("--voice-origin-x");
+    surface.style.removeProperty("--voice-origin-y");
+  };
   const stop = () => {
     clearTimeout(holdTimer);
     holdTimer = null;
-    if (!holding) return;
-    holding = false;
-    voiceController.stop();
+    if (holding) {
+      holding = false;
+      voiceController.stop();
+    }
+    clearOrigin();
   };
   surface.addEventListener("pointerdown", event => {
-    if (event.target.closest("button,input")) return;
+    if (event.target.closest("button,input,textarea,select,a")) return;
+    if (chatInput.value.trim() || pendingAttachments.length) return;
+    startY = event.clientY;
+    cancelledBySlide = false;
+    setOrigin(event);
+    try { surface.setPointerCapture?.(event.pointerId); } catch { /* synthetic events may not expose a capturable pointer */ }
     holdTimer = setTimeout(() => {
+      holdTimer = null;
       holding = voiceController.start();
     }, 360);
   });
-  surface.addEventListener("pointerup", stop);
+  surface.addEventListener("pointermove", event => {
+    if (cancelledBySlide || event.clientY >= startY - 54) return;
+    cancelledBySlide = true;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding || voiceController.isListening()) voiceController.cancel();
+    holding = false;
+    clearOrigin();
+  });
+  surface.addEventListener("pointerup", event => {
+    if (cancelledBySlide) {
+      clearOrigin();
+      cancelledBySlide = false;
+      return;
+    }
+    stop();
+    cancelledBySlide = false;
+  });
   surface.addEventListener("pointerleave", stop);
   surface.addEventListener("pointercancel", () => {
     clearTimeout(holdTimer);
     holdTimer = null;
     if (holding) voiceController.cancel();
     holding = false;
+    cancelledBySlide = false;
+    clearOrigin();
   });
 }
 
@@ -1320,10 +1352,27 @@ function bindVoiceButton(button) {
   let holding = false;
   let startY = 0;
   let cancelledBySlide = false;
+  const surface = button.closest(".composer") || button;
+  const setOrigin = event => {
+    const bounds = surface.getBoundingClientRect();
+    const x = bounds.width ? ((event.clientX - bounds.left) / bounds.width) * 100 : 50;
+    const y = bounds.height ? ((event.clientY - bounds.top) / bounds.height) * 100 : 50;
+    surface.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    surface.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+    button.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    button.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+  };
+  const clearOrigin = () => {
+    surface.style.removeProperty("--voice-origin-x");
+    surface.style.removeProperty("--voice-origin-y");
+    button.style.removeProperty("--voice-origin-x");
+    button.style.removeProperty("--voice-origin-y");
+  };
   button.addEventListener("pointerdown", event => {
     if (!button.classList.contains("voice-mode")) return;
     event.preventDefault();
     startY = event.clientY;
+    setOrigin(event);
     cancelledBySlide = false;
     if (Number.isFinite(event.pointerId)) {
       try { button.setPointerCapture?.(event.pointerId); } catch { /* synthetic events may not expose a capturable pointer */ }
@@ -1340,18 +1389,24 @@ function bindVoiceButton(button) {
     holdTimer = null;
     if (holding || voiceController.isListening()) voiceController.cancel();
     holding = false;
+    clearOrigin();
   });
   button.addEventListener("pointerup", event => {
     if (!button.classList.contains("voice-mode")) return;
     event.preventDefault();
-    if (cancelledBySlide) return;
+    if (cancelledBySlide) {
+      clearOrigin();
+      return;
+    }
     if (holdTimer) {
       clearTimeout(holdTimer);
       holdTimer = null;
       showToast("按住麦克风说话，松开后转成文字");
+      clearOrigin();
     } else if (holding) {
       holding = false;
       voiceController.stop();
+      clearOrigin();
     }
   });
   button.addEventListener("pointercancel", () => {
@@ -1360,6 +1415,7 @@ function bindVoiceButton(button) {
     if (holding) voiceController.cancel();
     holding = false;
     cancelledBySlide = false;
+    clearOrigin();
   });
   button.addEventListener("click", event => {
     if (button.classList.contains("voice-mode")) event.preventDefault();

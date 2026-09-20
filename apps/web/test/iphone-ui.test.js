@@ -34,9 +34,9 @@ test("the V3.1 visual system uses a quiet morning palette with restrained direct
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(html, /class="onboarding-visual"/);
-  assert.match(html, /assets\/onboarding-morning-v2\.png/);
-  assert.match(html, /onboarding-morning-v2\.png[^>]*as="image"/);
-  assert.match(html, /onboarding-morning-v2\.png[^>]*fetchpriority="high"/);
+  assert.match(html, /assets\/brand-mist\.svg/);
+  assert.match(html, /brand-mist\.svg[^>]*as="image"/);
+  assert.match(html, /brand-mist\.svg[^>]*fetchpriority="high"/);
   assert.match(refinementCss, /学程 V3\.1/);
   assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
@@ -204,7 +204,7 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
 
 test("dynamic recommendations keep content covers optional while atmosphere stays generic", () => {
   assert.match(html, /class="proposal-atmosphere"[^>]*id="proposal-atmosphere"/);
-  assert.match(html, /onboarding-morning-v2\.png/);
+  assert.match(html, /brand-mist\.svg/);
   assert.match(html, /id="proposal-media"[^>]*hidden/);
   assert.match(html, /id="proposal-media-image"[^>]*referrerpolicy="no-referrer"/);
   assert.doesNotMatch(html, /id="proposal-media-image"[^>]*src=/);
@@ -369,6 +369,20 @@ test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedba
   assert.match(refinementCss, /\.composer\s*\{[\s\S]*grid-template-columns:\s*40px minmax\(0, 1fr\) 40px/s);
   assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture/);
   assert.match(js, /event\.clientY >= startY - 54/);
+});
+
+test("the production surfaces use the standalone mist asset and protect text editing", () => {
+  assert.match(html, /class="onboarding-visual"[\s\S]*?brand-mist\.svg/);
+  assert.match(html, /class="chat-atmosphere"[\s\S]*?brand-mist\.svg/);
+  assert.match(html, /class="proposal-atmosphere"[\s\S]*?brand-mist\.svg/);
+  assert.match(refinementCss, /home-next-card::after[\s\S]*brand-mist\.svg/);
+  assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: block !important/);
+  assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: block !important/);
+  assert.match(js, /event\.target\.closest\("button,input,textarea,select,a"\)/);
+  assert.match(js, /if \(chatInput\.value\.trim\(\) \|\| pendingAttachments\.length\) return/);
+  assert.match(js, /surface\.addEventListener\("pointermove"/);
+  assert.match(js, /if \(holding \|\| voiceController\.isListening\(\)\) voiceController\.cancel\(\)/);
+  assert.doesNotMatch(refinementCss, /voice-volume/);
 });
 
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {
