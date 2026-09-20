@@ -34,9 +34,9 @@ test("the V3.1 visual system uses a quiet morning palette with restrained direct
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(html, /class="onboarding-visual"/);
-  assert.match(html, /assets\/xuecheng-morning-mist-vector\.svg/);
-  assert.match(html, /xuecheng-morning-mist-vector\.svg[^>]*as="image"/);
-  assert.match(html, /xuecheng-morning-mist-vector\.svg[^>]*fetchpriority="high"/);
+  assert.match(html, /assets\/brand\/xuecheng-launch-mist\.png/);
+  assert.match(html, /xuecheng-launch-mist\.png[^>]*as="image"/);
+  assert.match(html, /xuecheng-launch-mist\.png[^>]*fetchpriority="high"/);
   assert.match(refinementCss, /学程 V3\.1/);
   assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
@@ -354,7 +354,7 @@ test("the V3.1 home is the active work surface and chat stays abstract", () => {
   assert.match(html, /id="home-schedule-content"/);
   assert.match(html, /class="home-path-summary"[^>]*data-open-screen="path"/);
   assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true"/);
-  assert.match(html, /class="chat-atmosphere"[\s\S]*?loading="eager"/);
+  assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true">\s*<\/div>/);
   assert.match(js, /classList\.toggle\("has-proposal", Boolean\(action\)\)/);
   assert.match(refinementCss, /\.chat-atmosphere img/);
 });
@@ -371,12 +371,13 @@ test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedba
   assert.match(js, /event\.clientY >= startY - 54/);
 });
 
-test("the production surfaces use the standalone mist asset and protect text editing", () => {
-  assert.match(html, /class="onboarding-visual"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
-  assert.match(html, /class="chat-atmosphere"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
-  assert.match(html, /class="proposal-atmosphere"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
-  assert.match(refinementCss, /home-next-card::after[\s\S]*xuecheng-morning-mist-vector\.svg/);
-  assert.match(refinementCss, /xuecheng-voice-mist-vector\.svg/);
+test("the production surfaces place the three supplied mist images only in their intended roles", () => {
+  assert.match(html, /class="onboarding-visual"[\s\S]*?xuecheng-launch-mist\.png/);
+  assert.match(html, /class="proposal-atmosphere"[\s\S]*?xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.onboarding\s*\{[\s\S]*xuecheng-launch-mist\.png/);
+  assert.match(refinementCss, /home-next-card::after[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.plan-proposal::before[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture[\s\S]*xuecheng-voice-mist\.png/);
   assert.doesNotMatch(html, /assets\/brand-mist\.svg/);
   assert.doesNotMatch(js, /assets\/brand-mist\.svg/);
   assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: none !important/);
@@ -388,14 +389,13 @@ test("the production surfaces use the standalone mist asset and protect text edi
   assert.doesNotMatch(refinementCss, /voice-volume/);
 });
 
-test("the approved mist redraws are transparent local assets, not a page screenshot", () => {
-  for (const asset of ["xuecheng-morning-mist-vector.svg", "xuecheng-voice-mist-vector.svg"]) {
-    const path = new URL(`../assets/${asset}`, import.meta.url);
+test("the supplied mist images are packaged as local PNG assets", () => {
+  for (const asset of ["xuecheng-launch-mist.png", "xuecheng-task-mist.png", "xuecheng-voice-mist.png"]) {
+    const path = new URL(`../assets/brand/${asset}`, import.meta.url);
     assert.equal(existsSync(path), true);
-    const source = readFileSync(path, "utf8");
-    assert.match(source, /Transparent/);
-    assert.doesNotMatch(source, /<image\b/i);
-    assert.doesNotMatch(source, /<rect[^>]+width="(?:1200|1440)"[^>]+height="(?:760|900|1440|1600)"/i);
+    const source = readFileSync(path);
+    assert.equal(source.subarray(1, 4).toString(), "PNG");
+    assert.ok(source.length > 1_000_000);
   }
 });
 

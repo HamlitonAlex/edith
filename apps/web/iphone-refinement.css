@@ -141,8 +141,8 @@ textarea {
   overscroll-behavior: contain;
   padding: calc(28px + var(--xc-safe-top)) 24px calc(24px + var(--xc-safe-bottom));
   background:
-    radial-gradient(ellipse 52% 26% at 108% 12%, rgba(200, 141, 119, .055), transparent 72%),
-    linear-gradient(155deg, #fdfdfc, #fbfbf9 58%, #f6f7f4);
+    linear-gradient(180deg, rgba(252, 252, 251, .1), rgba(252, 252, 251, .17)),
+    url("./assets/brand/xuecheng-launch-mist.png") center center / cover no-repeat;
 }
 .onboarding[hidden],
 .onboarding article[hidden] { display: none; }
@@ -338,9 +338,11 @@ textarea {
 .home-next-card::after,
 .home-empty::after {
   position: absolute;
-  z-index: -2;
-  inset: -12% -7% -18% 45%;
-  background: url("./assets/xuecheng-morning-mist-vector.svg") center / 100% 100% no-repeat;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .94) 0%, rgba(255, 255, 255, .8) 43%, rgba(255, 255, 255, .18) 78%),
+    url("./assets/brand/xuecheng-task-mist.png") right center / cover no-repeat;
   content: "";
   opacity: .82;
   pointer-events: none;
@@ -577,6 +579,18 @@ textarea {
   background: linear-gradient(145deg, rgba(255, 255, 255, .86), rgba(237, 243, 238, .84));
   box-shadow: 0 16px 36px rgba(48, 75, 61, .09);
 }
+.plan-proposal::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 255, .92) 0%, rgba(255, 255, 255, .7) 48%, rgba(255, 255, 255, .24) 100%),
+    url("./assets/brand/xuecheng-task-mist.png") right center / cover no-repeat;
+  content: "";
+  opacity: .5;
+  pointer-events: none;
+}
+.plan-proposal > * { position: relative; z-index: 1; }
 .plan-proposal::after { display: none; }
 .proposal-atmosphere {
   position: relative;
@@ -598,7 +612,7 @@ textarea {
   height: 100%;
   object-fit: cover;
   object-position: center 74%;
-  opacity: .3;
+  opacity: .36;
   pointer-events: none;
 }
 .proposal-atmosphere::after { position: absolute; inset: 20% -12% -45% 42%; border: 1px solid rgba(48, 75, 61, .13); border-radius: 50%; content: ""; transform: rotate(-14deg); }
@@ -670,9 +684,9 @@ textarea {
   bottom: 52px;
   min-height: min(46dvh, 360px);
   background:
-    url("./assets/xuecheng-voice-mist-vector.svg") var(--voice-origin-x, 50%) 100% / 140% 100% no-repeat,
     radial-gradient(circle at var(--voice-origin-x, 50%) 100%, rgba(200, 141, 119, .1), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0), rgba(249, 250, 248, .7));
+    linear-gradient(180deg, rgba(255, 255, 255, .12), rgba(255, 255, 255, .28)),
+    url("./assets/brand/xuecheng-voice-mist.png") right bottom / cover no-repeat;
   opacity: 1;
   transform: translateY(0);
 }
@@ -886,9 +900,9 @@ textarea {
 }
 .home-next-card::after,
 .home-empty::after {
-  inset: -12% -7% -18% 45%;
-  background-position: center;
-  background-size: 100% 100%;
+  inset: 0;
+  background-position: center, right center;
+  background-size: auto, cover;
   mix-blend-mode: normal;
   opacity: .82;
   filter: none;
