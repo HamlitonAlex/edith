@@ -34,9 +34,9 @@ test("the V3.1 visual system uses a quiet morning palette with restrained direct
     assert.match(css, new RegExp(`--${token}:`));
   }
   assert.match(html, /class="onboarding-visual"/);
-  assert.match(html, /assets\/brand-mist\.svg/);
-  assert.match(html, /brand-mist\.svg[^>]*as="image"/);
-  assert.match(html, /brand-mist\.svg[^>]*fetchpriority="high"/);
+  assert.match(html, /assets\/xuecheng-morning-mist-vector\.svg/);
+  assert.match(html, /xuecheng-morning-mist-vector\.svg[^>]*as="image"/);
+  assert.match(html, /xuecheng-morning-mist-vector\.svg[^>]*fetchpriority="high"/);
   assert.match(refinementCss, /学程 V3\.1/);
   assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
@@ -204,7 +204,7 @@ test("bottom navigation is a floating rounded control layer over a quiet canvas"
 
 test("dynamic recommendations keep content covers optional while atmosphere stays generic", () => {
   assert.match(html, /class="proposal-atmosphere"[^>]*id="proposal-atmosphere"/);
-  assert.match(html, /brand-mist\.svg/);
+  assert.match(html, /xuecheng-morning-mist-vector\.svg/);
   assert.match(html, /id="proposal-media"[^>]*hidden/);
   assert.match(html, /id="proposal-media-image"[^>]*referrerpolicy="no-referrer"/);
   assert.doesNotMatch(html, /id="proposal-media-image"[^>]*src=/);
@@ -372,10 +372,13 @@ test("V3.1 keeps four primary tabs, a unified composer, and bounded voice feedba
 });
 
 test("the production surfaces use the standalone mist asset and protect text editing", () => {
-  assert.match(html, /class="onboarding-visual"[\s\S]*?brand-mist\.svg/);
-  assert.match(html, /class="chat-atmosphere"[\s\S]*?brand-mist\.svg/);
-  assert.match(html, /class="proposal-atmosphere"[\s\S]*?brand-mist\.svg/);
-  assert.match(refinementCss, /home-next-card::after[\s\S]*brand-mist\.svg/);
+  assert.match(html, /class="onboarding-visual"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
+  assert.match(html, /class="chat-atmosphere"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
+  assert.match(html, /class="proposal-atmosphere"[\s\S]*?xuecheng-morning-mist-vector\.svg/);
+  assert.match(refinementCss, /home-next-card::after[\s\S]*xuecheng-morning-mist-vector\.svg/);
+  assert.match(refinementCss, /xuecheng-voice-mist-vector\.svg/);
+  assert.doesNotMatch(html, /assets\/brand-mist\.svg/);
+  assert.doesNotMatch(js, /assets\/brand-mist\.svg/);
   assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: block !important/);
   assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: block !important/);
   assert.match(js, /event\.target\.closest\("button,input,textarea,select,a"\)/);
@@ -383,6 +386,16 @@ test("the production surfaces use the standalone mist asset and protect text edi
   assert.match(js, /surface\.addEventListener\("pointermove"/);
   assert.match(js, /if \(holding \|\| voiceController\.isListening\(\)\) voiceController\.cancel\(\)/);
   assert.doesNotMatch(refinementCss, /voice-volume/);
+});
+
+test("the approved mist redraws are local offline assets, not a page screenshot", () => {
+  for (const asset of ["xuecheng-morning-mist-vector.svg", "xuecheng-voice-mist-vector.svg"]) {
+    const path = new URL(`../assets/${asset}`, import.meta.url);
+    assert.equal(existsSync(path), true);
+    const source = readFileSync(path, "utf8");
+    assert.match(source, /Approximate vector redraw/);
+    assert.doesNotMatch(source, /<image\b/i);
+  }
 });
 
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {

@@ -21,7 +21,7 @@ const objectValue = value => value && typeof value === "object" && !Array.isArra
 const stringList = value => Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
 const objectList = value => Array.isArray(value) ? value.filter(item => item && typeof item === "object" && !Array.isArray(item)) : [];
 const dailyAtmospheres = [
-  { id: "mist", src: "./assets/brand-mist.svg" },
+  { id: "mist", src: "./assets/xuecheng-morning-mist-vector.svg" },
 ];
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
@@ -374,7 +374,7 @@ function renderPath() {
     atmosphere.alt = "";
     atmosphere.setAttribute("aria-hidden", "true");
     atmosphere.loading = "lazy";
-    atmosphere.src = "./assets/brand-mist.svg";
+    atmosphere.src = "./assets/xuecheng-morning-mist-vector.svg";
     direction.prepend(atmosphere);
   }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
