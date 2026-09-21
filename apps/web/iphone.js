@@ -12,7 +12,7 @@ const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
 const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
-const themeColors = { day: "#fcfcfb", night: "#1f2a25" };
+const themeColors = { day: "#fcfbf8", night: "#1f2a25" };
 const ratio = (value, fallback) => {
   const number = Number(value);
   return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
@@ -37,6 +37,8 @@ let state = load();
 let agentState = loadAgent();
 let pendingAttachments = [];
 let onboardingIndex = 0;
+let splashPhase = state.onboardingComplete ? "complete" : "showing";
+let splashTimer = null;
 let calendarViewDate = new Date();
 const screenOrder = ["home", "chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -192,9 +194,12 @@ const sendIcon = `<i class="ph ph-arrow-up" aria-hidden="true"></i>`;
 function syncComposerAction() {
   const button = $(".send-button");
   const input = $("#chat-input");
-  if (!button || !input) return;
+  const composer = $("#chat-form");
+  if (!button || !input || !composer) return;
   const hasContent = Boolean(input.value.trim() || pendingAttachments.length);
   const voiceMode = !hasContent && !isSending;
+  const multiLine = input.value.includes("\n") || input.scrollHeight > 56;
+  composer.dataset.inputState = hasContent ? (multiLine ? "multiline" : "filled") : "idle";
   button.classList.toggle("voice-mode", voiceMode);
   button.classList.toggle("ready", hasContent);
   button.type = voiceMode ? "button" : "submit";
@@ -227,6 +232,28 @@ function renderOnboarding() {
   $("#onboarding-directness").value = state.directness;
   $("#onboarding-initiative-value").textContent = `${Math.round(state.initiative * 100)}%`;
   $("#onboarding-directness-value").textContent = `${Math.round(state.directness * 100)}%`;
+}
+
+function completeOnboarding() {
+  state.onboardingComplete = true;
+  splashPhase = "complete";
+  clearTimeout(splashTimer);
+  splashTimer = null;
+  save();
+  render();
+}
+
+function finishSplash() {
+  if (state.onboardingComplete || splashPhase !== "showing") return;
+  splashPhase = "complete";
+  splashTimer = null;
+  render();
+}
+
+function scheduleSplash() {
+  if (state.onboardingComplete || splashPhase !== "showing" || splashTimer) return;
+  const delay = reduceMotion.matches ? 0 : 950;
+  splashTimer = window.setTimeout(finishSplash, delay);
 }
 
 function renderAttachments() {
@@ -292,6 +319,23 @@ function calendarTimestamp(date, time = "09:00") {
   return `${calendarDateKey(date)}T${String(hour || "09").padStart(2, "0")}${String(minute || "00").padStart(2, "0")}00`;
 }
 
+function calendarInputDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function renderWeekStrip(selectedDate) {
+  const start = new Date(selectedDate);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  const weekday = new Intl.DateTimeFormat("zh-CN", { weekday: "short" });
+  $("#week-strip").innerHTML = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const active = calendarDateKey(date) === calendarDateKey(selectedDate);
+    return `<button type="button" data-calendar-day="${calendarInputDate(date)}" aria-pressed="${active}"><small>${escapeHtml(weekday.format(date).replace("周", ""))}</small><b>${date.getDate()}</b></button>`;
+  }).join("");
+}
+
 function renderToday(pronoun) {
   const action = agentState.next_recommended_action;
   const agenda = $("#today-agenda");
@@ -300,18 +344,26 @@ function renderToday(pronoun) {
   $("#today-date").textContent = isToday
     ? "今天"
     : new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(calendarViewDate);
+  renderWeekStrip(calendarViewDate);
   $("#energy-check").hidden = !agentState.long_term_goals.length;
   const calendarEntries = state.calendarEvents
     .map(event => ({ event, parsed: calendarEventDate(event) }))
     .filter(item => item.parsed?.key === targetKey)
     .sort((left, right) => left.parsed.time.localeCompare(right.parsed.time));
   const started = action?.status === "accepted";
-  const suggestion = action && isToday
-    ? `<li class="next ${started ? "started" : ""}"><time>建议<small>${action.duration_minutes} 分钟</small></time><div><small>AI 建议 · 未写入日程</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么是现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button>${started ? "" : '<button type="button" data-add-action-calendar>添加到日程</button>'}</div></div><span>${started ? "正在推进" : "等待确认"}</span></li>`
+  const actionConfirmed = Boolean(action?.id) && calendarEntries.some(({ event }) => event.sourceActionId === action.id);
+  const suggestion = action && isToday && !actionConfirmed
+    ? `<article class="ai-suggestion-card ${started ? "started" : ""}"><div class="ai-suggestion-kicker"><span></span><small>学程建议 · 尚未写入日程</small><b>${action.duration_minutes} 分钟</b></div><h3>${escapeHtml(action.title)}</h3><p>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-add-action-calendar>${started ? "加入今天日程" : "确认并加入日程"}</button></div></article>`
     : "";
-  const events = calendarEntries.map(({ event, parsed }) => `<li class="calendar-entry"><time>${escapeHtml(parsed.time)}</time><div><small>你的日程</small><h2>${escapeHtml(event.summary || "未命名安排")}</h2><p>已保存在当前设备</p></div><span>已确认</span></li>`).join("");
+  const events = calendarEntries.map(({ event, parsed }) => {
+    const isConfirmedSuggestion = Boolean(action?.id) && event.sourceActionId === action.id;
+    return `<li class="calendar-entry"><time>${escapeHtml(parsed.time)}</time><span class="timeline-dot" aria-hidden="true"></span><div><small>${isConfirmedSuggestion ? "已确认的 AI 建议" : "你的日程"}</small><h2>${escapeHtml(event.summary || "未命名安排")}</h2><p>${isConfirmedSuggestion ? "已写入本地日程" : "已保存在当前设备"}</p></div><span>已确认</span></li>`;
+  }).join("");
+  $("#confirmed-schedule-group").hidden = !events;
+  $("#ai-schedule-suggestion").hidden = !suggestion;
+  $("#ai-schedule-content").innerHTML = suggestion;
   $("#today-empty").hidden = Boolean(events || suggestion);
-  agenda.innerHTML = events + suggestion;
+  agenda.innerHTML = events;
 }
 
 function formatCalendarEvent(event) {
@@ -327,6 +379,7 @@ function renderHome() {
   const action = agentState.next_recommended_action;
   const now = new Date();
   const hour = now.getHours();
+  $("#home-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(now);
   const userLabel = typeof state.userName === "string" && state.userName.trim() ? state.userName.trim().slice(0, 24) : "";
   const greeting = hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
   $("#home-greeting").textContent = userLabel ? `${greeting}，` : greeting;
@@ -366,21 +419,23 @@ function renderHome() {
 function renderPath() {
   const goal = agentState.long_term_goals[0];
   const direction = $("#current-direction");
+  const stage = $("#path-stage-card");
   $("#path-empty").hidden = Boolean(goal);
   direction.hidden = !goal;
   $("#direction-title").textContent = goal?.text || "";
-  direction.querySelector(".direction-atmosphere")?.remove();
-  if (goal) {
-    const atmosphere = document.createElement("img");
-    atmosphere.className = "direction-atmosphere";
-    atmosphere.alt = "";
-    atmosphere.setAttribute("aria-hidden", "true");
-    atmosphere.loading = "lazy";
-    atmosphere.src = "./assets/xuecheng-morning-mist-vector.svg";
-    direction.prepend(atmosphere);
-  }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
-  $("#path-list").innerHTML = skills.map((skill, index) => `<article><i>${String(index + 1).padStart(2, "0")}</i><div><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`).join("");
+  const current = skills.find(skill => Number(skill.confidence || 0) < .8) || skills.at(-1);
+  stage.hidden = !goal || !current;
+  $("#path-stage-title").textContent = current?.label || "";
+  $("#path-stage-copy").textContent = current
+    ? `已有 ${current.evidence.length} 条真实证据。下一步会根据你的完成情况继续调整。`
+    : "";
+  $("#path-list").innerHTML = skills.map((skill, index) => {
+    const confidence = Number(skill.confidence || 0);
+    const status = confidence >= .8 ? "done" : skill === current ? "current" : "upcoming";
+    const label = status === "done" ? "已形成证据" : status === "current" ? "当前推进" : "等待更多经历";
+    return `<article data-path-state="${status}"><span class="path-node" aria-hidden="true"></span><div><small>${label}</small><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`;
+  }).join("");
 }
 
 function renderUnderstanding() {
@@ -494,7 +549,10 @@ function render() {
     start.disabled = started;
     $("#discuss-action").textContent = `和${pronoun}聊聊`;
   }
-  $("#onboarding").hidden = state.onboardingComplete;
+  const showSplash = !state.onboardingComplete && splashPhase === "showing";
+  $("#splash").hidden = !showSplash;
+  $("#onboarding").hidden = state.onboardingComplete || showSplash;
+  $(".phone").classList.toggle("showing-splash", showSplash);
   $("#settings-cloud-consent").checked = state.cloudConsent;
   $("#cloud-consent").checked = state.cloudConsent;
   $("#source-summary").textContent = state.sources.length ? `${state.sources.length} 项资料可被引用，可随时清除` : "目前没有长期引用的资料";
@@ -580,10 +638,11 @@ document.querySelectorAll("[data-onboarding-next]").forEach(button => button.add
 }));
 document.querySelectorAll("[data-onboarding-skip]").forEach(button => button.addEventListener("click", () => {
   if (onboardingIndex < 2) onboardingIndex += 1;
-  else state.onboardingComplete = true;
+  else return completeOnboarding();
   save();
   render();
 }));
+document.querySelector("[data-onboarding-skip-all]")?.addEventListener("click", completeOnboarding);
 document.querySelectorAll("[data-onboarding-role]").forEach(button => button.addEventListener("click", () => {
   state.role = button.dataset.onboardingRole;
   renderOnboarding();
@@ -598,9 +657,7 @@ $("#cloud-consent").addEventListener("change", event => { state.cloudConsent = e
 $("[data-onboarding-finish]").addEventListener("click", () => {
   state.name = $("#onboarding-name").value.trim() || "小程";
   state.cloudConsent = $("#cloud-consent").checked;
-  state.onboardingComplete = true;
-  save();
-  render();
+  completeOnboarding();
   showToast("准备好了。先随便和我说一句吧");
 });
 
@@ -755,6 +812,15 @@ $("#correct-understanding").addEventListener("click", () => {
   input.focus();
 });
 document.addEventListener("click", event => {
+  const calendarDay = event.target.closest("[data-calendar-day]");
+  if (calendarDay) {
+    const match = String(calendarDay.dataset.calendarDay || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      calendarViewDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      renderToday(pronounFor(state.gender));
+    }
+    return;
+  }
   const external = event.target.closest("[data-external-url]");
   if (external) openExternalConfirmation(external.dataset.externalUrl);
   const discuss = event.target.closest("[data-discuss]");
@@ -764,8 +830,10 @@ document.addEventListener("click", event => {
   if (event.target.closest("[data-add-action-calendar]")) {
     const action = agentState.next_recommended_action;
     if (!action) return;
+    const alreadyConfirmed = state.calendarEvents.some(item => item?.sourceActionId === action.id);
+    if (alreadyConfirmed) return showToast("这条建议已经在你的日程里了");
     if (!window.confirm(`把“${action.title}”添加到今天的日程吗？`)) return;
-    state.calendarEvents.push({ summary: action.title, start: calendarTimestamp(calendarViewDate), source: "confirmed-ai-suggestion" });
+    state.calendarEvents.push({ summary: action.title, start: calendarTimestamp(calendarViewDate), source: "confirmed-ai-suggestion", sourceActionId: action.id });
     save();
     render();
     showToast("已添加到你的本地日程");
@@ -1169,6 +1237,7 @@ function createVoiceController(surface) {
     const wasActive = ["requesting", "recording", "recognizing"].includes(voiceState);
     voiceState = next;
     surface.setAttribute("data-voice-state", next);
+    surface.setAttribute("data-voice-visual-state", ({ cancelled: "cancel", success: "recognized", failure: "failed" }[next] || next));
     surface.classList.toggle("listening", next === "recording");
     surface.classList.toggle("recognizing", next === "recognizing");
     clearTimeout(voiceResetTimer);
@@ -1186,6 +1255,19 @@ function createVoiceController(surface) {
       : next === "recognizing"
         ? "正在识别……"
         : `和${pronounFor(state.gender)}说说现在的想法……`;
+    const voiceStatus = $("#voice-status");
+    const voiceHint = $("#voice-hint");
+    const voiceCopy = {
+      requesting: ["正在准备", "正在连接语音识别…"],
+      recording: ["正在聆听", "松开后转成文字 · 上滑取消"],
+      recognizing: ["正在识别", "正在把刚才的话转成文字…"],
+      success: ["已回填输入栏", "确认文字后再发送"],
+      failure: ["这次没有听清", "可以再按住说一次"],
+      cancelled: ["已取消", "没有保存本次录音"],
+      idle: ["正在聆听", "松开后转成文字 · 上滑取消"],
+    }[next] || ["正在聆听", "松开后转成文字 · 上滑取消"];
+    if (voiceStatus) voiceStatus.textContent = voiceCopy[0];
+    if (voiceHint) voiceHint.textContent = voiceCopy[1];
     if (message) showToast(message);
     syncComposerAction();
     if (["success", "failure", "cancelled"].includes(next)) voiceResetTimer = setTimeout(() => setState("idle"), 900);
@@ -1493,4 +1575,5 @@ if (["home", "chat", "today", "path", "us", "settings"].includes(initialScreen))
 syncVisualViewport();
 resizeComposer();
 render();
+scheduleSplash();
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});

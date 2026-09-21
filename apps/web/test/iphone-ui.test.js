@@ -29,24 +29,28 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the V3.2 visual system uses cream, mist blue and restrained directional accents", () => {
+test("Pixso tokens drive the launch, surface and emphasis colors", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(html, /class="onboarding-visual"/);
+  assert.match(html, /id="splash"/);
+  assert.match(html, /id="onboarding"/);
+  assert.doesNotMatch(html, /class="onboarding-visual"/);
   assert.match(html, /assets\/brand\/xuecheng-launch-mist\.png/);
   assert.match(html, /xuecheng-launch-mist\.png[^>]*as="image"/);
-  assert.match(html, /xuecheng-launch-mist\.png[^>]*fetchpriority="high"/);
   assert.match(refinementCss, /学程 V3\.1/);
-  assert.match(refinementCss, /\.onboarding-visual\s*>\s*img\s*\{\s*display:\s*none/);
+  assert.match(refinementCss, /Pixso 01: Splash/);
+  assert.match(refinementCss, /Pixso 02: First guide/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(refinementCss, /--xc-cream:\s*#f7f3ea/);
-  assert.match(refinementCss, /--xc-blue:\s*#87aabd/);
-  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
-  assert.match(refinementCss, /--xc-green-soft:\s*#71877c/);
-  assert.match(refinementCss, /--xc-orange:\s*#c88d77/);
-  assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
-  assert.match(html, /name="theme-color" content="#fcfcfb"/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-surface:\s*#ffffff/);
+  assert.match(refinementCss, /--xc-surface-muted:\s*#f5f3ec/);
+  assert.match(refinementCss, /--xc-blue:\s*#8fafc2/);
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
+  assert.match(refinementCss, /--xc-orange:\s*#bf8873/);
+  assert.match(refinementCss, /--xc-line:\s*#e4e9e5/);
+  assert.match(js, /day: "#fcfbf8", night: "#1f2a25"/);
+  assert.match(html, /name="theme-color" content="#fcfbf8"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -84,14 +88,15 @@ test("settings read like a finished product instead of a numbered design spec", 
   assert.match(html, /id="model-title">模型与智能/);
 });
 
-test("the refined visual system uses morning neutrals and one radius scale", () => {
+test("the refined visual system exposes Pixso spacing, radius and shadow tokens", () => {
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
-  assert.match(refinementCss, /--xc-mist:\s*#f1f5f4/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-mist:\s*#e9efeb/);
+  for (const token of ["--space-1", "--space-2", "--space-3", "--space-4", "--space-5", "--page-margin", "--radius-card-sm", "--radius-sheet", "--radius-pill", "--shadow-card", "--shadow-floating"]) assert.match(refinementCss, new RegExp(`${token}:`));
   assert.doesNotMatch(css, /--canvas:#191d1b/);
-  assert.match(js, /day: "#fcfcfb", night: "#1f2a25"/);
+  assert.match(js, /day: "#fcfbf8", night: "#1f2a25"/);
 });
 
 test("visible product copy avoids typographic dash decoration", () => {
@@ -256,7 +261,7 @@ test("an accepted next step clearly becomes an in-progress state everywhere it a
   assert.match(js, /start\.textContent = started \? "进行中"/);
   assert.match(js, /#home-next-card \[data-start-current\]/);
   assert.match(refinementCss, /\.plan-actions #start-action/);
-  assert.match(refinementCss, /\.agenda li\.next/);
+  assert.match(refinementCss, /\.ai-suggestion-card/);
 });
 
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
@@ -294,7 +299,7 @@ test("the companion identity is quiet, personal and gender configurable", () => 
 test("task interaction is concrete, negotiable and confirms external jumps", () => {
   assert.match(html, /id="external-action-dialog"/);
   assert.match(html, /id="confirm-external-action"/);
-  assert.match(js, /growth-trace/);
+  assert.match(js, /sourceActionId/);
   assert.doesNotMatch(html, />已完成<|>待开始</);
   assert.match(js, /openExternalConfirmation/);
   assert.match(js, /discussCurrentAction/);
@@ -340,16 +345,16 @@ test("short greetings stay local and assistant markdown is rendered safely", () 
 });
 
 test("selected controls use forest green and the tab bar has restrained depth", () => {
-  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
-  assert.match(refinementCss, /--xc-glass:\s*rgba\(255, 255, 255, \.72\)/);
-  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(247, 249, 248, \.44\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*rgba\(48, 75, 61, \.08\)/s);
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
+  assert.match(refinementCss, /--xc-glass:\s*rgba\(255, 255, 255, \.8\)/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, \.8\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*var\(--xc-green\)/s);
 });
 
 test("the chosen production direction leads with morning mist and editorial clarity", () => {
   assert.match(refinementCss, /reference-aligned surface/);
-  assert.match(refinementCss, /--xc-bg:\s*#fcfcfb/);
-  assert.match(refinementCss, /--xc-green:\s*#2e4639/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
   assert.match(refinementCss, /--radius-card:\s*24px/);
   assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*background:/);
   assert.match(refinementCss, /\.chat-atmosphere\s*\{[\s\S]*display:\s*none/);
@@ -382,9 +387,9 @@ test("V3.2 keeps four primary bottom tabs, a unified composer, and bounded voice
 });
 
 test("the production surfaces place the three supplied mist images only in their intended roles", () => {
-  assert.match(html, /class="onboarding-visual"[\s\S]*?xuecheng-launch-mist\.png/);
+  assert.match(html, /id="splash"/);
   assert.match(html, /class="proposal-atmosphere"[\s\S]*?xuecheng-task-mist\.png/);
-  assert.match(refinementCss, /\.onboarding\s*\{[\s\S]*xuecheng-launch-mist\.png/);
+  assert.match(refinementCss, /\.splash\s*\{[\s\S]*xuecheng-launch-mist\.png/);
   assert.match(refinementCss, /home-next-card::after[\s\S]*xuecheng-task-mist\.png/);
   assert.match(refinementCss, /\.plan-proposal::before[\s\S]*xuecheng-task-mist\.png/);
   assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture[\s\S]*xuecheng-voice-mist\.png/);
@@ -412,7 +417,7 @@ test("the supplied mist images are packaged as local PNG assets", () => {
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {
   assert.match(refinementCss, /Today, path and settings use the same cards/);
   assert.match(refinementCss, /\.page-header\s*\{[\s\S]*padding:/);
-  assert.match(refinementCss, /\.agenda li\s*\{/);
+  assert.match(refinementCss, /\.agenda li\.calendar-entry\s*\{/);
   assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*background:/);
   assert.match(refinementCss, /\.model-field input,[\s\S]*\.model-field select/);
   assert.match(refinementCss, /\.talk-about-path/);
@@ -421,7 +426,7 @@ test("secondary screens share one hierarchy grammar while keeping their own dens
 test("companion and settings pages preserve safe-area content boundaries", () => {
   assert.match(html, /class="profile-atmosphere"[^>]*aria-hidden="true"/);
   assert.match(html, /class="settings-atmosphere"[^>]*aria-hidden="true"/);
-  assert.match(refinementCss, /\.us-screen,[\s\S]*\.settings-screen\s*\{[\s\S]*padding-right:\s*20px[\s\S]*padding-left:\s*20px/);
+  assert.match(refinementCss, /\.us-screen,[\s\S]*\.settings-screen\s*\{[\s\S]*padding-right:\s*var\(--page-margin\)[\s\S]*padding-left:\s*var\(--page-margin\)/);
   assert.match(refinementCss, /\.profile-atmosphere\s*\{[\s\S]*display:\s*none/);
   assert.match(refinementCss, /\.settings-header\s*\{[\s\S]*padding-top:/);
   assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*border-radius:\s*22px/);
@@ -440,8 +445,8 @@ test("the conversation model stays understandable without becoming a large selec
 test("today and path screens use abstract surfaces without photo backgrounds", () => {
   assert.match(refinementCss, /\.agenda-atmosphere/);
   assert.match(refinementCss, /\.direction-atmosphere/);
-  assert.match(refinementCss, /\.agenda li\.next\s*\{[\s\S]*border-radius:\s*22px/);
-  assert.match(refinementCss, /\.current-direction\s*\{[\s\S]*border-radius:\s*22px/);
+  assert.match(refinementCss, /\.ai-suggestion-card\s*\{[\s\S]*border-radius:\s*var\(--radius-card\)/);
+  assert.match(refinementCss, /\.current-direction\s*\{[\s\S]*border-radius:\s*var\(--radius-card\)/);
 });
 
 test("the current mobile release fixes full bleed and stays portrait-first", () => {
@@ -484,10 +489,33 @@ test("new users begin without fabricated personal history", () => {
 
 test("first run is a skippable three-step conversation-led setup", () => {
   assert.match(html, /id="onboarding"/);
+  assert.match(html, /id="splash"/);
   for (const step of ["partner", "relationship", "boundary"]) assert.match(html, new RegExp(`data-onboarding-step="${step}"`));
   assert.match(html, /data-onboarding-skip/);
+  assert.match(html, /data-onboarding-skip-all/);
   assert.match(html, /id="cloud-consent"/);
+  assert.match(js, /let splashPhase = state\.onboardingComplete \? "complete" : "showing"/);
+  assert.match(js, /function scheduleSplash\(\)/);
+  assert.match(js, /\$\("#splash"\)\.hidden = !showSplash/);
+  assert.match(js, /\$\("#onboarding"\)\.hidden = state\.onboardingComplete \|\| showSplash/);
+  assert.doesNotMatch(html, /class="onboarding-visual"/);
+  assert.doesNotMatch(refinementCss, /\.onboarding-visual\s*\{[\s\S]*min-height:\s*650px/);
   assert.doesNotMatch(html, /哔哩哔哩 · 通识|农业革命|42 个来自/);
+});
+
+test("Pixso schedule and voice state surfaces reuse real data rather than fabricated items", () => {
+  assert.match(html, /id="week-strip"/);
+  assert.match(html, /id="confirmed-schedule-group"/);
+  assert.match(html, /id="ai-schedule-suggestion"/);
+  assert.match(js, /sourceActionId/);
+  assert.match(js, /actionConfirmed/);
+  assert.match(html, /id="path-stage-card"/);
+  assert.match(js, /data-path-state/);
+  assert.match(html, /data-input-state="idle"/);
+  assert.match(js, /composer\.dataset\.inputState/);
+  assert.match(js, /data-voice-visual-state/);
+  assert.match(html, /id="voice-status"/);
+  assert.match(html, /id="voice-hint"/);
 });
 
 test("composer owns attachment capture and preview", () => {

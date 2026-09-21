@@ -216,14 +216,25 @@ async function runUserJourney(browser, origin) {
     await page.locator('#external-action-dialog button[value="cancel"]').click();
 
     await page.locator('[data-nav="today"]').click();
-    await page.waitForFunction(() => !document.querySelector("#today-empty")?.hidden || document.querySelectorAll("#today-agenda li").length > 0);
+    await page.waitForFunction(() => !document.querySelector("#today-empty")?.hidden || !document.querySelector("#ai-schedule-suggestion")?.hidden || document.querySelectorAll("#today-agenda li").length > 0);
     verify(
-      await page.evaluate(() => !document.querySelector("#today-empty")?.hidden || document.querySelectorAll("#today-agenda li").length > 0),
-      "black-box: today screen must show either the empty state or the current dynamic recommendation"
+      await page.evaluate(() => !document.querySelector("#today-empty")?.hidden || !document.querySelector("#ai-schedule-suggestion")?.hidden || document.querySelectorAll("#today-agenda li").length > 0),
+      "black-box: today screen must show a confirmed item, an unconfirmed AI suggestion, or the empty state"
     );
+    const addSuggestionToCalendar = page.locator("[data-add-action-calendar]");
+    if (await addSuggestionToCalendar.isVisible()) {
+      await addSuggestionToCalendar.click();
+      await page.waitForFunction(() => document.querySelector("#ai-schedule-suggestion")?.hidden && document.querySelectorAll("#today-agenda .calendar-entry").length === 1);
+      verify(
+        await page.locator("#today-agenda").textContent().then(text => text.includes("已确认的 AI 建议")),
+        "black-box: confirming an AI schedule suggestion must create a confirmed calendar item"
+      );
+    }
     await page.locator('[data-nav="us"]').click();
     await page.locator('details.companion-preferences > summary').click();
-    await page.locator('[data-gender="male"]').click();
+    const maleGender = page.locator('[data-gender="male"]');
+    await maleGender.scrollIntoViewIfNeeded();
+    await maleGender.click();
     verify((await page.locator("#relationship-copy").textContent()).includes("他会"), "black-box: companion presentation did not update");
     await page.locator('[data-open-screen="settings"]').click();
     await page.locator('[data-screen="settings"]').waitFor({ state: "visible" });

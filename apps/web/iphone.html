@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#fcfcfb">
+  <meta name="theme-color" content="#fcfbf8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
@@ -19,34 +19,40 @@
 </head>
 <body>
   <main class="phone" aria-label="学程 iPhone 原型">
+    <section class="splash" id="splash" aria-label="学程启动" hidden>
+      <div class="splash-brand" aria-label="学程，陪你走更远的路">
+        <img class="splash-mark" src="./assets/xuecheng-mark.svg" alt="学程图标">
+        <div>
+          <b>学程</b>
+          <small>陪你，走更远的路</small>
+        </div>
+      </div>
+      <span class="splash-loading" aria-label="正在准备"></span>
+    </section>
     <section class="onboarding" id="onboarding" aria-label="初始设置" hidden>
-      <div class="onboarding-progress" aria-hidden="true"><i></i><i></i><i></i></div>
+      <header class="onboarding-top">
+        <span class="onboarding-brand"><img src="./assets/xuecheng-mark.svg" alt=""><b>学程</b></span>
+        <button type="button" class="onboarding-skip-all" data-onboarding-skip-all>暂时跳过</button>
+      </header>
+      <div class="onboarding-progress" aria-label="引导进度"><i></i><i></i><i></i></div>
       <article data-onboarding-step="partner">
-        <figure class="onboarding-visual">
-          <img src="./assets/brand/xuecheng-launch-mist.png" alt="" fetchpriority="high">
-          <span><img class="onboarding-mark" src="./assets/xuecheng-mark.svg" alt="学程图标"></span>
-          <div class="onboarding-wordmark" aria-hidden="true"><b>学程</b><small>陪你，走更远的路</small></div>
-          <figcaption>知道你下一步为什么而学。</figcaption>
-        </figure>
-        <small>学程 · 你的学习引路人</small>
-        <h1>找到现在值得学的一小步。</h1>
-        <p>从你的目标和现实时间出发，聊清楚为什么值得做，再一起调整。先认识一下：你想怎么称呼我？</p>
+        <div class="onboarding-copy">
+          <small>初次见面</small>
+          <h1>我该怎样称呼？</h1>
+          <p>先从一个舒服的称呼开始。之后的建议、学习记录和相处方式都仍由你决定。</p>
+        </div>
         <label class="onboarding-field"><span>伙伴名字</span><input id="onboarding-name" value="小程" maxlength="12"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>以后再说</button><button type="button" data-onboarding-next>继续</button></div>
       </article>
       <article data-onboarding-step="relationship" hidden>
-        <small>相处方式</small>
-        <h1>我应该怎样陪你？</h1>
-        <p>这不是固定人设。相处越久，我越会从你的反馈里学会合适的分寸。</p>
+        <div class="onboarding-copy"><small>相处方式</small><h1>我应该怎样陪你？</h1><p>这不是固定人设。相处越久，我会从你的反馈里学会合适的分寸。</p></div>
         <div class="role-options onboarding-roles"><button type="button" data-onboarding-role="guide">引路人</button><button type="button" data-onboarding-role="friend">朋友</button><button type="button" data-onboarding-role="family">家人</button><button type="button" data-onboarding-role="partner">亲密伙伴</button></div>
         <label class="slider-field"><span>主动来找我的频率 <b id="onboarding-initiative-value">65%</b></span><input id="onboarding-initiative" type="range" min="0" max="1" step=".05" value=".65"></label>
         <label class="slider-field"><span>提出不同意见的直接程度 <b id="onboarding-directness-value">55%</b></span><input id="onboarding-directness" type="range" min="0" max="1" step=".05" value=".55"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>跳过</button><button type="button" data-onboarding-next>继续</button></div>
       </article>
       <article data-onboarding-step="boundary" hidden>
-        <small>数据边界</small>
-        <h1>先把边界说清楚。</h1>
-        <p>长期记忆默认只保存在这台设备。只有你明确同意后，我才会把当次对话所需的信息交给你选择的云端模型。</p>
+        <div class="onboarding-copy"><small>数据边界</small><h1>先把边界说清楚。</h1><p>长期记忆默认只保存在这台设备。只有你明确同意后，才会使用你选择的云端模型处理当次对话。</p></div>
         <label class="consent-card" for="cloud-consent"><span><b>允许使用云端模型</b><small>可随时在“资料与授权”中撤回</small></span><input class="switch" id="cloud-consent" type="checkbox"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>暂时只用本地</button><button type="button" data-onboarding-finish>开始聊天</button></div>
       </article>
@@ -61,16 +67,16 @@
     </div>
 
     <section class="screen active home-screen" id="home-screen" data-screen="home">
+      <div class="home-brand-row" aria-label="学程">
+        <div class="home-wordmark"><img src="./assets/xuecheng-mark.svg" alt="学程图标"><span><b>学程</b><small>陪你，走更远的路</small></span></div>
+        <p><b id="home-date"></b><small>今天也在靠近更好的自己。</small></p>
+      </div>
       <header class="home-header">
         <div class="home-welcome" aria-labelledby="home-welcome-title">
           <small id="home-greeting">你好，</small>
           <h1 id="home-welcome-title">你。</h1>
           <p id="home-welcome-subtitle">今天也在靠近更好的自己。</p>
         </div>
-        <button class="home-assistant" type="button" data-open-screen="chat" aria-label="和小程聊聊">
-          <img src="./assets/xuecheng-mark.svg" alt="小程图标">
-          <span>和小程聊聊</span>
-        </button>
       </header>
       <section class="home-next-card" id="home-next-card" aria-labelledby="home-next-title" hidden>
         <div class="home-card-kicker"><span></span>下一步 <small id="home-next-source">基于你确认的方向</small></div>
@@ -84,7 +90,6 @@
         <h2 id="home-empty-title">还不急着替你安排。</h2>
         <p>先和小程说说现在的状态、想做的事或可用时间，再一起找到值得做的一小步。</p>
         <div class="home-next-footer"><span><i class="ph ph-chat-circle" aria-hidden="true"></i><b>从一次对话开始</b></span><button type="button" data-open-screen="chat">开始聊天 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
-        <button class="home-discuss" type="button" data-open-screen="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i> 和小程讨论现在的状态 <i class="ph ph-caret-right" aria-hidden="true"></i></button>
       </section>
       <section class="home-schedule" aria-labelledby="home-schedule-title">
         <div class="home-section-heading"><h2 id="home-schedule-title">下一条日程</h2><button type="button" data-open-screen="today">查看日程 <i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
@@ -150,30 +155,40 @@
         </article>
       </div>
 
-      <form class="composer" id="chat-form" data-voice-state="idle">
+      <form class="composer" id="chat-form" data-voice-state="idle" data-input-state="idle">
         <div class="attachment-preview" id="attachment-preview" hidden></div>
         <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
         <textarea id="chat-input" rows="1" placeholder="和小程说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
         <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
-        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b>正在聆听</b><small>松开后转成文字 · 上滑取消</small></div>
+        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b id="voice-status">正在聆听</b><small id="voice-hint">松开后转成文字 · 上滑取消</small></div>
       </form>
     </section>
 
     <section class="screen today-screen" data-screen="today" hidden>
       <header class="page-header"><small>我的日程</small><h1>把今天留给重要的事</h1><p>日历里的安排属于你；学程的建议会先说明，再由你确认。</p></header>
       <div class="calendar-controls" aria-label="切换日程日期"><button type="button" data-calendar-offset="-1" aria-label="前一天"><i class="ph ph-caret-left" aria-hidden="true"></i></button><b id="today-date">今天</b><button type="button" data-calendar-offset="1" aria-label="后一天"><i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
+      <div class="week-strip" id="week-strip" aria-label="本周日期"></div>
       <div class="energy-check" id="energy-check"><div><span>现在的状态</span><b>需要时，再告诉<span data-pronoun>她</span></b></div><button data-open-screen="chat">聊两句</button></div>
       <div class="calendar-actions"><button type="button" id="calendar-import-today">导入日历</button><button type="button" id="calendar-add">手动添加</button></div>
       <div class="empty-state" id="today-empty"><b>这一天还没有日程或建议。</b><p>你可以导入真实日历，也可以先和小程聊聊；她不会拿固定任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
-      <ol class="agenda" id="today-agenda"></ol>
+      <section class="schedule-group" id="confirmed-schedule-group" aria-labelledby="confirmed-schedule-title">
+        <div class="schedule-group-heading"><h2 id="confirmed-schedule-title">已确认日程</h2><span>你的安排</span></div>
+        <ol class="agenda schedule-timeline" id="today-agenda"></ol>
+      </section>
+      <section class="ai-schedule-suggestion" id="ai-schedule-suggestion" aria-labelledby="ai-schedule-title" hidden>
+        <div class="schedule-group-heading"><h2 id="ai-schedule-title">AI 建议</h2><span>等待你确认</span></div>
+        <div id="ai-schedule-content"></div>
+      </section>
     </section>
 
     <section class="screen path-screen" data-screen="path" hidden>
       <header class="page-header"><small><span data-pronoun>她</span>正在和你一起形成</small><h1>人生不是一张预制地图</h1><p>这里记录方向的变化，也保留<span data-pronoun>她</span>为什么这样建议。</p></header>
       <div class="empty-state" id="path-empty"><b>方向会从对话里长出来。</b><p>在你确认之前，学程不会擅自给你贴目标或能力标签。</p></div>
       <section class="current-direction" id="current-direction" hidden><small>当前确认的方向</small><h2 id="direction-title"></h2><p>这是现在的方向，不是永远不能改变的身份标签。</p></section>
-      <div class="path-list" id="path-list"></div>
+      <section class="path-stage-card" id="path-stage-card" hidden><small>当前阶段</small><h2 id="path-stage-title"></h2><p id="path-stage-copy"></p></section>
+      <div class="path-section-heading"><h2>路径证据</h2><span>会随真实进展更新</span></div>
+      <div class="path-list path-timeline" id="path-list"></div>
       <button class="talk-about-path" data-open-screen="chat">和<span data-pronoun>她</span>聊聊这个方向</button>
     </section>
 
