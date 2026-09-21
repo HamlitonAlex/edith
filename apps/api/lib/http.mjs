@@ -73,6 +73,6 @@ export function applyCors(request, response, allowedOrigin) {
     response.setHeader("access-control-allow-origin", origin);
     response.setHeader("vary", "Origin");
     response.setHeader("access-control-allow-headers", "content-type, x-xuecheng-user-id");
-    response.setHeader("access-control-allow-methods", "GET, PUT, OPTIONS");
+    response.setHeader("access-control-allow-methods", "GET, POST, PUT, PATCH, OPTIONS");
   }
 }

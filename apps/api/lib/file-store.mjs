@@ -21,8 +21,7 @@ export class FileStore {
     await mkdir(this.#root, { recursive: true });
   }
 
-  async get(userId) {
-    await this.#ensureRoot();
+  async #read(userId) {
     const path = safeUserPath(this.#root, userId);
     try {
       return JSON.parse(await readFile(path, "utf8"));
@@ -35,16 +34,37 @@ export class FileStore {
     }
   }
 
-  async put(userId, value) {
+  async #write(userId, value) {
+    const path = safeUserPath(this.#root, userId);
+    const temporary = join(this.#root, `.${userId}.${crypto.randomUUID()}.tmp`);
+    await writeFile(temporary, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 0o600 });
+    await rename(temporary, path);
+  }
+
+  async get(userId) {
+    await this.#ensureRoot();
+    return this.#read(userId);
+  }
+
+  async #queue(userId, operation) {
     const prior = this.#writes.get(userId) || Promise.resolve();
     const write = prior.then(async () => {
       await this.#ensureRoot();
-      const path = safeUserPath(this.#root, userId);
-      const temporary = join(this.#root, `.${userId}.${crypto.randomUUID()}.tmp`);
-      await writeFile(temporary, JSON.stringify(value, null, 2), { encoding: "utf8", mode: 0o600 });
-      await rename(temporary, path);
+      return operation();
     });
     this.#writes.set(userId, write.catch(() => {}));
     return write;
+  }
+
+  async put(userId, value) {
+    return this.#queue(userId, () => this.#write(userId, value));
+  }
+
+  async update(userId, updater) {
+    return this.#queue(userId, async () => {
+      const next = await updater(await this.#read(userId));
+      await this.#write(userId, next);
+      return next;
+    });
   }
 }

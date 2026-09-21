@@ -121,6 +121,23 @@ export function normalizeHomeSnapshot(payload) {
   };
 }
 
+export function mergeHomeSnapshot(existing, snapshot) {
+  const existingPreferences = isObject(existing?.preferences) ? existing.preferences : {};
+  const serverOwnsCalendar = existingPreferences.calendar_events_authority === "server";
+  return {
+    ...snapshot,
+    preferences: {
+      ...existingPreferences,
+      ...snapshot.preferences,
+      calendar_events: serverOwnsCalendar && Array.isArray(existingPreferences.calendar_events)
+        ? existingPreferences.calendar_events
+        : snapshot.preferences.calendar_events,
+      ...(serverOwnsCalendar ? { calendar_events_authority: "server" } : {}),
+    },
+    conversations: Array.isArray(existing?.conversations) ? existing.conversations : [],
+  };
+}
+
 function sortableStart(value) {
   const raw = String(value || "");
   const compact = raw.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})?$/);
