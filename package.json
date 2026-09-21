@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "dev:api": "node apps/api/server.mjs",
     "build:web": "node scripts/build-mobile.mjs",
     "build:mobile": "node scripts/build-mobile.mjs",
     "mobile:sync": "npm run build:mobile && cap sync ios",
     "mobile:open": "cap open ios",
     "test": "node --test packages/event-schema/test/*.test.js apps/web/test/*.test.js && node scripts/test-server.mjs",
+    "test:api": "node --test apps/api/test/*.test.mjs",
     "test:delivery": "node scripts/delivery-qa.mjs",
     "test:mobile-package": "node scripts/mobile-package-qa.mjs"
   },
