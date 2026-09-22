@@ -10,8 +10,8 @@ test("React launch flow keeps Splash and Onboarding as separate states", async (
   const splash = await source("pages/Splash/Splash.tsx");
   const onboarding = await source("pages/Onboarding/Onboarding.tsx");
 
-  assert.match(app, /type ApplicationPhase = "splash" \| "onboarding" \| "legacy"/);
-  assert.match(app, /window\.location\.replace\("\.\/iphone\.html"\)/);
+  assert.match(app, /type ApplicationPhase = "splash" \| "onboarding" \| "application"/);
+  assert.match(app, /<HomePage snapshot=\{snapshot\}/);
   assert.match(splash, /Pixso Frame3382/);
   assert.match(onboarding, /Pixso Frame3419/);
 });
