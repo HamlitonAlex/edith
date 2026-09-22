@@ -7,3 +7,5 @@ export { GlassCard } from "./GlassCard";
 export { ListRow } from "./ListRow";
 export { NextStepCard } from "./NextStepCard";
 export { ScheduleRow } from "./ScheduleRow";
+export { PathNode } from "./PathNode";
+export { Switch } from "./Switch";
