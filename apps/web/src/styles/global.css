@@ -1,0 +1,20 @@
+@import "./tokens.css";
+
+:where(html, body, #react-ui-root) {
+  min-height: 100%;
+}
+
+:where(body) {
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-primary-text);
+  font-family: var(--font-ui);
+}
+
+:where(button, input, textarea, select) {
+  font: inherit;
+}
+
+:where(*, *::before, *::after) {
+  box-sizing: border-box;
+}
