@@ -37,7 +37,7 @@ export function App() {
     window.location.replace("./iphone.html");
   }, [phase, preview]);
 
-  if (phase === "splash") return <DeviceFrame page="splash"><Splash onReady={() => setPhase(preview === "onboarding" || !preferences.onboardingComplete ? "onboarding" : "legacy")} /></DeviceFrame>;
+  if (phase === "splash") return <DeviceFrame page="splash"><Splash /></DeviceFrame>;
   if (phase === "onboarding") {
     return <DeviceFrame page="onboarding"><Onboarding initialIntent={preferences.onboardingIntent} onComplete={(intent) => {
       if (!preview) completeLegacyOnboarding(intent);
