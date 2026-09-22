@@ -1,0 +1,24 @@
+.page {
+  position: relative;
+  display: grid;
+  grid-template-rows: 62px 1fr auto;
+  height: 100%;
+  overflow: hidden;
+  padding: 0 32px 56px;
+  color: var(--color-primary-text);
+  background: var(--color-background) url("/assets/brand/xuecheng-launch-mist.png") center / cover no-repeat;
+}
+
+.page::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: rgba(252, 251, 248, .08); }
+.status, .brand, .loading { position: relative; z-index: 1; }
+.status { display: flex; align-items: center; justify-content: space-between; font-size: 17px; font-weight: 600; letter-spacing: .02em; }
+.status span:last-child { font-size: 12px; letter-spacing: .16em; }
+.brand { align-self: center; display: grid; justify-items: center; transform: translateY(12px); }
+.mark { width: 76px; height: 76px; object-fit: contain; }
+.brand h1 { margin: 14px 0 0; font: 600 40px/1.2 var(--font-brand); letter-spacing: .1em; }
+.english { margin: 5px 0 0; color: var(--color-secondary-text); font-size: 11px; letter-spacing: .2em; }
+.tagline { margin: 14px 0 0; color: var(--color-secondary-text); font-size: 14px; }
+.loading { align-self: end; justify-self: center; display: inline-flex; gap: 10px; align-items: center; border: 0; padding: 0; color: var(--color-secondary-text); background: transparent; font-size: 12px; }
+.loading span { display: block; width: 120px; height: 4px; overflow: hidden; border-radius: 2px; background: var(--color-border); }
+.loading i { display: block; width: 56px; height: 100%; border-radius: inherit; background: var(--color-primary-green); }
+@media (prefers-reduced-motion: reduce) { .brand { transform: none; } }

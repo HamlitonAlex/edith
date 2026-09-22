@@ -1,14 +1,2 @@
-.shell {
-  display: grid;
-  align-content: center;
-  gap: var(--space-24);
-  min-height: 100svh;
-  max-width: 438px;
-  margin: 0 auto;
-  padding: var(--space-24);
-}
-
-.card { padding: var(--space-24); }
-.eyebrow { margin: 0 0 var(--space-8); color: var(--color-terracotta); font-size: var(--font-caption); }
-.card h1 { margin: 0; font-family: var(--font-brand); font-size: var(--font-title-medium); font-weight: 600; }
-.card p:not(.eyebrow) { margin: var(--space-12) 0 0; color: var(--color-secondary-text); font-size: var(--font-body); line-height: 1.6; }
+.handoff { display: grid; min-height: 100dvh; place-items: center; color: var(--color-secondary-text); }
+.handoff p { margin: 0; font-size: var(--font-caption); }
