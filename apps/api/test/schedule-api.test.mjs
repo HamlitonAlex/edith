@@ -1,9 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test from "node:test";
-import { createApiServer } from "../server.mjs";
+import { versionFrom, withApi } from "./test-oidc.mjs";
 
 const snapshot = {
   preferences: {
@@ -18,44 +15,38 @@ const snapshot = {
   },
 };
 
-async function withApi(run) {
-  const directory = await mkdtemp(join(tmpdir(), "xuecheng-api-schedule-"));
-  const server = createApiServer({ dataDirectory: directory, now: () => new Date("2030-01-01T08:00:00.000Z") });
-  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address();
-  try { return await run(`http://127.0.0.1:${port}`); }
-  finally { await new Promise(resolve => server.close(resolve)); await rm(directory, { recursive: true, force: true }); }
+const jsonHeaders = (headersFor, subject, extra = {}) => headersFor(subject, { "content-type": "application/json", ...extra });
+async function writeHome(origin, headersFor, subject = "user-a", extra = {}) {
+  const response = await fetch(`${origin}/api/v1/home`, { method: "PUT", headers: jsonHeaders(headersFor, subject, extra), body: JSON.stringify(snapshot) });
+  assert.equal(response.status, 200);
+  return versionFrom(response);
 }
 
-const identity = { "x-xuecheng-user-id": "local-demo-user" };
-const jsonHeaders = { ...identity, "content-type": "application/json" };
-const writeHome = origin => fetch(`${origin}/api/v1/home`, { method: "PUT", headers: jsonHeaders, body: JSON.stringify(snapshot) });
-
 test("schedule keeps an AI suggestion pending until the user confirms it", async () => {
-  await withApi(async origin => {
-    await writeHome(origin);
-    const before = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: identity })).json();
+  await withApi(async ({ origin, headersFor }) => {
+    const version = await writeHome(origin, headersFor);
+    const before = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: headersFor("user-a") })).json();
     assert.equal(before.data.events.length, 1);
     assert.equal(before.data.pending_suggestion.id, "action-1");
 
     const confirmation = await fetch(`${origin}/api/v1/schedule/suggestions/action-1/confirm`, {
-      method: "POST", headers: jsonHeaders, body: JSON.stringify({ start: "20300101T140000" }),
+      method: "POST", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ start: "20300101T140000" }),
     });
     assert.equal(confirmation.status, 201);
     const confirmed = await confirmation.json();
     assert.equal(confirmed.data.event.source, "confirmed-ai-suggestion");
 
-    const after = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: identity })).json();
+    const after = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: headersFor("user-a") })).json();
     assert.equal(after.data.events.length, 2);
     assert.equal(after.data.pending_suggestion, null);
   });
 });
 
-test("schedule confirmation is idempotent and cannot confirm a stale suggestion", async () => {
-  await withApi(async origin => {
-    await writeHome(origin);
+test("schedule confirmation is atomic, idempotent and cannot confirm a stale suggestion", async () => {
+  await withApi(async ({ origin, headersFor }) => {
+    const version = await writeHome(origin, headersFor);
     const request = id => fetch(`${origin}/api/v1/schedule/suggestions/${id}/confirm`, {
-      method: "POST", headers: jsonHeaders, body: JSON.stringify({ start: "20300101T140000" }),
+      method: "POST", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ start: "20300101T140000" }),
     });
     assert.equal((await request("action-1")).status, 201);
     const replay = await request("action-1");
@@ -65,25 +56,27 @@ test("schedule confirmation is idempotent and cannot confirm a stale suggestion"
   });
 });
 
-test("schedule lets users add and adjust their manual events without mutating AI-confirmed events", async () => {
-  await withApi(async origin => {
-    await writeHome(origin);
+test("schedule lets users add and adjust manual events without mutating AI-confirmed events", async () => {
+  await withApi(async ({ origin, headersFor }) => {
+    let version = await writeHome(origin, headersFor);
     const created = await fetch(`${origin}/api/v1/schedule/events`, {
-      method: "POST", headers: jsonHeaders, body: JSON.stringify({ summary: "整理错题", start: "20300101T190000", duration_minutes: 20 }),
+      method: "POST", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ summary: "整理错题", start: "20300101T190000", duration_minutes: 20 }),
     });
     assert.equal(created.status, 201);
+    version = versionFrom(created);
     const manual = (await created.json()).data.event;
     const revised = await fetch(`${origin}/api/v1/schedule/events/${manual.id}`, {
-      method: "PUT", headers: jsonHeaders, body: JSON.stringify({ duration_minutes: 30 }),
+      method: "PUT", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ duration_minutes: 30 }),
     });
     assert.equal(revised.status, 200);
+    version = versionFrom(revised);
     assert.equal((await revised.json()).data.event.duration_minutes, 30);
     const confirmed = await fetch(`${origin}/api/v1/schedule/suggestions/action-1/confirm`, {
-      method: "POST", headers: jsonHeaders, body: JSON.stringify({ start: "20300101T140000" }),
+      method: "POST", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ start: "20300101T140000" }),
     });
     const confirmedEvent = (await confirmed.json()).data.event;
     const suggestedEdit = await fetch(`${origin}/api/v1/schedule/events/${confirmedEvent.id}`, {
-      method: "PUT", headers: jsonHeaders, body: JSON.stringify({ summary: "已调整英语听力" }),
+      method: "PUT", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version + 1) }), body: JSON.stringify({ summary: "已调整英语听力" }),
     });
     assert.equal(suggestedEdit.status, 409);
     assert.equal((await suggestedEdit.json()).error.code, "suggested_event_requires_reconsideration");
@@ -91,16 +84,17 @@ test("schedule lets users add and adjust their manual events without mutating AI
 });
 
 test("a later stale home snapshot cannot overwrite server-owned confirmed calendar events", async () => {
-  await withApi(async origin => {
-    await writeHome(origin);
+  await withApi(async ({ origin, headersFor }) => {
+    let version = await writeHome(origin, headersFor);
     const created = await fetch(`${origin}/api/v1/schedule/events`, {
-      method: "POST", headers: jsonHeaders, body: JSON.stringify({ summary: "服务端新增安排", start: "20300101T190000", duration_minutes: 20 }),
+      method: "POST", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify({ summary: "服务端新增安排", start: "20300101T190000", duration_minutes: 20 }),
     });
     assert.equal(created.status, 201);
+    version = versionFrom(created);
     const staleHome = structuredClone(snapshot);
     staleHome.preferences.calendar_events = [];
-    assert.equal((await fetch(`${origin}/api/v1/home`, { method: "PUT", headers: jsonHeaders, body: JSON.stringify(staleHome) })).status, 200);
-    const schedule = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: identity })).json();
+    assert.equal((await fetch(`${origin}/api/v1/home`, { method: "PUT", headers: jsonHeaders(headersFor, "user-a", { "if-match": String(version) }), body: JSON.stringify(staleHome) })).status, 200);
+    const schedule = await (await fetch(`${origin}/api/v1/schedule?date=2030-01-01`, { headers: headersFor("user-a") })).json();
     assert.equal(schedule.data.events.some(event => event.summary === "服务端新增安排"), true);
   });
 });

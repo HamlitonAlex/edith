@@ -7,7 +7,7 @@
 - `GET /api/v1/conversations/{conversationId}/messages?limit=50&before={messageId}`：按时间顺序读取文字消息。
 - `POST /api/v1/conversations/{conversationId}/messages`：写入一条已确认发送的文字消息。
 
-每条写入必须带稳定的 `client_message_id`。网络重试同一内容会返回已有消息，不会复制；同一 ID 对应不同内容会返回 `409 message_id_conflict`。
+每条写入必须带稳定的 `client_message_id`，可同时带相同值的 `Idempotency-Key`。网络重试同一内容会返回已有消息，不会复制；同一 ID 对应不同内容会返回 `409 message_id_conflict`。每页最多 100 条，`before` 是上一页最早一条消息的 ID。
 
 ## 与语音及任务建议的关系
 
@@ -18,8 +18,8 @@
 
 ## 数据边界
 
-消息和首页摘要共用同一用户记录，但互不覆盖：首页快照更新时会保留对话。消息保存上限为每个会话最近 500 条，读取页最大 100 条。
+消息保存在独立的 SQLite `conversation_messages` 表，并以 `(内部用户 ID, conversation ID, client_message_id)` 唯一约束保证幂等；首页快照更新不会触碰消息。消息保存上限为每个会话最近 500 条，读取页最大 100 条。
 
 ## 尚未接入前端的原因
 
-当前产品是本地优先，且没有生产身份会话。直接改前端把历史发送到新 API，会改变用户的隐私与同步行为。因此本模块先提供已测试的服务端契约；等“我的 / 授权”模块提供显式同步开关和真实身份后，再接入现有 `iphone.js`。
+当前产品仍是本地优先。前端尚未接入自动上传；只有未来用户明确触发、已登录且确认同步范围后，才可调用本接口。原始语音、附件和模型密钥永远不会经由本模块同步。

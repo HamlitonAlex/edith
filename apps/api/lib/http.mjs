@@ -1,10 +1,11 @@
 const MAX_BODY_BYTES = 200 * 1024;
 
 export class ApiError extends Error {
-  constructor(status, code, message) {
+  constructor(status, code, message, meta = null) {
     super(message);
     this.status = status;
     this.code = code;
+    this.meta = meta;
   }
 }
 
@@ -12,12 +13,13 @@ export function requestId() {
   return crypto.randomUUID();
 }
 
-export function json(response, status, payload, requestId) {
+export function json(response, status, payload, requestId, headers = {}) {
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-request-id": requestId,
     "x-content-type-options": "nosniff",
+    ...headers,
   });
   response.end(JSON.stringify(payload));
 }
@@ -29,6 +31,7 @@ export function error(response, error, requestId) {
       code: known ? error.code : "internal_error",
       message: known ? error.message : "服务暂时不可用，请稍后重试。",
     },
+    ...(known && error.meta ? { meta: error.meta } : {}),
   }, requestId);
 }
 
@@ -59,12 +62,20 @@ export async function readJson(request) {
   }
 }
 
-export function userIdFrom(request) {
-  const id = String(request.headers["x-xuecheng-user-id"] || "").trim();
-  if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]{2,63}$/.test(id)) {
-    throw new ApiError(401, "identity_required", "需要有效的 X-Xuecheng-User-Id 才能访问个人数据。");
+export function expectedVersionFrom(request) {
+  const supplied = String(request.headers["if-match"] || "").trim();
+  if (!supplied) return null;
+  const normalized = supplied.replace(/^W\//i, "").replace(/^"|"$/g, "");
+  if (!/^\d+$/.test(normalized)) {
+    throw new ApiError(400, "invalid_precondition", "If-Match 必须是数据版本号。");
   }
-  return id;
+  return Number(normalized);
+}
+
+export function noIdentityOverride(request) {
+  if (String(request.headers["x-xuecheng-user-id"] || "").trim()) {
+    throw new ApiError(403, "identity_override_forbidden", "用户身份只能由已验证的登录凭据确定。");
+  }
 }
 
 export function applyCors(request, response, allowedOrigin) {
@@ -72,7 +83,7 @@ export function applyCors(request, response, allowedOrigin) {
   if (origin && origin === allowedOrigin) {
     response.setHeader("access-control-allow-origin", origin);
     response.setHeader("vary", "Origin");
-    response.setHeader("access-control-allow-headers", "content-type, x-xuecheng-user-id");
+    response.setHeader("access-control-allow-headers", "authorization, content-type, if-match, idempotency-key");
     response.setHeader("access-control-allow-methods", "GET, POST, PUT, PATCH, OPTIONS");
   }
 }

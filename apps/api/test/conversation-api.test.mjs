@@ -1,37 +1,20 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import test from "node:test";
-import { createApiServer } from "../server.mjs";
+import { withApi } from "./test-oidc.mjs";
 
-async function withApi(run) {
-  const directory = await mkdtemp(join(tmpdir(), "xuecheng-api-conversation-"));
-  const server = createApiServer({ dataDirectory: directory, now: () => new Date("2030-01-01T08:00:00.000Z") });
-  await new Promise(resolve => server.listen(0, "127.0.0.1", resolve));
-  const { port } = server.address();
-  try {
-    return await run(`http://127.0.0.1:${port}`);
-  } finally {
-    await new Promise(resolve => server.close(resolve));
-    await rm(directory, { recursive: true, force: true });
-  }
-}
-
-const identity = { "x-xuecheng-user-id": "local-demo-user" };
 const message = (id, role, text, source = role === "assistant" ? "local_agent" : "typing") => ({
   client_message_id: id, role, text, source, occurred_at: "2030-01-01T08:00:00.000Z",
 });
 
 test("conversation backend records chronological text messages and preserves voice as text only", async () => {
-  await withApi(async origin => {
-    const send = async payload => fetch(`${origin}/api/v1/conversations/main/messages`, {
-      method: "POST", headers: { ...identity, "content-type": "application/json" }, body: JSON.stringify(payload),
+  await withApi(async ({ origin, headersFor }) => {
+    const send = payload => fetch(`${origin}/api/v1/conversations/main/messages`, {
+      method: "POST", headers: headersFor("user-a", { "content-type": "application/json", "idempotency-key": payload.client_message_id }), body: JSON.stringify(payload),
     });
     assert.equal((await send(message("m-1", "user", "我想练习 Python。", "voice_transcript"))).status, 201);
     assert.equal((await send(message("m-2", "assistant", "可以，先从一道小题开始。"))).status, 201);
 
-    const response = await fetch(`${origin}/api/v1/conversations/main/messages`, { headers: identity });
+    const response = await fetch(`${origin}/api/v1/conversations/main/messages`, { headers: headersFor("user-a") });
     assert.equal(response.status, 200);
     const body = await response.json();
     assert.deepEqual(body.data.messages.map(item => item.id), ["m-1", "m-2"]);
@@ -41,9 +24,9 @@ test("conversation backend records chronological text messages and preserves voi
 });
 
 test("conversation backend is idempotent for a retried send and rejects conflicting replays", async () => {
-  await withApi(async origin => {
+  await withApi(async ({ origin, headersFor }) => {
     const request = payload => fetch(`${origin}/api/v1/conversations/main/messages`, {
-      method: "POST", headers: { ...identity, "content-type": "application/json" }, body: JSON.stringify(payload),
+      method: "POST", headers: headersFor("user-a", { "content-type": "application/json", "idempotency-key": payload.client_message_id }), body: JSON.stringify(payload),
     });
     const original = message("m-1", "user", "今天先从十分钟开始。 ");
     assert.equal((await request(original)).status, 201);
@@ -56,13 +39,18 @@ test("conversation backend is idempotent for a retried send and rejects conflict
   });
 });
 
-test("conversation backend refuses raw audio and attachment uploads in the text-sync module", async () => {
-  await withApi(async origin => {
+test("conversation backend refuses raw audio, attachments and mismatched idempotency keys", async () => {
+  await withApi(async ({ origin, headersFor }) => {
     const response = await fetch(`${origin}/api/v1/conversations/main/messages`, {
-      method: "POST", headers: { ...identity, "content-type": "application/json" },
+      method: "POST", headers: headersFor("user-a", { "content-type": "application/json" }),
       body: JSON.stringify({ ...message("m-1", "user", "不上传音频"), audio: "base64-data" }),
     });
     assert.equal(response.status, 422);
     assert.equal((await response.json()).error.code, "unsupported_message_content");
+    const keyMismatch = await fetch(`${origin}/api/v1/conversations/main/messages`, {
+      method: "POST", headers: headersFor("user-a", { "content-type": "application/json", "idempotency-key": "other" }), body: JSON.stringify(message("m-1", "user", "一条文字")),
+    });
+    assert.equal(keyMismatch.status, 422);
+    assert.equal((await keyMismatch.json()).error.code, "idempotency_key_mismatch");
   });
 });

@@ -11,7 +11,7 @@
 
 ## 身份与部署边界
 
-服务通过 `X-Xuecheng-User-Id` 选择个人数据；这是本地开发阶段的设备身份占位，不是生产登录方案。生产接入前必须替换为经过验证的会话或令牌，且不能信任客户端随意填写的用户标识。
+所有私人接口要求标准 `Authorization: Bearer <OIDC access token>`。服务端只在 RS256 签名、issuer、audience、有效期均通过校验后，从 token 的 `iss + sub` 建立内部用户归属；客户端提供的 `X-Xuecheng-User-Id` 会得到 `403 identity_override_forbidden`，不会参与数据查询。
 
 开发命令：
 
@@ -19,7 +19,7 @@
 npm run dev:api
 ```
 
-默认地址是 `http://localhost:8787`，数据写入忽略版本控制的 `data/api/`。可用 `XUECHENG_DATA_DIR` 指向受控数据目录，`XUECHENG_WEB_ORIGIN` 限制允许的 Web 来源。
+默认地址是 `http://localhost:8787`，数据写入忽略版本控制的 SQLite 文件。`XUECHENG_DATABASE_PATH`、`XUECHENG_WEB_ORIGIN` 与三项 `XUECHENG_OIDC_*` 配置见根目录 `.env.example`。未配置 OIDC 时服务拒绝携带私密数据的请求，不会退化为默认账号。
 
 ## 数据所有权
 
@@ -30,7 +30,10 @@ npm run dev:api
 ## 失败行为
 
 - 未提供有效身份：`401 identity_required`
+- 已提供凭据但部署未配置身份提供商：`503 auth_not_configured`
 - 尚未初始化首页：`404 home_not_initialized`
+- 已有远端版本却不带 `If-Match`：`428 sync_precondition_required`
+- 版本不一致：`409 sync_conflict`
 - 无效或过大的快照：`422 invalid_snapshot` / `413 payload_too_large`
 - 错误响应不含堆栈、文件路径或内部存储内容。
 

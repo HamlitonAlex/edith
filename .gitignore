@@ -5,4 +5,7 @@ node_modules/
 coverage/
 dist/
 data/
+.env
+.env.*
+!.env.example
 
