@@ -5,7 +5,7 @@ import { OidcAuthenticator } from "./lib/oidc-auth.mjs";
 import { SqliteStore } from "./lib/sqlite-store.mjs";
 import { ApiError, applyCors, error, expectedVersionFrom, json, noIdentityOverride, readJson, requestId } from "./lib/http.mjs";
 import { normalizeConversationId, normalizeMessageInput } from "./services/conversation-service.mjs";
-import { buildHomeResponse, mergeHomeSnapshot, normalizeHomeSnapshot } from "./services/home-service.mjs";
+import { buildHomeResponse, buildHomeSyncSnapshot, mergeHomeSnapshot, normalizeHomeSnapshot } from "./services/home-service.mjs";
 import { applyProfilePatch, normalizeProfilePatch, profileResponse } from "./services/profile-service.mjs";
 import { addManualEvent, buildScheduleResponse, confirmSuggestion, normalizeDateKey, normalizeEventId, normalizeManualEventInput, normalizeSuggestionId, reviseManualEvent } from "./services/schedule-service.mjs";
 
@@ -71,7 +71,9 @@ export function createApiServer({
         if (request.method === "GET") {
           const { record, meta } = store.readRecord(identity);
           initialized(record, "home");
-          return json(response, 200, responsePayload(buildHomeResponse(record, now()), meta), id, responseHeaders(meta));
+          // The UI reads this bounded projection to merge an explicitly selected account.
+          // It is not a general export and intentionally excludes local-only sensitive fields.
+          return json(response, 200, responsePayload({ ...buildHomeResponse(record, now()), sync_snapshot: buildHomeSyncSnapshot(record) }, meta), id, responseHeaders(meta));
         }
         if (request.method === "PUT") {
           const snapshot = normalizeHomeSnapshot(await readJson(request));

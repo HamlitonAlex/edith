@@ -30,6 +30,12 @@ await Promise.all([
   cp(resolve(web, "lib", "conversation-history.js"), resolve(dist, "lib", "conversation-history.js")),
   cp(resolve(web, "lib", "companion-state.js"), resolve(dist, "lib", "companion-state.js")),
   cp(resolve(web, "lib", "viewport-height.js"), resolve(dist, "lib", "viewport-height.js")),
+  // Phase 3 data boundary: the mobile bundle needs the same authenticated
+  // repository modules as the browser preview, not a second native-only path.
+  cp(resolve(web, "lib", "auth-session.js"), resolve(dist, "lib", "auth-session.js")),
+  cp(resolve(web, "lib", "remote-api.js"), resolve(dist, "lib", "remote-api.js")),
+  cp(resolve(web, "lib", "explicit-sync.js"), resolve(dist, "lib", "explicit-sync.js")),
+  cp(resolve(web, "lib", "app-repository.js"), resolve(dist, "lib", "app-repository.js")),
 ]);
 
 console.log("Web bundles created in dist/");

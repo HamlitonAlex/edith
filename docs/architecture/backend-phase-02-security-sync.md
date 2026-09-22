@@ -53,4 +53,4 @@
 - 未登录不会发请求；网络失败或版本冲突的显式同步返回失败结果，调用方不修改本地状态。
 - 旧 `localStorage` 历史尚未接入上传。迁移 UI 必须由用户单独确认同步范围和目标账号后才可调用接口，不能静默批量上传。
 
-浏览器侧的 `apps/web/lib/explicit-sync.js` 是尚未接入 UI 的无副作用基础模块，专门投影允许字段并在失败时保留本地状态。
+浏览器侧的 `apps/web/lib/explicit-sync.js` 由 `apps/web/lib/app-repository.js` 复用：前端只在用户主动点击“我的 → 同步”且 OIDC 会话有效时，投影允许字段并写入 API。失败、冲突或未登录都保留本地状态；`auth-session.js` 用授权码 + PKCE 管理公开 OIDC 登录配置，Access Token 仅驻留内存。

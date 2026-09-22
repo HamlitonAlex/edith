@@ -824,6 +824,14 @@ textarea {
 .settings-section { background: rgba(255, 255, 255, .64); }
 .settings-entry { box-shadow: 0 10px 26px rgba(48, 75, 61, .08); }
 .settings-entry-icon { background: var(--xc-green); color: var(--xc-bg); }
+
+/* Phase 3: the only cloud entry remains an explicit action in “我的”. */
+.sync-center .section-hint { display: grid; gap: 4px; margin-bottom: 14px; }
+.sync-center .section-hint b { color: var(--xc-ink, var(--ink)); font-size: 12px; }
+.sync-actions { display: flex; gap: 8px; }
+.sync-actions button { min-height: 40px; padding: 0 16px; border: 0; border-radius: 999px; background: var(--xc-green, var(--action)); color: var(--xc-bg, var(--surface)); font-size: 11px; }
+.sync-actions button[hidden] { display: none; }
+.sync-actions button:disabled { opacity: .58; }
 .model-field input,
 .model-field select,
 .setting-field select,

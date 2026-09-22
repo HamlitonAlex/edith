@@ -5,6 +5,10 @@ const GENDERS = new Set(["female", "male", "neutral"]);
 const ACTION_STATUSES = new Set(["proposed", "accepted", "revised", "deferred"]);
 
 const isObject = value => value && typeof value === "object" && !Array.isArray(value);
+const ratio = (value, fallback) => {
+  const number = Number(value);
+  return Number.isFinite(number) && number >= 0 && number <= 1 ? number : fallback;
+};
 const cleanText = (value, maximum, field) => {
   if (typeof value !== "string" || !value.trim() || value.trim().length > maximum) {
     throw new ApiError(422, "invalid_snapshot", `${field} 格式不正确。`);
@@ -173,6 +177,44 @@ export function buildHomeResponse(snapshot, now = new Date()) {
       current_stage: snapshot.agent_state.current_stage || null,
       current_skill: activeSkill ? { id: activeSkill[0], ...activeSkill[1] } : null,
       evidence_count: skills.reduce((total, [, skill]) => total + skill.evidence.length, 0),
+    },
+  };
+}
+
+// This projection is only used after a verified user explicitly opens a remote session.
+// It deliberately excludes the local-only avatar binary, model configuration, attachments,
+// raw recordings, source materials and diagnostic history.
+export function buildHomeSyncSnapshot(snapshot) {
+  const preferences = isObject(snapshot?.preferences) ? snapshot.preferences : {};
+  const agent = isObject(snapshot?.agent_state) ? snapshot.agent_state : {};
+  return {
+    preferences: {
+      name: preferences.name || "小程",
+      role: preferences.role || "guide",
+      gender: preferences.gender || "female",
+      initiative: ratio(preferences.initiative, .65),
+      directness: ratio(preferences.directness, .55),
+      theme: preferences.theme === "night" ? "night" : "day",
+      cloud_consent: Boolean(preferences.cloud_consent),
+      quiet_start: preferences.quiet_start || "23:00",
+      quiet_end: preferences.quiet_end || "07:30",
+      urgent_override: preferences.urgent_override !== false,
+      calendar_events: Array.isArray(preferences.calendar_events) ? preferences.calendar_events.map(event => ({
+        id: event.id,
+        summary: event.summary,
+        start: event.start,
+        duration_minutes: event.duration_minutes || null,
+        source: event.source || "manual",
+        sourceActionId: event.sourceActionId || null,
+        status: event.status || "confirmed",
+        updated_at: event.updated_at || null,
+      })) : [],
+    },
+    agent_state: {
+      current_stage: agent.current_stage || "",
+      long_term_goals: Array.isArray(agent.long_term_goals) ? agent.long_term_goals : [],
+      skills: isObject(agent.skills) ? agent.skills : {},
+      next_recommended_action: agent.next_recommended_action || null,
     },
   };
 }

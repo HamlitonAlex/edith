@@ -34,6 +34,9 @@ test("home backend persists a minimal home snapshot and derives the real home su
     const second = await read.json();
     assert.equal(second.data.next_calendar_event.summary, "编程练习");
     assert.equal(second.data.path_summary.direction.text, "建立稳定而自主的学习节奏");
+    assert.equal(second.data.sync_snapshot.preferences.name, "小程");
+    assert.equal("avatar" in second.data.sync_snapshot.preferences, false);
+    assert.equal(JSON.stringify(second.data.sync_snapshot).includes("modelConfig"), false);
   });
 });
 

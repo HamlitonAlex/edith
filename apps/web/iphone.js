@@ -3,6 +3,9 @@ import { createEncryptedBackup, readEncryptedBackup } from "./local-backup.js";
 import { MODEL_PROVIDERS, fetchProviderModels, getProvider, requestProviderReply } from "./agent/model-providers.js";
 import { conversationDayLabel, formatConversationTime, mergeStoredConversation } from "./lib/conversation-history.js";
 import { resolveAppViewport } from "./lib/viewport-height.js";
+import { authConfigFromWindow, createAuthSession } from "./lib/auth-session.js";
+import { apiBaseFromWindow, createRemoteApi } from "./lib/remote-api.js";
+import { createAppRepository, mergeRemoteMessages } from "./lib/app-repository.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
@@ -10,7 +13,7 @@ const nativeShell = Boolean(window.__XUECHENG_NATIVE_SHELL__ || window.Capacitor
 document.documentElement.classList.toggle("native-shell", nativeShell);
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
+const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null, syncMeta: { remoteVersion: null, lastSyncedAt: null, dirty: false } };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
 const themeColors = { day: "#fcfbf8", night: "#1f2a25" };
 const ratio = (value, fallback) => {
@@ -33,8 +36,14 @@ const roleCopy = (role, pronoun) => ({
 
 const $ = selector => document.querySelector(selector);
 let toastTimer;
+// Each authenticated account gets its own device-local bucket. Anonymous data
+// remains local and is never silently promoted into a signed-in account.
+let activeLocalScope = "anonymous";
 let state = load();
 let agentState = loadAgent();
+const auth = createAuthSession({ configuration: authConfigFromWindow() });
+const remoteApi = createRemoteApi({ baseUrl: apiBaseFromWindow(), auth });
+const repository = createAppRepository({ auth, api: remoteApi });
 let pendingAttachments = [];
 let onboardingIndex = 0;
 let splashPhase = state.onboardingComplete ? "complete" : "showing";
@@ -102,13 +111,22 @@ function normalizePreferences(saved = {}, { legacyMessages = [], currentMessages
     quietEnd: typeof source.quietEnd === "string" ? source.quietEnd : defaults.quietEnd,
     urgentOverride: source.urgentOverride !== false,
     dailyAtmosphere: objectValue(source.dailyAtmosphere).day ? source.dailyAtmosphere : null,
+    syncMeta: {
+      remoteVersion: Number.isInteger(source.syncMeta?.remoteVersion) ? source.syncMeta.remoteVersion : null,
+      lastSyncedAt: typeof source.syncMeta?.lastSyncedAt === "string" ? source.syncMeta.lastSyncedAt : null,
+      dirty: Boolean(source.syncMeta?.dirty),
+    },
   };
+}
+
+function scopedStorageKey(base, scope = activeLocalScope) {
+  return scope === "anonymous" ? base : `${base}:account:${scope}`;
 }
 
 function load() {
   try {
-    const current = parseStoredObject(localStorage.getItem(storageKey));
-    const legacy = parseStoredObject(localStorage.getItem("xuecheng:iphone:v1"));
+    const current = parseStoredObject(localStorage.getItem(scopedStorageKey(storageKey)));
+    const legacy = activeLocalScope === "anonymous" ? parseStoredObject(localStorage.getItem("xuecheng:iphone:v1")) : {};
     const saved = Object.keys(current).length ? current : legacy;
     return normalizePreferences(saved, { legacyMessages: legacy.messages, currentMessages: current.messages });
   } catch {
@@ -128,16 +146,16 @@ function persistStorage(key, value) {
 }
 
 function save() {
-  return persistStorage(storageKey, state);
+  return persistStorage(scopedStorageKey(storageKey), state);
 }
 
 function loadAgent() {
-  try { return hydrateAgentState(JSON.parse(localStorage.getItem(agentStorageKey) || "null")); }
+  try { return hydrateAgentState(JSON.parse(localStorage.getItem(scopedStorageKey(agentStorageKey)) || "null")); }
   catch { return createAgentState(); }
 }
 
 function saveAgent() {
-  return persistStorage(agentStorageKey, agentState);
+  return persistStorage(scopedStorageKey(agentStorageKey), agentState);
 }
 
 function localDayKey(date = new Date()) {
@@ -171,7 +189,13 @@ function renderChatAtmosphere(action) {
 }
 
 function addMessage(message) {
-  state.messages.push({ ...message, createdAt: new Date().toISOString() });
+  const createdAt = message.createdAt || new Date().toISOString();
+  const draft = { ...message, createdAt };
+  // Persist the transport identifier beside the local message so retries can
+  // safely reach the server without producing a second conversation record.
+  const stored = { ...draft, clientMessageId: message.clientMessageId || `msg_${crypto.randomUUID().replaceAll("-", "")}` };
+  state.messages.push(stored);
+  return stored;
 }
 
 function escapeHtml(value = "") {
@@ -353,7 +377,7 @@ function renderToday(pronoun) {
   const started = action?.status === "accepted";
   const actionConfirmed = Boolean(action?.id) && calendarEntries.some(({ event }) => event.sourceActionId === action.id);
   const suggestion = action && isToday && !actionConfirmed
-    ? `<article class="ai-suggestion-card ${started ? "started" : ""}"><div class="ai-suggestion-kicker"><span></span><small>学程建议 · 尚未写入日程</small><b>${action.duration_minutes} 分钟</b></div><h3>${escapeHtml(action.title)}</h3><p>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-add-action-calendar>${started ? "加入今天日程" : "确认并加入日程"}</button></div></article>`
+    ? `<article class="ai-suggestion-card ${started ? "started" : ""}"><div class="ai-suggestion-kicker"><span></span><small>学程建议 · 尚未写入日程</small><b>${action.duration_minutes} 分钟</b></div><h3>${escapeHtml(action.title)}</h3><p>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-add-action-calendar>${started ? "加入今天日程" : "确认并加入日程"}</button><button class="subtle-action" type="button" data-dismiss-suggestion>暂不安排</button></div></article>`
     : "";
   const events = calendarEntries.map(({ event, parsed }) => {
     const isConfirmedSuggestion = Boolean(action?.id) && event.sourceActionId === action.id;
@@ -452,6 +476,108 @@ function renderUnderstanding() {
     ["当前现实", constraint || "暂时没有需要长期记住的限制"],
   ];
   $("#understanding-list").innerHTML = rows.map(([label, value]) => `<div><small>${escapeHtml(label)}</small><p>${escapeHtml(value)}</p></div>`).join("");
+}
+
+// Repository boundary: components render and mutate local state, while these
+// functions decide if an authenticated, explicitly requested remote action is safe.
+function refreshSyncMetadata({ dirty = state.syncMeta?.dirty } = {}) {
+  const remote = repository.getState();
+  state.syncMeta = {
+    remoteVersion: Number.isInteger(remote.remoteVersion) ? remote.remoteVersion : null,
+    lastSyncedAt: remote.lastSyncedAt || state.syncMeta?.lastSyncedAt || null,
+    dirty: Boolean(dirty),
+  };
+}
+
+function markLocalDirty() {
+  if (auth.getState().authenticated) state.syncMeta = { ...state.syncMeta, dirty: true };
+}
+
+function syncStatusCopy() {
+  const authState = auth.getState();
+  const remote = repository.getState();
+  if (!authState.configured) return { title: "仅在这台设备", detail: "登录服务尚未配置；不会上传你的数据。", action: "" };
+  if (authState.status === "signing_in") return { title: "正在登录", detail: "正在安全地完成登录验证。", action: "" };
+  if (!authState.authenticated || remote.syncStatus === "needs_login") return { title: "需要登录", detail: "登录后仍需由你主动选择同步。", action: "login" };
+  if (remote.syncStatus === "syncing" || remote.syncStatus === "loading") return { title: "正在同步", detail: "正在核对已允许同步的数据。", action: "" };
+  if (remote.syncStatus === "conflict") return { title: "发现数据冲突", detail: "为避免覆盖另一台设备的数据，本次没有自动写入。", action: "sync" };
+  if (remote.syncStatus === "forbidden") return { title: "没有同步权限", detail: "当前登录身份没有访问这些数据的权限。", action: "" };
+  if (remote.syncStatus === "service_unavailable") return { title: "服务尚未配置", detail: "服务器暂时不能安全接收私人数据。", action: "" };
+  if (remote.syncStatus === "failed") return { title: "同步失败", detail: "本地数据仍在设备上；网络恢复后可再试。", action: "sync" };
+  if (remote.syncStatus === "synced") return { title: "已同步", detail: remote.lastSyncedAt ? `最近同步：${new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }).format(new Date(remote.lastSyncedAt))}` : "已与当前账号保持一致。", action: "sync" };
+  return { title: "等待你确认同步", detail: "不会在后台上传对话或资料。", action: "sync" };
+}
+
+function renderSyncCenter() {
+  const status = syncStatusCopy();
+  const title = $("#sync-status-title");
+  const detail = $("#sync-status-detail");
+  const login = $("#sync-login");
+  const button = $("#sync-now");
+  if (!title || !detail || !login || !button) return;
+  title.textContent = status.title;
+  detail.textContent = status.detail;
+  login.hidden = status.action !== "login";
+  button.hidden = status.action !== "sync";
+  button.disabled = repository.getState().syncStatus === "syncing";
+}
+
+async function activateAuthenticatedScope(authState) {
+  const nextScope = authState.authenticated ? await repository.accountScopeFor(authState.identity) : "anonymous";
+  if (nextScope === activeLocalScope) return;
+  // Persist before switching so an account never overwrites another account's local cache.
+  save();
+  saveAgent();
+  activeLocalScope = nextScope;
+  state = load();
+  agentState = loadAgent();
+  conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+  splashPhase = state.onboardingComplete ? "complete" : "showing";
+  render();
+  await hydrateRemoteState();
+}
+
+async function hydrateRemoteState() {
+  if (!auth.getState().authenticated) {
+    renderSyncCenter();
+    return;
+  }
+  const result = await repository.readRemote({
+    preferences: state,
+    agentState,
+    messages: state.messages,
+    localDirty: Boolean(state.syncMeta?.dirty),
+  });
+  if (result.applied) {
+    state = normalizePreferences({ ...result.preferences, messages: result.messages, onboardingComplete: true }, { currentMessages: result.messages });
+    agentState = hydrateAgentState(result.agentState);
+    conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+    splashPhase = "complete";
+  }
+  refreshSyncMetadata({ dirty: result.applied ? false : state.syncMeta?.dirty });
+  save();
+  saveAgent();
+  render();
+}
+
+async function syncCurrentAccount() {
+  // Backfill stable IDs before the first upload of older local text history.
+  state.messages = mergeRemoteMessages(state.messages, []);
+  const result = await repository.syncAll({ preferences: state, agentState, messages: state.messages });
+  refreshSyncMetadata({ dirty: result.syncStatus !== "synced" && Boolean(state.syncMeta?.dirty) });
+  if (result.syncStatus === "synced") {
+    state.syncMeta.dirty = false;
+    showToast("已同步当前账号允许保存的数据");
+  } else if (result.syncStatus === "needs_login") {
+    showToast("请先登录；这台设备上的数据没有上传");
+  } else if (result.syncStatus === "conflict") {
+    showToast("发现另一份更新，已停止同步以避免覆盖数据");
+  } else {
+    showToast("这次同步没有完成，本地数据仍在设备上");
+  }
+  save();
+  saveAgent();
+  render();
 }
 
 function render() {
@@ -560,6 +686,7 @@ function render() {
   renderModelControls();
   renderAttachments();
   renderOnboarding();
+  renderSyncCenter();
 }
 
 function openScreen(name) {
@@ -699,7 +826,7 @@ $("#chat-form").addEventListener("submit", async event => {
     pendingAttachments = [];
     $("#agent-proposal").classList.remove("discussing");
     const userText = text || "请看看我发来的内容。";
-    addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+    const submittedMessage = addMessage({ role: "user", source: "typing", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
     const simpleGreeting = isSimpleGreeting(userText) && submittedAttachments.length === 0;
     const agentResult = simpleGreeting
       ? { state: agentState, kind: "conversation", reply: "你好，我在。今天想聊聊什么？" }
@@ -730,7 +857,7 @@ $("#chat-form").addEventListener("submit", async event => {
         showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
       } finally { working.remove(); }
     }
-    addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+    const replyMessage = addMessage({ role: "assistant", source: "local_agent", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
     setConversationStatus("conversation_active");
     if (submittedAttachments.length) {
       state.pendingSourceNames = submittedAttachments.map(item => item.name);
@@ -741,8 +868,21 @@ $("#chat-form").addEventListener("submit", async event => {
     } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
       state.pendingSourceNames = [];
     }
+    markLocalDirty();
     save();
     render();
+    // A sent message is an explicit user action. Only its confirmed text crosses
+    // the API boundary; attachments and raw voice never leave this device here.
+    if (auth.getState().authenticated) {
+      void Promise.all([
+        repository.sendMessage(submittedMessage, state.messages.indexOf(submittedMessage)),
+        repository.sendMessage(replyMessage, state.messages.indexOf(replyMessage)),
+      ]).then(() => {
+        refreshSyncMetadata();
+        save();
+        renderSyncCenter();
+      });
+    }
     const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
     recent.forEach((message, index) => {
       message.style.setProperty("--enter-delay", `${index * 70}ms`);
@@ -778,6 +918,23 @@ function acceptCurrentAction() {
   return result;
 }
 
+function dismissCurrentScheduleSuggestion() {
+  const action = agentState.next_recommended_action;
+  if (!action) return;
+  // Reuse the existing planner's final-rejection transition instead of
+  // inventing a parallel schedule state. A later explicit sync then carries
+  // the withdrawn recommendation as part of the normal home snapshot.
+  const result = runAgentTurn(agentState, "我决定取消这个安排");
+  agentState = result.state;
+  addMessage({ role: "assistant", text: result.reply, kind: result.kind });
+  setConversationStatus("conversation_active");
+  markLocalDirty();
+  save();
+  saveAgent();
+  render();
+  showToast("这条建议没有写入日程；你之后可以再聊新的安排");
+}
+
 function openExternalConfirmation(url) {
   pendingExternalUrl = url;
   showDialog("#external-action-dialog");
@@ -811,6 +968,43 @@ $("#correct-understanding").addEventListener("click", () => {
   input.value = "我想纠正你对我的一个理解：";
   input.focus();
 });
+
+function localCalendarEvent(event) {
+  return {
+    ...event,
+    sourceActionId: event?.sourceActionId || event?.source_action_id || null,
+    duration_minutes: event?.duration_minutes || null,
+  };
+}
+
+async function confirmActionInCalendar(action) {
+  const payload = { start: calendarTimestamp(calendarViewDate), duration_minutes: action.duration_minutes };
+  const remote = await repository.confirmScheduleSuggestion(action.id, payload);
+  if (remote.ok) {
+    state.calendarEvents.push(localCalendarEvent(remote.event));
+    refreshSyncMetadata({ dirty: false });
+    save();
+    render();
+    showToast("已确认并写入日程");
+    return;
+  }
+  if (remote.state.syncStatus === "conflict") {
+    refreshSyncMetadata();
+    save();
+    renderSyncCenter();
+    showToast("另一台设备已更新日程；请先同步后再确认");
+    return;
+  }
+  // Offline use remains available. This event can only leave the device after
+  // the user explicitly retries sync from “我的”.
+  state.calendarEvents.push({ summary: action.title, ...payload, source: "confirmed-ai-suggestion", sourceActionId: action.id, status: "confirmed" });
+  markLocalDirty();
+  refreshSyncMetadata({ dirty: true });
+  save();
+  render();
+  showToast(remote.localOnly ? "已加入本地日程" : "网络未完成确认，已保存在本地等待你同步");
+}
+
 document.addEventListener("click", event => {
   const calendarDay = event.target.closest("[data-calendar-day]");
   if (calendarDay) {
@@ -827,16 +1021,14 @@ document.addEventListener("click", event => {
   if (discuss) discussCurrentAction(discuss.dataset.discuss);
   if (event.target.closest("[data-change-current]")) $("#change-action").click();
   if (event.target.closest("[data-start-current]")) $("#start-action").click();
+  if (event.target.closest("[data-dismiss-suggestion]")) dismissCurrentScheduleSuggestion();
   if (event.target.closest("[data-add-action-calendar]")) {
     const action = agentState.next_recommended_action;
     if (!action) return;
     const alreadyConfirmed = state.calendarEvents.some(item => item?.sourceActionId === action.id);
     if (alreadyConfirmed) return showToast("这条建议已经在你的日程里了");
     if (!window.confirm(`把“${action.title}”添加到今天的日程吗？`)) return;
-    state.calendarEvents.push({ summary: action.title, start: calendarTimestamp(calendarViewDate), source: "confirmed-ai-suggestion", sourceActionId: action.id });
-    save();
-    render();
-    showToast("已添加到你的本地日程");
+    void confirmActionInCalendar(action);
   }
 });
 $("#confirm-external-action").addEventListener("click", () => {
@@ -856,49 +1048,63 @@ document.addEventListener("visibilitychange", () => {
   openScreen("chat");
 });
 
-$("#companion-name").addEventListener("change", event => {
-  state.name = event.target.value.trim() || "小程";
+async function saveProfileChange(before, localMessage) {
+  markLocalDirty();
   save();
   render();
-  showToast(`以后就叫${pronounFor(state.gender)}“${state.name}”`);
+  const outcome = await repository.persistProfile(state);
+  refreshSyncMetadata({ dirty: outcome.syncStatus !== "synced" && Boolean(state.syncMeta?.dirty) });
+  // A server-side rejection is not silently turned into a remote preference.
+  // Transient failures remain local so the device stays usable while offline.
+  if (["conflict", "forbidden"].includes(outcome.syncStatus) || (outcome.syncStatus === "failed" && outcome.lastError !== "network_error")) {
+    state = before;
+    save();
+    render();
+    showToast("服务器没有保存这次修改，已恢复原来的设置");
+    return;
+  }
+  save();
+  renderSyncCenter();
+  showToast(outcome.syncStatus === "synced" ? `${localMessage}，已同步` : localMessage);
+}
+
+$("#companion-name").addEventListener("change", event => {
+  const before = structuredClone(state);
+  state.name = event.target.value.trim() || "小程";
+  void saveProfileChange(before, `以后就叫${pronounFor(state.gender)}“${state.name}”`);
 });
 
 document.querySelectorAll("[data-role]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.role = button.dataset.role;
-  save();
-  render();
-  showToast("相处方式已更新");
+  void saveProfileChange(before, "相处方式已更新");
 }));
 
 document.querySelectorAll("[data-theme-option]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.theme = button.dataset.themeOption;
-  save();
-  render();
-  showToast(`已经换成“${button.textContent.trim()}”`);
+  void saveProfileChange(before, `已经换成“${button.textContent.trim()}”`);
 }));
 
 document.querySelectorAll("[data-gender]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.gender = button.dataset.gender;
-  save();
-  render();
-  showToast("伙伴的称呼已经更新");
+  void saveProfileChange(before, "伙伴的称呼已经更新");
 }));
 
 [["#urgent-override", "urgentOverride"]].forEach(([selector, key]) => {
   $(selector).addEventListener("change", event => {
+    const before = structuredClone(state);
     state[key] = event.target.checked;
-    save();
-    render();
-    showToast("设置已保存");
+    void saveProfileChange(before, "设置已保存");
   });
 });
 
 [["#quiet-start", "quietStart"], ["#quiet-end", "quietEnd"]].forEach(([selector, key]) => {
   $(selector).addEventListener("change", event => {
+    const before = structuredClone(state);
     state[key] = event.target.value;
-    save();
-    render();
-    showToast(`安静时段：${state.quietStart} - ${state.quietEnd}`);
+    void saveProfileChange(before, `安静时段：${state.quietStart} - ${state.quietEnd}`);
   });
 });
 
@@ -1002,10 +1208,18 @@ $("#backup-file").addEventListener("change", async event => {
   event.target.value = "";
 });
 
+let initiativeBeforeChange = null;
 $("#initiative").addEventListener("input", event => {
+  initiativeBeforeChange ||= structuredClone(state);
   state.initiative = Number(event.target.value);
+  markLocalDirty();
   save();
   render();
+});
+$("#initiative").addEventListener("change", () => {
+  const before = initiativeBeforeChange || structuredClone(state);
+  initiativeBeforeChange = null;
+  void saveProfileChange(before, "主动程度已更新");
 });
 
 const chatInput = $("#chat-input");
@@ -1124,11 +1338,25 @@ $("#save-schedule").addEventListener("click", event => {
   }
   const [date, time] = value.split("T");
   const [year, month, day] = date.split("-");
-  state.calendarEvents.push({ summary: title, start: `${year}${month}${day}T${time.replace(":", "")}00`, source: "manual" });
-  save();
+  const localEvent = { id: `event_${crypto.randomUUID()}`, summary: title, start: `${year}${month}${day}T${time.replace(":", "")}00`, duration_minutes: 30, source: "manual", status: "confirmed" };
+  void repository.createScheduleEvent({ summary: localEvent.summary, start: localEvent.start, duration_minutes: localEvent.duration_minutes }).then(remote => {
+    if (remote.ok) {
+      state.calendarEvents.push(localCalendarEvent(remote.event));
+      refreshSyncMetadata({ dirty: false });
+      showToast("日程已保存并同步");
+    } else if (remote.state.syncStatus === "conflict") {
+      refreshSyncMetadata();
+      showToast("日程版本已变化；没有覆盖另一台设备的数据");
+    } else {
+      state.calendarEvents.push(localEvent);
+      markLocalDirty();
+      refreshSyncMetadata({ dirty: true });
+      showToast(remote.localOnly ? "日程已保存到当前设备" : "网络未完成保存，已保留在当前设备");
+    }
+    save();
+    render();
+  });
   calendarViewDate = new Date(`${value}:00`);
-  render();
-  showToast("日程已保存到当前设备");
 });
 $("#calendar-file").addEventListener("change", async event => {
   const file = event.target.files?.[0];
@@ -1142,6 +1370,7 @@ $("#calendar-file").addEventListener("change", async event => {
       return { summary, start };
     });
     state.calendarEvents = events;
+    markLocalDirty();
     save();
     render();
     showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
@@ -1568,6 +1797,23 @@ bindHoldToTalk($("#chat-form"));
 bindVoiceButton($(".send-button"));
 bindDesktopSpaceToTalk(chatInput);
 
+$("#sync-login")?.addEventListener("click", async () => {
+  const result = await auth.beginLogin();
+  if (!result.started) showToast("登录服务尚未配置；会继续只保存在这台设备");
+  renderSyncCenter();
+});
+$("#sync-now")?.addEventListener("click", () => { void syncCurrentAccount(); });
+
+auth.subscribe(next => {
+  // The browser only changes scope after a real OIDC response; the token itself
+  // remains in memory and is never copied into preferences or backup data.
+  void activateAuthenticatedScope(next).catch(() => {
+    showToast("无法切换当前账号的本地空间；原有设备数据未被覆盖");
+    renderSyncCenter();
+  });
+  renderSyncCenter();
+});
+
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 const initialScreen = new URLSearchParams(location.search).get("screen");
@@ -1576,4 +1822,5 @@ syncVisualViewport();
 resizeComposer();
 render();
 scheduleSplash();
+void auth.restoreFromRedirect().then(activateAuthenticatedScope).catch(() => renderSyncCenter());
 if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});

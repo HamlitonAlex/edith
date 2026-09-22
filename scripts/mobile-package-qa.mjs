@@ -25,6 +25,11 @@ const shippedFiles = [
   "lib/conversation-history.js",
   "lib/companion-state.js",
   "lib/viewport-height.js",
+  // Keep the native web bundle on the same auth/repository path as the browser.
+  "lib/auth-session.js",
+  "lib/remote-api.js",
+  "lib/explicit-sync.js",
+  "lib/app-repository.js",
 ];
 
 let checks = 0;
