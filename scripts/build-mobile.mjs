@@ -1,41 +1,56 @@
-import { cp, mkdir, rm } from "node:fs/promises";
+import { cp, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { build } from "vite";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const web = resolve(root, "apps", "web");
 const dist = resolve(root, "dist");
+const runtime = resolve(dist, "runtime");
 
-await rm(dist, { recursive: true, force: true });
-await mkdir(dist, { recursive: true });
+await build({
+  configFile: resolve(web, "vite.config.ts"),
+  build: {
+    outDir: dist,
+    emptyOutDir: true,
+    assetsDir: "assets",
+  },
+});
+
+await mkdir(runtime, { recursive: true });
+const runtimeFiles = [
+  "iphone.html",
+  "iphone.css",
+  "iphone-refinement.css",
+  "phosphor-icons.css",
+  "iphone.js",
+  "native-bootstrap.js",
+  "local-backup.js",
+  "manifest.webmanifest",
+];
+await Promise.all(runtimeFiles.map(name => cp(resolve(web, name), resolve(runtime, name))));
+await Promise.all([
+  cp(resolve(web, "assets"), resolve(runtime, "assets"), { recursive: true }),
+  cp(resolve(web, "agent"), resolve(runtime, "agent"), { recursive: true }),
+  cp(resolve(web, "lib", "conversation-history.js"), resolve(runtime, "lib", "conversation-history.js")),
+  cp(resolve(web, "lib", "companion-state.js"), resolve(runtime, "lib", "companion-state.js")),
+  cp(resolve(web, "lib", "viewport-height.js"), resolve(runtime, "lib", "viewport-height.js")),
+  cp(resolve(web, "lib", "auth-session.js"), resolve(runtime, "lib", "auth-session.js")),
+  cp(resolve(web, "lib", "remote-api.js"), resolve(runtime, "lib", "remote-api.js")),
+  cp(resolve(web, "lib", "explicit-sync.js"), resolve(runtime, "lib", "explicit-sync.js")),
+  cp(resolve(web, "lib", "app-repository.js"), resolve(runtime, "lib", "app-repository.js")),
+]);
 
 await Promise.all([
-  cp(resolve(web, "iphone.html"), resolve(dist, "index.html")),
-  cp(resolve(web, "iphone.css"), resolve(dist, "iphone.css")),
-  cp(resolve(web, "iphone-refinement.css"), resolve(dist, "iphone-refinement.css")),
-  cp(resolve(web, "phosphor-icons.css"), resolve(dist, "phosphor-icons.css")),
-  cp(resolve(web, "iphone.js"), resolve(dist, "iphone.js")),
-  cp(resolve(web, "native-bootstrap.js"), resolve(dist, "native-bootstrap.js")),
+  cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
+  cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
+  cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),
   cp(resolve(web, "ui-directions.html"), resolve(dist, "ui-directions.html")),
   cp(resolve(web, "ui-directions.css"), resolve(dist, "ui-directions.css")),
   cp(resolve(web, "ui-directions.js"), resolve(dist, "ui-directions.js")),
-  cp(resolve(web, "local-backup.js"), resolve(dist, "local-backup.js")),
-  cp(resolve(web, "manifest.webmanifest"), resolve(dist, "manifest.webmanifest")),
   cp(resolve(web, "companion-v3.html"), resolve(dist, "web-preview.html")),
   cp(resolve(web, "companion-v3.css"), resolve(dist, "companion-v3.css")),
   cp(resolve(web, "companion.js"), resolve(dist, "companion.js")),
-  cp(resolve(web, "sw.js"), resolve(dist, "sw.js")),
-  cp(resolve(web, "assets"), resolve(dist, "assets"), { recursive: true }),
-  cp(resolve(web, "agent"), resolve(dist, "agent"), { recursive: true }),
-  cp(resolve(web, "lib", "conversation-history.js"), resolve(dist, "lib", "conversation-history.js")),
-  cp(resolve(web, "lib", "companion-state.js"), resolve(dist, "lib", "companion-state.js")),
-  cp(resolve(web, "lib", "viewport-height.js"), resolve(dist, "lib", "viewport-height.js")),
-  // Phase 3 data boundary: the mobile bundle needs the same authenticated
-  // repository modules as the browser preview, not a second native-only path.
-  cp(resolve(web, "lib", "auth-session.js"), resolve(dist, "lib", "auth-session.js")),
-  cp(resolve(web, "lib", "remote-api.js"), resolve(dist, "lib", "remote-api.js")),
-  cp(resolve(web, "lib", "explicit-sync.js"), resolve(dist, "lib", "explicit-sync.js")),
-  cp(resolve(web, "lib", "app-repository.js"), resolve(dist, "lib", "app-repository.js")),
 ]);
 
-console.log("Web bundles created in dist/");
+console.log("React app built to dist/index.html; legacy business runtime retained at dist/runtime/iphone.html.");

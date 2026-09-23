@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 const taskState = {
+  schema_version: 1,
   long_term_goals: [{ text: "成为能独立完成产品的人" }],
   skills: { python: { label: "Python", confidence: .45, evidence: ["完成过基础练习"] } },
   next_recommended_action: { id: "next-python", title: "理解 Python 递归", why_now: "你已经完成了基础函数练习，现在适合把这一步连起来。", duration_minutes: 20, platform: "本地", status: "pending", skill_id: "python" },

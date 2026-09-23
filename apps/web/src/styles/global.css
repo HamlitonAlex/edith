@@ -20,3 +20,39 @@
 :where(*, *::before, *::after) {
   box-sizing: border-box;
 }
+
+:where(#react-ui-root > iframe[aria-hidden="true"]) {
+  position: fixed;
+  z-index: -1;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  border: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+:where(#react-ui-root > iframe[aria-hidden="true"]) body {
+  overflow: hidden;
+}
+
+.runtimeNotice {
+  position: fixed;
+  z-index: 20;
+  right: max(20px, env(safe-area-inset-right, 0px));
+  bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+  left: max(20px, env(safe-area-inset-left, 0px));
+  width: fit-content;
+  max-width: min(420px, calc(100vw - 40px));
+  margin: 0 auto;
+  padding: 11px 16px;
+  border: 1px solid rgb(255 255 255 / 72%);
+  border-radius: 999px;
+  background: rgb(38 53 45 / 94%);
+  color: white;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 8px 24px rgb(25 35 29 / 18%);
+  backdrop-filter: blur(18px);
+}

@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 async function openConversation(page, messages = [], action = null) {
   await page.addInitScript(({ messages, action }) => {
     localStorage.setItem("xuecheng:iphone:v2", JSON.stringify({ onboardingComplete: true, messages }));
-    localStorage.setItem("xuecheng:agent:v1", JSON.stringify({ next_recommended_action: action }));
+    localStorage.setItem("xuecheng:agent:v1", JSON.stringify({ schema_version: 1, next_recommended_action: action }));
   }, { messages, action });
   await page.goto("/react.html?preview=conversation");
   await expect(page.getByRole("main", { name: "对话" })).toBeVisible();

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { access, readFile, stat } from "node:fs/promises";
+import { access, readdir, readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 
 const root = process.cwd();
@@ -10,35 +10,25 @@ const projectPath = resolve(root, "ios", "App", "App.xcodeproj", "project.pbxpro
 const sceneDelegatePath = resolve(root, "ios", "App", "App", "SceneDelegate.swift");
 const nativeControllerPath = resolve(root, "ios", "App", "App", "XuechengBridgeViewController.swift");
 const appIconPath = resolve(root, "ios", "App", "App", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-512@2x.png");
-const shippedFiles = [
-  "index.html",
-  "iphone.css",
-  "iphone-refinement.css",
-  "phosphor-icons.css",
-  "iphone.js",
-  "native-bootstrap.js",
-  "manifest.webmanifest",
-  "assets/xuecheng-mark.svg",
-  "assets/xuecheng-mark.png",
-  "assets/onboarding-morning-v2.png",
-  "assets/phosphor/regular.woff2",
-  "lib/conversation-history.js",
-  "lib/companion-state.js",
-  "lib/viewport-height.js",
-  // Keep the native web bundle on the same auth/repository path as the browser.
-  "lib/auth-session.js",
-  "lib/remote-api.js",
-  "lib/explicit-sync.js",
-  "lib/app-repository.js",
-];
-
 let checks = 0;
 function verify(condition, message) {
   checks += 1;
   assert.ok(condition, message);
 }
 
-for (const file of shippedFiles) {
+async function listFiles(directory, prefix = "") {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+  for (const entry of entries) {
+    const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+    if (entry.isDirectory()) files.push(...await listFiles(resolve(directory, entry.name), relative));
+    else files.push(relative);
+  }
+  return files;
+}
+
+// Capacitor must ship the exact built React app and its isolated legacy runtime.
+for (const file of await listFiles(dist)) {
   const [distContents, publicContents] = await Promise.all([
     readFile(resolve(dist, file)),
     readFile(resolve(publicRoot, file)),
@@ -47,15 +37,16 @@ for (const file of shippedFiles) {
   assert.deepEqual(publicContents, distContents, `iOS public bundle differs from dist: ${file}`);
 }
 
-const [infoPlist, project, sceneDelegate, nativeController, icon, shippedIndex, shippedApp, nativeBootstrap] = await Promise.all([
+const [infoPlist, project, sceneDelegate, nativeController, icon, shippedIndex, runtimePage, shippedRuntime, nativeBootstrap] = await Promise.all([
   readFile(infoPlistPath, "utf8"),
   readFile(projectPath, "utf8"),
   readFile(sceneDelegatePath, "utf8"),
   readFile(nativeControllerPath, "utf8"),
   stat(appIconPath),
   readFile(resolve(publicRoot, "index.html"), "utf8"),
-  readFile(resolve(publicRoot, "iphone.js"), "utf8"),
-  readFile(resolve(publicRoot, "native-bootstrap.js"), "utf8"),
+  readFile(resolve(publicRoot, "runtime", "iphone.html"), "utf8"),
+  readFile(resolve(publicRoot, "runtime", "iphone.js"), "utf8"),
+  readFile(resolve(publicRoot, "runtime", "native-bootstrap.js"), "utf8"),
 ]);
 
 verify(/<key>CFBundleVersion<\/key>\s*<string>\$\(CURRENT_PROJECT_VERSION\)<\/string>/.test(infoPlist), "CFBundleVersion must use the Xcode build setting");
@@ -67,15 +58,17 @@ const phoneOrientations = infoPlist.match(/<key>UISupportedInterfaceOrientations
 verify(/UIInterfaceOrientationPortrait/.test(phoneOrientations) && !/UIInterfaceOrientationLandscape/.test(phoneOrientations), "the iPhone package must remain portrait-first");
 verify(/NSMicrophoneUsageDescription/.test(infoPlist) && /NSSpeechRecognitionUsageDescription/.test(infoPlist), "voice input permissions are missing from the iOS package");
 verify(icon.size > 0, "iOS app icon is missing");
-verify(shippedIndex.includes("interactive-widget=resizes-content"), "iOS web bundle is missing keyboard resize behavior");
-verify(shippedApp.includes("native-shell") && shippedApp.includes("keyboardWasOpen"), "iOS web bundle is missing native viewport safeguards");
-verify(shippedApp.includes("__XUECHENG_NATIVE_SHELL__") && shippedApp.includes("xuecheng:native-keyboard"), "iOS web bundle is missing the native keyboard bridge");
+verify(shippedIndex.includes("id=\"react-ui-root\"") && shippedIndex.includes("/assets/"), "iOS app must boot the React entry bundle");
+verify(!shippedIndex.includes("iphone.js"), "legacy runtime must not be the visible app entry");
+verify(runtimePage.includes("iphone.js") && shippedRuntime.includes("__XUECHENG_REACT_RUNTIME__"), "the isolated compatibility runtime is missing");
+verify(shippedRuntime.includes("native-shell") && shippedRuntime.includes("keyboardWasOpen"), "iOS runtime is missing native viewport safeguards");
+verify(shippedRuntime.includes("__XUECHENG_NATIVE_SHELL__") && shippedRuntime.includes("xuecheng:native-keyboard"), "iOS runtime is missing the native keyboard bridge");
 verify(nativeBootstrap.includes("__XUECHENG_NATIVE_SHELL__"), "the native bootstrap marker is missing");
 verify(sceneDelegate.includes("XuechengBridgeViewController()"), "the iOS scene must use the native keyboard bridge controller");
 verify(nativeController.includes("UIResponder.keyboardWillChangeFrameNotification") && nativeController.includes("xuecheng:native-keyboard"), "the iOS controller must forward real keyboard frames");
 verify(nativeController.includes("WKUserScript") && nativeController.includes("atDocumentStart") && !nativeController.includes("injectScriptBeforeLoad"), "the iOS shell marker must use a compilable document-start bridge");
 verify(project.includes("XuechengBridgeViewController.swift in Sources"), "the native keyboard bridge controller is not compiled into the app");
-await access(resolve(publicRoot, "assets", "onboarding-path.webp"));
+await access(resolve(publicRoot, "runtime", "assets", "xuecheng-mark.svg"));
 checks += 1;
 
 console.log(`mobile package QA passed: ${checks} checks, build=${buildVersions[0]}`);

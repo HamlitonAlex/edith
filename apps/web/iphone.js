@@ -58,6 +58,12 @@ let conversationStatus = state.messages.length ? "conversation_restored" : "idle
 
 function setConversationStatus(status) {
   if (conversationStatuses.has(status)) conversationStatus = status;
+  notifyReactHost("xuecheng:runtime-snapshot");
+}
+
+function notifyReactHost(type = "xuecheng:runtime-snapshot", detail = {}) {
+  if (window.parent === window) return;
+  try { window.parent.postMessage({ type, detail }, "*"); } catch { /* parent may be navigating */ }
 }
 
 function parseStoredObject(value) {
@@ -289,6 +295,7 @@ function renderAttachments() {
     return `<div class="attachment-chip">${image ? `<img src="${escapeHtml(image)}" alt="">` : ""}<span>${escapeHtml(item?.name || "未命名附件")}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`;
   }).join("");
   syncComposerAction();
+  notifyReactHost();
 }
 
 function renderModelControls() {
@@ -312,6 +319,7 @@ function showToast(message) {
   const toast = $("#app-toast");
   toast.textContent = message;
   toast.classList.add("show");
+  notifyReactHost("xuecheng:runtime-toast", { message: String(message || "") });
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
 }
@@ -520,6 +528,7 @@ function renderSyncCenter() {
   login.hidden = status.action !== "login";
   button.hidden = status.action !== "sync";
   button.disabled = repository.getState().syncStatus === "syncing";
+  notifyReactHost();
 }
 
 async function activateAuthenticatedScope(authState) {
@@ -687,6 +696,7 @@ function render() {
   renderAttachments();
   renderOnboarding();
   renderSyncCenter();
+  notifyReactHost();
 }
 
 function openScreen(name) {
@@ -900,6 +910,7 @@ $("#chat-form").addEventListener("submit", async event => {
     isSending = false;
     sendButton.disabled = false;
     syncComposerAction();
+    notifyReactHost();
   }
 });
 
@@ -1447,7 +1458,8 @@ document.addEventListener("focusout", () => {
 });
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const nativeSpeechBridge = window.webkit?.messageHandlers?.xuechengSpeech;
+const nativeSpeechBridge = window.webkit?.messageHandlers?.xuechengSpeech
+  || (window.parent !== window ? window.parent.webkit?.messageHandlers?.xuechengSpeech : null);
 let recognition = null;
 let voiceResetTimer = null;
 
@@ -1499,6 +1511,7 @@ function createVoiceController(surface) {
     if (voiceHint) voiceHint.textContent = voiceCopy[1];
     if (message) showToast(message);
     syncComposerAction();
+    notifyReactHost("xuecheng:runtime-voice", { state: next, transcript: transcript.trim() });
     if (["success", "failure", "cancelled"].includes(next)) voiceResetTimer = setTimeout(() => setState("idle"), 900);
   };
 
@@ -1797,6 +1810,185 @@ bindHoldToTalk($("#chat-form"));
 bindVoiceButton($(".send-button"));
 bindDesktopSpaceToTalk(chatInput);
 
+function reactRuntimeSnapshot() {
+  const remote = repository.getState();
+  const sync = syncStatusCopy();
+  return {
+    preferences: {
+      name: state.name,
+      role: state.role,
+      theme: state.theme,
+      quietStart: state.quietStart,
+      quietEnd: state.quietEnd,
+      gender: state.gender,
+      initiative: state.initiative,
+      directness: state.directness,
+      avatar: state.avatar,
+      cloudConsent: state.cloudConsent,
+      currentConversationModel: state.currentConversationModel,
+      modelConfig: state.modelConfig ? { ...state.modelConfig } : null,
+      onboardingComplete: state.onboardingComplete,
+      urgentOverride: state.urgentOverride,
+      messages: state.messages.map(message => ({
+        ...message,
+        attachments: Array.isArray(message.attachments) ? message.attachments.map(item => ({ name: String(item?.name || "附件"), type: String(item?.type || "") })) : [],
+      })),
+      calendarEvents: state.calendarEvents,
+    },
+    agent: {
+      long_term_goals: agentState.long_term_goals,
+      skills: agentState.skills,
+      next_recommended_action: agentState.next_recommended_action,
+    },
+    sync,
+    conversation: { status: conversationStatus, sending: isSending },
+    remote: { status: remote.syncStatus, lastSyncedAt: remote.lastSyncedAt || null },
+    auth: { status: auth.getState().status, configured: auth.getState().configured, authenticated: auth.getState().authenticated },
+    attachments: pendingAttachments.map(item => ({ name: String(item?.name || "附件"), type: String(item?.type || "") })),
+    calendarDate: calendarViewDate.getFullYear() + "-" + String(calendarViewDate.getMonth() + 1).padStart(2, "0") + "-" + String(calendarViewDate.getDate()).padStart(2, "0"),
+    modelProviders: MODEL_PROVIDERS.map(provider => ({ id: provider.id, name: provider.name, endpoint: provider.baseUrl })),
+    modelKeyConfigured: Boolean(state.modelConfig?.providerId && sessionStorage.getItem("xuecheng:key:" + state.modelConfig.providerId)),
+  };
+}
+
+window.__XUECHENG_REACT_RUNTIME__ = {
+  getSnapshot: reactRuntimeSnapshot,
+  sendMessage(text) {
+    const input = $("#chat-input");
+    if (!input || isSending || !String(text || "").trim()) return false;
+    input.value = String(text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    $("#chat-form").requestSubmit();
+    return true;
+  },
+  startVoice: () => voiceController.start(),
+  stopVoice: () => voiceController.stop(),
+  cancelVoice: () => voiceController.cancel(),
+  acceptAction: () => $("#start-action")?.click(),
+  discussAction(text) { discussCurrentAction(text); },
+  confirmSuggestion() {
+    const action = agentState.next_recommended_action;
+    if (!action) return;
+    if (state.calendarEvents.some(item => item?.sourceActionId === action.id)) return showToast("这条建议已经在你的日程里了");
+    void confirmActionInCalendar(action);
+  },
+  rejectSuggestion: () => $("#ai-schedule-suggestion [data-dismiss-suggestion]")?.click(),
+  setProfile(patch = {}) {
+    if (typeof patch.name === "string") { $("#companion-name").value = patch.name; $("#companion-name").dispatchEvent(new Event("change", { bubbles: true })); }
+    if (typeof patch.role === "string") $(`[data-role="${CSS.escape(patch.role)}"]`)?.click();
+    if (typeof patch.gender === "string") $(`[data-gender="${CSS.escape(patch.gender)}"]`)?.click();
+    if (typeof patch.initiative === "number") { $("#initiative").value = String(patch.initiative); $("#initiative").dispatchEvent(new Event("input", { bubbles: true })); $("#initiative").dispatchEvent(new Event("change", { bubbles: true })); }
+  },
+  setTheme(theme) { $(`[data-theme-option="${theme === "night" ? "night" : "day"}"]`)?.click(); },
+  setQuietHours(start, end) {
+    const first = $("#quiet-start"); const last = $("#quiet-end");
+    if (first) { first.value = start; first.dispatchEvent(new Event("change", { bubbles: true })); }
+    if (last) { last.value = end; last.dispatchEvent(new Event("change", { bubbles: true })); }
+  },
+  syncNow: () => $("#sync-now")?.click(),
+  beginLogin: () => $("#sync-login")?.click(),
+  createSchedule(summary, start) {
+    const title = $("#schedule-title"); const date = $("#schedule-time");
+    if (!title || !date) return;
+    title.value = summary;
+    date.value = start;
+    $("#save-schedule")?.click();
+  },
+  importCalendar: () => $("#calendar-file")?.click(),
+  chooseAttachment(source = "file") {
+    const input = $("#attachment-input");
+    if (!input) return;
+    input.accept = source === "photo" || source === "camera" ? "image/*" : "image/*,text/*,application/pdf";
+    if (source === "camera") input.setAttribute("capture", "environment");
+    else input.removeAttribute("capture");
+    input.click();
+  },
+  removeAttachment(index) {
+    pendingAttachments.splice(Number(index), 1);
+    renderAttachments();
+  },
+  addPastedText(text) {
+    const value = String(text || "").trim();
+    if (!value) return;
+    pendingAttachments.push({ name: "粘贴的文字", type: "text/plain", text: value, dataUrl: "" });
+    renderAttachments();
+  },
+  chooseAvatar: () => $("#avatar-input")?.click(),
+  resetAvatar: () => $("#reset-avatar")?.click(),
+  setCalendarDate(date) {
+    const match = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return;
+    calendarViewDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    renderToday(pronounFor(state.gender));
+    notifyReactHost();
+  },
+  async listModels(draft) {
+    return fetchProviderModels({ providerId: draft.providerId, endpoint: draft.endpoint, apiKey: draft.apiKey });
+  },
+  saveModel(draft) {
+    const provider = getProvider(draft.providerId);
+    if (!state.cloudConsent) { showToast("请先明确允许当前对话使用云端模型"); return false; }
+    if (!draft.model) { showToast("请先获取并选择一个模型"); return false; }
+    const apiKey = draft.apiKey || sessionStorage.getItem("xuecheng:key:" + provider.id) || "";
+    if (!apiKey && provider.id !== "ollama") { showToast("请先填写 API Key"); return false; }
+    if (draft.apiKey) sessionStorage.setItem("xuecheng:key:" + provider.id, draft.apiKey);
+    state.modelConfig = { providerId: provider.id, endpoint: draft.endpoint, model: draft.model };
+    state.currentConversationModel = draft.model;
+    save();
+    render();
+    showToast("模型已保存；Key 只在本次页面会话中保留");
+    return true;
+  },
+  setCloudConsent(allowed) {
+    const input = $("#settings-cloud-consent");
+    if (!input) return;
+    input.checked = Boolean(allowed);
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  },
+  exportBackup: () => $("#export-backup")?.click(),
+  importBackup: () => $("#import-backup")?.click(),
+  clearSources: () => $("#clear-sources")?.click(),
+  setUrgentOverride(enabled) {
+    const input = $("#urgent-override");
+    if (!input) return;
+    input.checked = Boolean(enabled);
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  },
+  async loadEarlierMessages(beforeId, limit = 50) {
+    if (!auth.getState().authenticated || !beforeId) throw new Error("请先登录，再读取更早的云端对话。");
+    const response = await remoteApi.listMessages("main", { before: String(beforeId), limit: Math.max(1, Math.min(100, Number(limit) || 50)) });
+    const payload = response?.data || response;
+    return Array.isArray(payload?.messages) ? payload.messages.map(message => ({
+      ...message,
+      clientMessageId: message.id,
+      createdAt: message.createdAt || message.occurred_at,
+    })) : [];
+  },
+  completeOnboarding(intent) {
+    state.onboardingIntent = String(intent || "growth");
+    state.onboardingComplete = true;
+    save();
+    render();
+  },
+};
+window.__XUECHENG_REACT_RUNTIME__.setProfile = patch => {
+  const before = structuredClone(state);
+  let changed = false;
+  if (typeof patch?.name === "string") { state.name = patch.name.trim().slice(0, 12) || "小程"; changed = true; }
+  if (["guide", "friend", "family", "partner"].includes(patch?.role)) { state.role = patch.role; changed = true; }
+  if (["female", "male", "neutral"].includes(patch?.gender)) { state.gender = patch.gender; changed = true; }
+  if (typeof patch?.initiative === "number") { state.initiative = ratio(patch.initiative, state.initiative); changed = true; }
+  if (typeof patch?.directness === "number") { state.directness = ratio(patch.directness, state.directness); changed = true; }
+  if (changed) void saveProfileChange(before, "相处方式已更新");
+};
+window.__XUECHENG_REACT_RUNTIME__.setQuietHours = (start, end) => {
+  const before = structuredClone(state);
+  state.quietStart = String(start || state.quietStart);
+  state.quietEnd = String(end || state.quietEnd);
+  if (state.quietStart !== before.quietStart || state.quietEnd !== before.quietEnd) void saveProfileChange(before, "安静时段已更新");
+};
+notifyReactHost("xuecheng:runtime-ready");
+
 $("#sync-login")?.addEventListener("click", async () => {
   const result = await auth.beginLogin();
   if (!result.started) showToast("登录服务尚未配置；会继续只保存在这台设备");
@@ -1812,6 +2004,7 @@ auth.subscribe(next => {
     renderSyncCenter();
   });
   renderSyncCenter();
+  notifyReactHost();
 });
 
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
@@ -1823,4 +2016,4 @@ resizeComposer();
 render();
 scheduleSplash();
 void auth.restoreFromRedirect().then(activateAuthenticatedScope).catch(() => renderSyncCenter());
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});
+if (window.parent === window && "serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});

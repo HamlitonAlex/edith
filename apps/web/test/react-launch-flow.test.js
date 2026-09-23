@@ -11,7 +11,7 @@ test("React launch flow keeps Splash and Onboarding as separate states", async (
   const onboarding = await source("pages/Onboarding/Onboarding.tsx");
 
   assert.match(app, /type ApplicationPhase = "splash" \| "onboarding" \| "application"/);
-  assert.match(app, /<HomePage snapshot=\{snapshot\}/);
+  assert.match(app, /<HomePage onNavigate=\{navigate\} runtime=\{runtime\} snapshot=\{snapshot\}/);
   assert.match(splash, /Pixso Frame3382/);
   assert.match(onboarding, /Pixso Frame3419/);
 });
@@ -29,8 +29,8 @@ test("Phase 2 screens are viewport sized and avoid a fixed tall minimum", async 
   const frameCss = await source("components/DeviceFrame/DeviceFrame.module.css");
   assert.match(splashCss, /height: 100%/);
   assert.match(onboardingCss, /height: 100%/);
-  assert.match(frameCss, /width: 390px/);
-  assert.match(frameCss, /height: 844px/);
+  assert.match(frameCss, /width: min\(390px, 100vw\)/);
+  assert.match(frameCss, /height: min\(844px, 100dvh\)/);
   assert.match(frameCss, /border-radius: 40px/);
   assert.doesNotMatch(splashCss, /min-height:\s*6\d\dpx/);
 });

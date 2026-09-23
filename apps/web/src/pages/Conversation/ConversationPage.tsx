@@ -1,22 +1,75 @@
-import { useMemo, useState } from "react";
-import type { LegacyAppSnapshot, LegacyMessage } from "../../adapters";
-import { BottomNav, ChatBubble, ChatInputBar, GlassCard, NextStepCard } from "../../components";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { LegacyAppSnapshot, LegacyRuntimePort, RuntimeSnapshot, RuntimeVoiceState } from "../../adapters";
+import { BottomNav, ChatBubble, ChatInputBar, NextStepCard } from "../../components";
 import styles from "./ConversationPage.module.css";
 
 const navigation = [{ id: "home", label: "首页", icon: "⌂" }, { id: "conversation", label: "对话", icon: "◌" }, { id: "schedule", label: "日程", icon: "□" }, { id: "profile", label: "我的", icon: "♙" }] as const;
-export interface ConversationPageProps { snapshot: LegacyAppSnapshot; onNavigate: (page: string) => void; }
+export interface ConversationPageProps {
+  snapshot: RuntimeSnapshot | LegacyAppSnapshot;
+  runtime: LegacyRuntimePort | null;
+  onNavigate: (page: string) => void;
+  voiceState: RuntimeVoiceState;
+  voiceTranscript: string;
+  keyboardVisible: boolean;
+}
 
-/** UI migration: messages originate in the same device-local document as legacy chat. */
-export function ConversationPage({ onNavigate, snapshot }: ConversationPageProps) {
-  const [drafts, setDrafts] = useState<LegacyMessage[]>([]);
-  const messages = useMemo(() => [...snapshot.preferences.messages, ...drafts], [drafts, snapshot.preferences.messages]);
-  return <main className={styles.page} aria-label="对话">
-    <header className={styles.header}><button aria-label="返回首页" onClick={() => onNavigate("home")} type="button">‹</button><span><h1>和小程对话</h1><small>随时聊聊你的学习与成长</small></span><button aria-label="更多对话设置" type="button">•••</button></header>
-    <section className={styles.messages} aria-live="polite">
-      {!messages.length ? <div className={styles.empty}><img alt="" src="/assets/xuecheng-mark.svg" /><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div> : messages.map((message, index) => <ChatBubble key={message.clientMessageId || message.id || `${message.createdAt}-${index}`} message={message} />)}
-      {snapshot.agent.next_recommended_action ? <NextStepCard action={snapshot.agent.next_recommended_action} onDiscuss={() => {}} onStart={() => {}} /> : null}
+/** The visible conversation and composer are React; all turns still run through the established local-first agent/repository. */
+export function ConversationPage({ keyboardVisible, onNavigate, runtime, snapshot, voiceState, voiceTranscript }: ConversationPageProps) {
+  const messages = useMemo(() => snapshot.preferences.messages, [snapshot.preferences.messages]);
+  const runtimeSnapshot = "conversation" in snapshot ? snapshot : null;
+  const messageList = useRef<HTMLElement>(null);
+  const [earlier, setEarlier] = useState<LegacyAppSnapshot["preferences"]["messages"]>([]);
+  const [loadingEarlier, setLoadingEarlier] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+  const auth = runtimeSnapshot?.auth;
+  const allMessages = useMemo(() => {
+    const known = new Set(messages.map(message => message.id || message.clientMessageId).filter(Boolean));
+    return [...earlier.filter(message => !known.has(message.id || message.clientMessageId || "")), ...messages];
+  }, [earlier, messages]);
+  useEffect(() => {
+    const element = messageList.current;
+    if (element && !earlier.length) element.scrollTop = element.scrollHeight;
+  }, [messages.length, runtimeSnapshot?.conversation.sending, earlier.length]);
+  const action = snapshot.agent.next_recommended_action;
+  const sending = Boolean(runtimeSnapshot?.conversation.sending);
+  const status = voiceState === "failure" ? "error" : sending || voiceState === "requesting" || voiceState === "recognizing" ? "loading" : "default";
+  const startVoice = () => runtime?.startVoice() || false;
+  const loadEarlier = async () => {
+    const oldest = allMessages[0];
+    const beforeId = oldest?.id || oldest?.clientMessageId;
+    if (!runtime || !beforeId || loadingEarlier) return;
+    setLoadingEarlier(true);
+    setHistoryError("");
+    try {
+      const page = await runtime.loadEarlierMessages(beforeId, 50);
+      setEarlier(current => [...page, ...current]);
+    } catch (error) {
+      setHistoryError(error instanceof Error ? error.message : "更早的对话暂时无法读取。");
+    } finally { setLoadingEarlier(false); }
+  };
+  return <main className={styles.page} aria-label="对话" data-keyboard-open={keyboardVisible}>
+    <header className={styles.header}><button aria-label="返回首页" onClick={() => onNavigate("home")} type="button">‹</button><span><h1>和小程对话</h1><small>随时聊聊你的学习与成长</small></span><button aria-label="对话设置" onClick={() => onNavigate("profile")} type="button">•••</button></header>
+    <section className={styles.messages} aria-live="polite" ref={messageList}>
+      {auth?.authenticated && allMessages.length >= 50 && allMessages[0]?.id ? <button className={styles.earlier} disabled={loadingEarlier} onClick={() => void loadEarlier()} type="button">{loadingEarlier ? "正在读取……" : "查看更早的对话"}</button> : null}
+      {historyError ? <p className={styles.historyError} role="alert">{historyError}</p> : null}
+      {!allMessages.length ? <div className={styles.empty}><img alt="" src="/assets/xuecheng-mark.svg" /><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div> : allMessages.map((message, index) => <ChatBubble key={message.clientMessageId || message.id || message.createdAt + "-" + index} message={message} />)}
+      {sending ? <p aria-label="正在生成回复" className={styles.generating} role="status">正在整理你的想法……</p> : null}
+      {action ? <NextStepCard action={action} onDiscuss={() => runtime?.discussAction()} onStart={() => runtime?.acceptAction()} /> : null}
     </section>
-    <ChatInputBar onSubmit={text => setDrafts(current => [...current, { role: "user", text, createdAt: new Date().toISOString() }])} />
-    <BottomNav activeId="conversation" items={navigation} onChange={onNavigate} />
+    <ChatInputBar
+      attachments={runtimeSnapshot?.attachments || []}
+      inputState={status === "error" ? "failed" : "idle"}
+      onAddAttachment={source => runtime?.chooseAttachment(source)}
+      onRemoveAttachment={index => runtime?.removeAttachment(index)}
+      onPasteText={text => runtime?.addPastedText(text)}
+      onSubmit={text => runtime?.sendMessage(text) || false}
+      onVoiceCancel={() => runtime?.cancelVoice()}
+      onVoiceStart={startVoice}
+      onVoiceStop={() => runtime?.stopVoice()}
+      sending={sending}
+      voiceState={voiceState}
+      voiceTranscript={voiceTranscript}
+    />
+    <BottomNav activeId="conversation" items={navigation} onChange={onNavigate} state={keyboardVisible ? "disabled" : "default"} />
   </main>;
 }

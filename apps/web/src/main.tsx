@@ -12,3 +12,7 @@ createRoot(root).render(
     <App />
   </StrictMode>,
 );
+
+if (!import.meta.env.DEV && "serviceWorker" in navigator && ["http:", "https:"].includes(window.location.protocol)) {
+  window.addEventListener("load", () => { void navigator.serviceWorker.register("/sw.js").catch(() => {}); }, { once: true });
+}

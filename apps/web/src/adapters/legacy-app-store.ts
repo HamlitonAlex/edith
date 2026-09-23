@@ -8,6 +8,7 @@ export interface LegacyMessage {
   role?: "assistant" | "user";
   source?: string;
   text?: string;
+  attachments?: Array<{ name?: string; type?: string }>;
 }
 
 export interface LegacyCalendarEvent {
@@ -36,6 +37,15 @@ export interface LegacyAppSnapshot {
     theme: "day" | "night";
     quietStart: string;
     quietEnd: string;
+    gender?: string;
+    initiative?: number;
+    directness?: number;
+    avatar?: string;
+    cloudConsent?: boolean;
+    currentConversationModel?: string;
+    modelConfig?: { providerId?: string; endpoint?: string; model?: string } | null;
+    onboardingComplete?: boolean;
+    urgentOverride?: boolean;
     messages: LegacyMessage[];
     calendarEvents: LegacyCalendarEvent[];
   };

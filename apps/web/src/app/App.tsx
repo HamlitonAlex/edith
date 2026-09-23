@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { completeLegacyOnboarding, readLegacyOnboarding } from "../adapters/legacy-onboarding-store";
 import { DeviceFrame } from "../components";
-import { useLegacySnapshot } from "../hooks/useLegacySnapshot";
+import { LegacyRuntimeProvider, useLegacyRuntime } from "../hooks/LegacyRuntimeProvider";
+import styles from "./App.module.css";
 import { ConversationPage, HomePage, PathPage, ProfilePage, SchedulePage } from "../pages";
 import { Onboarding } from "../pages/Onboarding/Onboarding";
 import { Splash } from "../pages/Splash/Splash";
@@ -19,9 +20,13 @@ function previewPhase() {
  * Launch state stays distinct from the authenticated/local product shell.
  */
 export function App() {
+  return <LegacyRuntimeProvider><RuntimeApplication /></LegacyRuntimeProvider>;
+}
+
+function RuntimeApplication() {
   const preview = useMemo(previewPhase, []);
   const preferences = useMemo(readLegacyOnboarding, []);
-  const snapshot = useLegacySnapshot();
+  const { runtime, snapshot, voiceState, voiceTranscript, keyboardVisible } = useLegacyRuntime();
   const [page, setPage] = useState<ProductPage>(preview && ["conversation", "schedule", "path", "profile"].includes(preview) ? preview as ProductPage : "home");
   const [phase, setPhase] = useState<ApplicationPhase>("splash");
 
@@ -37,14 +42,27 @@ export function App() {
 
   useEffect(() => { if (preview && ["home", "conversation", "schedule", "path", "profile"].includes(preview)) { setPage(preview as ProductPage); setPhase("application"); } }, [preview]);
 
-  if (phase === "splash") return <DeviceFrame page="splash"><Splash /></DeviceFrame>;
+  const wrapPreview = (page: "splash" | "onboarding" | "home" | "conversation" | "schedule" | "profile", content: ReactNode) => preview ? <DeviceFrame page={page}>{content}</DeviceFrame> : <div className={styles.runtimeShell}>{content}</div>;
+  if (phase === "splash") return wrapPreview("splash", <Splash />);
   if (phase === "onboarding") {
-    return <DeviceFrame page="onboarding"><Onboarding initialIntent={preferences.onboardingIntent} onComplete={(intent) => {
-      if (!preview) completeLegacyOnboarding(intent);
+    return wrapPreview("onboarding", <Onboarding initialIntent={preferences.onboardingIntent} onComplete={(intent) => {
+      if (!preview) {
+        completeLegacyOnboarding(intent);
+        runtime?.completeOnboarding(intent);
+      }
       setPhase("application");
-    }} /></DeviceFrame>;
+    }} />);
   }
 
-  const screen = page === "conversation" ? <ConversationPage snapshot={snapshot} onNavigate={next => setPage(next as ProductPage)} /> : page === "schedule" ? <SchedulePage snapshot={snapshot} onNavigate={next => setPage(next as ProductPage)} /> : page === "path" ? <PathPage snapshot={snapshot} onNavigate={next => setPage(next as ProductPage)} /> : page === "profile" ? <ProfilePage snapshot={snapshot} onNavigate={next => setPage(next as ProductPage)} /> : <HomePage snapshot={snapshot} onNavigate={next => setPage(next as ProductPage)} />;
-  return <DeviceFrame page={page === "path" ? "home" : page}>{screen}</DeviceFrame>;
+  const navigate = (next: string) => setPage(next as ProductPage);
+  const screen = page === "conversation"
+    ? <ConversationPage keyboardVisible={keyboardVisible} onNavigate={navigate} runtime={runtime} snapshot={snapshot} voiceState={voiceState} voiceTranscript={voiceTranscript} />
+    : page === "schedule"
+      ? <SchedulePage onNavigate={navigate} runtime={runtime} snapshot={snapshot} />
+      : page === "path"
+        ? <PathPage onNavigate={navigate} snapshot={snapshot} />
+        : page === "profile"
+          ? <ProfilePage onNavigate={navigate} runtime={runtime} snapshot={snapshot} />
+          : <HomePage onNavigate={navigate} runtime={runtime} snapshot={snapshot} state={runtime ? "default" : "loading"} />;
+  return wrapPreview(page === "path" ? "home" : page, screen);
 }
