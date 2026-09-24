@@ -32,7 +32,8 @@ export function LegacyRuntimeProvider({ children }: PropsWithChildren) {
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [keyboardVisible, setKeyboardVisible] = useState(false);
   const [notice, setNotice] = useState("");
-  const frameSource = import.meta.env.DEV ? "/iphone.html" : "/runtime/iphone.html";
+  const debugContext = import.meta.env.DEV && new URLSearchParams(window.location.search).get("context_debug") === "1";
+  const frameSource = (import.meta.env.DEV ? "/iphone.html" : "/runtime/iphone.html") + (debugContext ? "?context_debug=1" : "");
 
   const refresh = useCallback(() => {
     const connected = frame.current?.contentWindow ? runtimeFromWindow(frame.current.contentWindow) : null;

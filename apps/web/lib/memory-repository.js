@@ -695,7 +695,7 @@ export function createMemoryRepository({ storage = defaultStorage(), scope = DEF
         today_state: input.today_state,
         daily_log: dailyLog,
         memories: state.memories,
-        learning_evidence: state.learning_evidence,
+        learning_evidence: [...state.learning_evidence, ...asArray(input.learning_evidence)],
         max_chars: input.max_chars,
       });
     },

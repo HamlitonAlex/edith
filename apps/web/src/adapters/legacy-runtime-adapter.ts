@@ -4,6 +4,8 @@ export type RuntimeVoiceState = "idle" | "requesting" | "recording" | "recognizi
 export interface RuntimeSnapshot extends LegacyAppSnapshot {
   sync: { title: string; detail: string };
   conversation: { status: string; sending: boolean };
+  memoryPrompt?: { id: string; content: string; status: "proposed" | "confirmed" | "archived" } | null;
+  contextDebug?: { memory: string[]; evidence: string[]; recent_messages: number } | null;
   remote: { status: string; lastSyncedAt: string | null };
   auth: { status: string; configured: boolean; authenticated: boolean };
   attachments: Array<{ name: string; type: string }>;
@@ -15,6 +17,8 @@ export interface RuntimeSnapshot extends LegacyAppSnapshot {
 export interface LegacyRuntimePort {
   getSnapshot: () => RuntimeSnapshot;
   sendMessage: (text: string) => boolean;
+  confirmMemory: (id: string) => boolean;
+  dismissMemory: (id: string) => boolean;
   startVoice: () => boolean;
   stopVoice: () => void;
   cancelVoice: () => void;

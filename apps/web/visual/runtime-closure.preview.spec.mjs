@@ -1,5 +1,71 @@
 import { expect, test } from "@playwright/test";
 
+test("a real conversation proposes memory, waits for confirmation, then updates Home", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("xuecheng:iphone:v2", JSON.stringify({ onboardingComplete: true, messages: [] }));
+    localStorage.setItem("xuecheng:agent:v1", JSON.stringify({ schema_version: 1 }));
+  });
+  await page.goto("/react.html?preview=conversation");
+  await page.getByLabel("和小程说说现在的想法").fill("我以后想往人工智能方向发展");
+  await page.getByRole("button", { name: "发送" }).click();
+  const proposal = page.getByRole("complementary", { name: "记忆建议" });
+  await expect(proposal.getByRole("button", { name: "记住" })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => Boolean(localStorage.getItem("xuecheng:memory-foundation:v1:anonymous-session")))).toBe(true);
+  await proposal.getByRole("button", { name: "记住" }).click();
+  await expect(proposal.getByText("✓ 我记住了。")).toBeVisible();
+  await page.getByRole("navigation", { name: "主导航" }).getByRole("button", { name: "首页" }).click();
+  await expect(page.getByRole("heading", { name: /人工智能方向/ })).toBeVisible();
+});
+
+test("a failed configured model keeps the existing local conversation usable", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("xuecheng:iphone:v2", JSON.stringify({
+      onboardingComplete: true, messages: [], cloudConsent: true,
+      currentConversationModel: "unavailable-model",
+      modelConfig: { providerId: "openai", endpoint: "https://unavailable.example", model: "unavailable-model" },
+    }));
+  });
+  await page.route("https://unavailable.example/**", route => route.abort());
+  await page.goto("/react.html?preview=conversation");
+  await page.getByLabel("和小程说说现在的想法").fill("我今天想学点东西");
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect(page.getByText("我今天想学点东西", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "已用本地判断继续" })).toBeVisible();
+  await expect(page.locator("article")).toHaveCount(2);
+});
+
+test("cloud request receives confirmed memory only after the in-place user decision", async ({ page }) => {
+  const requests = [];
+  await page.addInitScript(() => {
+    localStorage.setItem("xuecheng:iphone:v2", JSON.stringify({
+      onboardingComplete: true, messages: [], cloudConsent: true,
+      currentConversationModel: "test-model",
+      modelConfig: { providerId: "openai", endpoint: "https://model.test", model: "test-model" },
+    }));
+  });
+  await page.route("https://model.test/**", route => {
+    requests.push(route.request().postDataJSON());
+    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ choices: [{ message: { content: "我在，先说说你现在想练什么。" } }] }) });
+  });
+  await page.goto("/react.html?preview=conversation&context_debug=1");
+  await page.getByLabel("和小程说说现在的想法").fill("我以后想往人工智能方向发展");
+  await page.getByRole("button", { name: "发送" }).click();
+  const proposal = page.getByRole("complementary", { name: "记忆建议" });
+  await expect(proposal.getByRole("button", { name: "记住" })).toBeVisible();
+  await expect.poll(() => requests.length).toBe(1);
+  assertNoConfirmedMemory(requests[0]);
+  await proposal.getByRole("button", { name: "记住" }).click();
+  await page.getByLabel("和小程说说现在的想法").fill("下一次该怎么练？");
+  await page.getByRole("button", { name: "发送" }).click();
+  await expect.poll(() => requests.length).toBe(2);
+  expect(JSON.stringify(requests[1].messages[0])).toContain("人工智能方向");
+  await expect(page.getByText("本次回答使用的上下文")).toBeVisible();
+});
+
+function assertNoConfirmedMemory(payload) {
+  expect(payload.messages[0].content).toContain('"confirmed_memory":[]');
+}
+
 test("React runtime sends messages through the local-first store and restores them after reload", async ({ page }) => {
   await page.addInitScript(() => {
     if (!localStorage.getItem("xuecheng:iphone:v2")) localStorage.setItem("xuecheng:iphone:v2", JSON.stringify({ onboardingComplete: true, messages: [] }));

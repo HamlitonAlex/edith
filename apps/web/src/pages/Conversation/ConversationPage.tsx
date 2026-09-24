@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LegacyAppSnapshot, LegacyRuntimePort, RuntimeSnapshot, RuntimeVoiceState } from "../../adapters";
 import { BottomNav, ChatBubble, ChatInputBar, NextStepCard } from "../../components";
 import styles from "./ConversationPage.module.css";
+import promptStyles from "./MemoryPrompt.module.css";
 
 const navigation = [{ id: "home", label: "首页", icon: "⌂" }, { id: "conversation", label: "对话", icon: "◌" }, { id: "schedule", label: "日程", icon: "□" }, { id: "profile", label: "我的", icon: "♙" }] as const;
 export interface ConversationPageProps {
@@ -22,6 +23,7 @@ export function ConversationPage({ keyboardVisible, onNavigate, runtime, snapsho
   const [loadingEarlier, setLoadingEarlier] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const auth = runtimeSnapshot?.auth;
+  const memoryPrompt = runtimeSnapshot?.memoryPrompt;
   const allMessages = useMemo(() => {
     const known = new Set(messages.map(message => message.id || message.clientMessageId).filter(Boolean));
     return [...earlier.filter(message => !known.has(message.id || message.clientMessageId || "")), ...messages];
@@ -54,7 +56,11 @@ export function ConversationPage({ keyboardVisible, onNavigate, runtime, snapsho
       {historyError ? <p className={styles.historyError} role="alert">{historyError}</p> : null}
       {!allMessages.length ? <div className={styles.empty}><img alt="" src="/assets/xuecheng-mark.svg" /><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div> : allMessages.map((message, index) => <ChatBubble key={message.clientMessageId || message.id || message.createdAt + "-" + index} message={message} />)}
       {sending ? <p aria-label="正在生成回复" className={styles.generating} role="status">正在整理你的想法……</p> : null}
+      {memoryPrompt && memoryPrompt.status !== "archived" ? <aside className={promptStyles.prompt} aria-label="记忆建议">
+        {memoryPrompt.status === "confirmed" ? <p>✓ 我记住了。</p> : <><p>这个目标以后会影响学习安排，要让我记住吗？</p><blockquote>{memoryPrompt.content}</blockquote><div><button onClick={() => runtime?.confirmMemory(memoryPrompt.id)} type="button">记住</button><button onClick={() => runtime?.dismissMemory(memoryPrompt.id)} type="button">暂时不用</button></div></>}
+      </aside> : null}
       {action ? <NextStepCard action={action} onDiscuss={() => runtime?.discussAction()} onStart={() => runtime?.acceptAction()} /> : null}
+      {import.meta.env.DEV && new URLSearchParams(location.search).get("context_debug") === "1" && runtimeSnapshot?.contextDebug ? <details className={promptStyles.debug}><summary>本次回答使用的上下文</summary><p>记忆：{runtimeSnapshot.contextDebug.memory.join("、") || "无"}；证据：{runtimeSnapshot.contextDebug.evidence.join("、") || "无"}；最近消息：{runtimeSnapshot.contextDebug.recent_messages} 条</p></details> : null}
     </section>
     <ChatInputBar
       attachments={runtimeSnapshot?.attachments || []}
@@ -66,7 +72,7 @@ export function ConversationPage({ keyboardVisible, onNavigate, runtime, snapsho
       onVoiceCancel={() => runtime?.cancelVoice()}
       onVoiceStart={startVoice}
       onVoiceStop={() => runtime?.stopVoice()}
-      sending={sending}
+      sending={!runtime || sending}
       voiceState={voiceState}
       voiceTranscript={voiceTranscript}
     />

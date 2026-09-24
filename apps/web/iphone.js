@@ -6,6 +6,8 @@ import { resolveAppViewport } from "./lib/viewport-height.js";
 import { authConfigFromWindow, createAuthSession } from "./lib/auth-session.js";
 import { apiBaseFromWindow, createRemoteApi } from "./lib/remote-api.js";
 import { createAppRepository, mergeRemoteMessages } from "./lib/app-repository.js";
+import { createMemoryRepository, memoryScopeForIdentity } from "./lib/memory-repository.js";
+import { contextualNextStep, memoryCandidateFromMessage, modelInputFromContext } from "./agent/companion-memory.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
@@ -44,6 +46,9 @@ let agentState = loadAgent();
 const auth = createAuthSession({ configuration: authConfigFromWindow() });
 const remoteApi = createRemoteApi({ baseUrl: apiBaseFromWindow(), auth });
 const repository = createAppRepository({ auth, api: remoteApi });
+const memoryRepository = createMemoryRepository();
+let activeMemoryId = memoryRepository.listMemories().filter(item => item.status === "proposed").at(-1)?.id || null;
+let contextDebug = null;
 let pendingAttachments = [];
 let onboardingIndex = 0;
 let splashPhase = state.onboardingComplete ? "complete" : "showing";
@@ -538,8 +543,11 @@ async function activateAuthenticatedScope(authState) {
   save();
   saveAgent();
   activeLocalScope = nextScope;
+  memoryRepository.setScope(authState.authenticated ? memoryScopeForIdentity(authState.identity) : "anonymous");
+  activeMemoryId = memoryRepository.listMemories().filter(item => item.status === "proposed").at(-1)?.id || null;
   state = load();
   agentState = loadAgent();
+  projectConfirmedGoals();
   conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
   splashPhase = state.onboardingComplete ? "complete" : "showing";
   render();
@@ -800,18 +808,55 @@ $("[data-onboarding-finish]").addEventListener("click", () => {
 
 const guideSystemPrompt = () => `你是学程中的${state.name}，一位会长期了解用户的私人教育引路人。你的任务不是生成课表，而是观察、判断、协商、陪伴执行和验收。自然交流；信息不足就只问最关键的一件事。每次最多提出一件下一步行动，必须具体说明做什么、多久、怎么做、完成标准、为什么现在值得。可以提出不同意见，但用户拥有最终决定权。不要声称看到了未提供的信息，不要暴露隐藏思维链。`;
 
-function modelMessages(latestText, attachments) {
+function currentMemoryPrompt() {
+  return activeMemoryId ? memoryRepository.listMemories().find(item => item.id === activeMemoryId) || null : null;
+}
+
+function projectConfirmedGoals() {
+  let changed = false;
+  for (const item of memoryRepository.listMemories()) {
+    if (item.type !== "long_term" || item.status !== "confirmed" || !item.confirmed_by_user) continue;
+    if (agentState.long_term_goals.some(goal => goal.source_memory_id === item.id || goal.text === item.content)) continue;
+    agentState.long_term_goals.push({ id: `goal-${item.id}`, text: item.content, confidence: 1, source_memory_id: item.id });
+    changed = true;
+  }
+  if (changed) saveAgent();
+}
+
+function localLearningEvidence() {
+  return (agentState.learning_results || []).map(result => ({
+    id: result.id, topic: result.topic || "学习内容", skill: result.domain || "general",
+    evidence_type: result.evidence_type || "tutor_verification",
+    result: result.learned || result.result || "学习结果已记录", source_type: "tutor",
+    confidence: result.confidence, created_at: result.at,
+  }));
+}
+
+function refreshContextualNextStep() {
+  const action = contextualNextStep({
+    memories: memoryRepository.listMemories(),
+    evidence: [...memoryRepository.listLearningEvidence(), ...localLearningEvidence()],
+    dailyLogs: memoryRepository.listDailyLogs(),
+    today: agentState.today_context || {},
+    currentAction: agentState.next_recommended_action,
+  });
+  if (action && action.id !== agentState.next_recommended_action?.id) {
+    agentState.next_recommended_action = action;
+    saveAgent();
+  }
+}
+
+function modelMessages(latestText, attachments, boundedContext) {
   const safeAttachments = Array.isArray(attachments) ? attachments.filter(Boolean) : [];
-  const history = state.messages.slice(-12).map(message => ({ role: message.role, content: message.text }));
   const attachmentText = safeAttachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
   const imageParts = safeAttachments
     .filter(item => String(item?.type || "").startsWith("image/"))
     .map(item => safeAttachmentDataUrl(item?.dataUrl))
     .filter(Boolean)
     .map(url => ({ type: "image_url", image_url: { url } }));
-  const content = imageParts.length ? [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts] : `${latestText}${attachmentText}`;
-  if (history.at(-1)?.role === "user") history.pop();
-  return [...history, { role: "user", content }];
+  const built = modelInputFromContext(boundedContext, `${latestText}${attachmentText}`, guideSystemPrompt());
+  if (imageParts.length) built.messages[built.messages.length - 1].content = [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts];
+  return built;
 }
 
 $("#chat-form").addEventListener("submit", async event => {
@@ -834,14 +879,26 @@ $("#chat-form").addEventListener("submit", async event => {
   try {
     const submittedAttachments = pendingAttachments;
     pendingAttachments = [];
+    if (currentMemoryPrompt()?.status === "confirmed") activeMemoryId = null;
     $("#agent-proposal").classList.remove("discussing");
     const userText = text || "请看看我发来的内容。";
     const submittedMessage = addMessage({ role: "user", source: "typing", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+    const priorLearningCount = agentState.learning_results?.length || 0;
     const simpleGreeting = isSimpleGreeting(userText) && submittedAttachments.length === 0;
     const agentResult = simpleGreeting
       ? { state: agentState, kind: "conversation", reply: "你好，我在。今天想聊聊什么？" }
       : runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
     agentState = agentResult.state;
+    if ((agentState.learning_results?.length || 0) > priorLearningCount) refreshContextualNextStep();
+    if (!submittedAttachments.length) {
+      const candidate = memoryCandidateFromMessage(userText, memoryRepository.listMemories());
+      if (candidate) {
+        try {
+          const proposed = memoryRepository.createMemory({ ...candidate, source_id: submittedMessage.clientMessageId });
+          activeMemoryId = proposed.memory.id;
+        } catch { showToast("这次记忆建议没有保存，聊天仍可继续"); }
+      }
+    }
     input.value = "";
     resizeComposer();
     save();
@@ -857,11 +914,24 @@ $("#chat-form").addEventListener("submit", async event => {
       const conversation = $("#conversation");
       conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
       try {
+        const boundedContext = memoryRepository.buildContext({
+          current_user: {
+            name: state.name, role: state.role, gender: state.gender,
+            confirmed_directions: agentState.long_term_goals.map(goal => ({ text: goal.text, status: "confirmed", confirmed_by_user: true })),
+          },
+          current_conversation: { current_input: userText, messages: state.messages.slice(0, -1) },
+          current_task: agentState.next_recommended_action,
+          today_state: { current_state: agentState.current_state, available_minutes: agentState.today_context?.available_minutes },
+          learning_evidence: localLearningEvidence(),
+          max_chars: 8000,
+        });
+        const request = modelMessages(userText, submittedAttachments, boundedContext);
+        if (import.meta.env?.DEV && new URLSearchParams(location.search).get("context_debug") === "1") contextDebug = request.sources;
         reply = await requestProviderReply({
           ...state.modelConfig,
           apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
-          system: guideSystemPrompt(),
-          messages: modelMessages(userText, submittedAttachments),
+          system: request.system,
+          messages: request.messages,
         });
       } catch (error) {
         showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
@@ -1842,6 +1912,11 @@ function reactRuntimeSnapshot() {
     },
     sync,
     conversation: { status: conversationStatus, sending: isSending },
+    memoryPrompt: (() => {
+      const item = currentMemoryPrompt();
+      return item ? { id: item.id, content: item.content, status: item.status } : null;
+    })(),
+    contextDebug: import.meta.env?.DEV && new URLSearchParams(location.search).get("context_debug") === "1" ? contextDebug : null,
     remote: { status: remote.syncStatus, lastSyncedAt: remote.lastSyncedAt || null },
     auth: { status: auth.getState().status, configured: auth.getState().configured, authenticated: auth.getState().authenticated },
     attachments: pendingAttachments.map(item => ({ name: String(item?.name || "附件"), type: String(item?.type || "") })),
@@ -1853,6 +1928,23 @@ function reactRuntimeSnapshot() {
 
 window.__XUECHENG_REACT_RUNTIME__ = {
   getSnapshot: reactRuntimeSnapshot,
+  confirmMemory(id) {
+    const item = currentMemoryPrompt();
+    if (!item || item.id !== id || item.status !== "proposed") return false;
+    memoryRepository.confirmMemory(id);
+    projectConfirmedGoals();
+    refreshContextualNextStep();
+    render();
+    return true;
+  },
+  dismissMemory(id) {
+    const item = currentMemoryPrompt();
+    if (!item || item.id !== id || item.status !== "proposed") return false;
+    memoryRepository.archiveMemory(id);
+    activeMemoryId = null;
+    render();
+    return true;
+  },
   sendMessage(text) {
     const input = $("#chat-input");
     if (!input || isSending || !String(text || "").trim()) return false;
@@ -2013,6 +2105,7 @@ const initialScreen = new URLSearchParams(location.search).get("screen");
 if (["home", "chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
 syncVisualViewport();
 resizeComposer();
+projectConfirmedGoals();
 render();
 scheduleSplash();
 void auth.restoreFromRedirect().then(activateAuthenticatedScope).catch(() => renderSyncCenter());
