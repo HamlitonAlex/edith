@@ -59,6 +59,115 @@ function messageFromRow(row) {
   };
 }
 
+function memoryFromRow(row) {
+  return row ? {
+    id: row.id,
+    type: row.type,
+    content: row.content,
+    source_type: row.source_type,
+    source_id: row.source_id,
+    topic: row.topic,
+    status: row.status,
+    confirmed_by_user: Boolean(row.confirmed_by_user),
+    confidence: Number(row.confidence),
+    importance: Number(row.importance),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    archived_at: row.archived_at,
+  } : null;
+}
+
+function dailyLogFromRow(row) {
+  return row ? {
+    id: row.id,
+    date: row.date,
+    completed: parseJsonList(row.completed),
+    problems: parseJsonList(row.problems),
+    learned: parseJsonList(row.learned),
+    tomorrow_plan: row.tomorrow_plan || "",
+    ai_summary: row.ai_summary || "",
+    status: row.status,
+    confirmed_by_user: Boolean(row.confirmed_by_user),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  } : null;
+}
+
+function evidenceFromRow(row) {
+  return row ? {
+    id: row.id,
+    topic: row.topic,
+    skill: row.skill,
+    evidence_type: row.evidence_type,
+    result: row.result,
+    score: row.score == null ? null : Number(row.score),
+    source_type: row.source_type,
+    source_id: row.source_id,
+    confidence: Number(row.confidence),
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  } : null;
+}
+
+function parseJsonList(value) {
+  try {
+    const parsed = JSON.parse(String(value || "[]"));
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function jsonList(value) {
+  return JSON.stringify(Array.isArray(value) ? value : []);
+}
+
+function sameMemoryContent(left, right) {
+  return left && right && left.type === right.type && left.content === right.content
+    && left.source_type === right.source_type && (left.source_id || null) === (right.source_id || null)
+    && (left.topic || null) === (right.topic || null)
+    && Number(left.confidence) === Number(right.confidence) && Number(left.importance) === Number(right.importance);
+}
+
+function sameMemory(left, right) {
+  return sameMemoryContent(left, right) && left.status === right.status
+    && Boolean(left.confirmed_by_user) === Boolean(right.confirmed_by_user);
+}
+
+function sameMemoryCreateReplay(left, right) {
+  if (sameMemory(left, right)) return true;
+  return right?.status === "proposed" && !right.confirmed_by_user
+    && ["confirmed", "archived"].includes(left?.status) && sameMemoryContent(left, right);
+}
+
+function sameEvidence(left, right) {
+  return left && right && left.topic === right.topic && left.skill === right.skill
+    && left.evidence_type === right.evidence_type && left.result === right.result
+    && (left.score == null ? null : Number(left.score)) === (right.score == null ? null : Number(right.score))
+    && left.source_type === right.source_type && (left.source_id || null) === (right.source_id || null)
+    && Number(left.confidence) === Number(right.confidence);
+}
+
+function sameDailyLogContent(left, right) {
+  return left && right && left.date === right.date
+    && JSON.stringify(left.completed) === JSON.stringify(right.completed)
+    && JSON.stringify(left.problems) === JSON.stringify(right.problems)
+    && JSON.stringify(left.learned) === JSON.stringify(right.learned)
+    && left.tomorrow_plan === right.tomorrow_plan && left.ai_summary === right.ai_summary;
+}
+
+function sameDailyLog(left, right) {
+  return sameDailyLogContent(left, right)
+    && left.status === right.status && Boolean(left.confirmed_by_user) === Boolean(right.confirmed_by_user);
+}
+
+function sameDailyLogCreateReplay(left, right) {
+  if (sameDailyLog(left, right)) return true;
+  return right?.status === "proposed" && !right.confirmed_by_user
+    && left?.status === "confirmed" && left.confirmed_by_user
+    && sameDailyLogContent(left, right);
+}
+
 export class SqliteStore {
   #db;
   #now;
@@ -290,6 +399,280 @@ export class SqliteStore {
           messages,
           next_before: Number(count) > messages.length && messages.length ? messages[0].id : null,
         },
+        meta: { data_version: Number(user.data_version), updated_at: user.updated_at },
+      };
+    });
+  }
+
+  listMemories(identity, { type = null, status = null, source_type: sourceType = null, topic = null, limit = 50 } = {}) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const clauses = ["user_id = ?"];
+      const params = [user.id];
+      if (type) { clauses.push("type = ?"); params.push(type); }
+      if (status) { clauses.push("status = ?"); params.push(status); }
+      if (sourceType) { clauses.push("source_type = ?"); params.push(sourceType); }
+      if (topic) { clauses.push("topic = ?"); params.push(topic); }
+      params.push(limit);
+      const rows = this.#db.prepare(`
+        SELECT * FROM memories
+        WHERE ${clauses.join(" AND ")}
+        ORDER BY updated_at DESC, id DESC
+        LIMIT ?
+      `).all(...params);
+      return {
+        data: { memories: rows.map(memoryFromRow) },
+        meta: { data_version: Number(user.data_version), updated_at: user.updated_at },
+      };
+    });
+  }
+
+  getMemory(identity, id) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const row = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!row) throw new ApiError(404, "memory_not_found", "这条记忆不存在。 ");
+      return { memory: memoryFromRow(row), meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+    });
+  }
+
+  createMemory(identity, { input, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      if (existing) {
+        if (!sameMemoryCreateReplay(memoryFromRow(existing), input)) throw new ApiError(409, "memory_id_conflict", "同一记忆标识不能对应不同内容。 ");
+        return { memory: memoryFromRow(existing), created: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      this.#assertVersion(user, expectedVersion);
+      const now = timestamp(this.#now);
+      this.#db.prepare(`
+        INSERT INTO memories
+          (id, user_id, type, content, source_type, source_id, topic, status, confirmed_by_user, confidence, importance, created_at, updated_at, archived_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
+      `).run(input.id, user.id, input.type, input.content, input.source_type, input.source_id || null, input.topic || null, input.status, input.confirmed_by_user ? 1 : 0, input.confidence, input.importance, now, now);
+      const row = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      return { memory: memoryFromRow(row), created: true, meta: this.#bumpVersion(user, "create", "memory") };
+    });
+  }
+
+  transitionMemory(identity, { id, expectedVersion, transition }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existing) throw new ApiError(404, "memory_not_found", "这条记忆不存在。 ");
+      if (transition === "confirm" && existing.status === "confirmed" && existing.confirmed_by_user) {
+        return { memory: memoryFromRow(existing), changed: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      if (transition === "archive" && existing.status === "archived") {
+        return { memory: memoryFromRow(existing), changed: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      if (transition === "confirm" && existing.status === "archived") throw new ApiError(409, "memory_archived", "已归档的记忆不能直接确认。 ");
+      this.#assertVersion(user, expectedVersion);
+      const now = timestamp(this.#now);
+      if (transition === "confirm") {
+        this.#db.prepare(`UPDATE memories SET status = 'confirmed', confirmed_by_user = 1, updated_at = ?, archived_at = NULL WHERE user_id = ? AND id = ?`).run(now, user.id, id);
+      } else if (transition === "archive") {
+        this.#db.prepare(`UPDATE memories SET status = 'archived', confirmed_by_user = 0, updated_at = ?, archived_at = ? WHERE user_id = ? AND id = ?`).run(now, now, user.id, id);
+      } else {
+        throw new ApiError(422, "invalid_memory_transition", "不支持的记忆状态变更。 ");
+      }
+      const row = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, id);
+      return { memory: memoryFromRow(row), changed: true, meta: this.#bumpVersion(user, transition, "memory") };
+    });
+  }
+
+  deleteMemory(identity, { id, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existing) throw new ApiError(404, "memory_not_found", "这条记忆不存在。 ");
+      this.#assertVersion(user, expectedVersion);
+      this.#db.prepare("DELETE FROM memories WHERE user_id = ? AND id = ?").run(user.id, id);
+      return { deleted: true, meta: this.#bumpVersion(user, "delete", "memory") };
+    });
+  }
+
+  listDailyLogs(identity, { date = null, status = null, limit = 31 } = {}) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const clauses = ["user_id = ?"];
+      const params = [user.id];
+      if (date) { clauses.push('"date" = ?'); params.push(date); }
+      if (status) { clauses.push("status = ?"); params.push(status); }
+      params.push(limit);
+      const rows = this.#db.prepare(`SELECT * FROM daily_logs WHERE ${clauses.join(" AND ")} ORDER BY "date" DESC, updated_at DESC, id DESC LIMIT ?`).all(...params);
+      return { data: { daily_logs: rows.map(dailyLogFromRow) }, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+    });
+  }
+
+  getDailyLog(identity, id) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const row = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!row) throw new ApiError(404, "daily_log_not_found", "这份成长日志不存在。 ");
+      return { daily_log: dailyLogFromRow(row), meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+    });
+  }
+
+  createDailyLog(identity, { input, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existingById = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      if (existingById) {
+        const existing = dailyLogFromRow(existingById);
+        if (!sameDailyLogCreateReplay(existing, input)) throw new ApiError(409, "daily_log_id_conflict", "同一日志标识不能对应不同内容。 ");
+        return { daily_log: existing, created: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      this.#assertVersion(user, expectedVersion);
+      const existingDate = this.#db.prepare('SELECT * FROM daily_logs WHERE user_id = ? AND "date" = ?').get(user.id, input.date);
+      if (existingDate) throw new ApiError(409, "daily_log_date_conflict", "同一天只能保留一份成长日志，请更新已有草稿。 ");
+      const now = timestamp(this.#now);
+      this.#db.prepare(`
+        INSERT INTO daily_logs
+          (id, user_id, "date", completed, problems, learned, tomorrow_plan, ai_summary, status, confirmed_by_user, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(input.id, user.id, input.date, jsonList(input.completed), jsonList(input.problems), jsonList(input.learned), input.tomorrow_plan || "", input.ai_summary || "", input.status || "draft", input.confirmed_by_user ? 1 : 0, now, now);
+      const row = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      return { daily_log: dailyLogFromRow(row), created: true, meta: this.#bumpVersion(user, "create", "daily_log") };
+    });
+  }
+
+  updateDailyLog(identity, { id, expectedVersion, patch }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existingRow = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existingRow) throw new ApiError(404, "daily_log_not_found", "这份成长日志不存在。 ");
+      const existing = dailyLogFromRow(existingRow);
+      if (existing.status === "confirmed") throw new ApiError(409, "daily_log_confirmed", "已确认的成长日志不能直接修改。 ");
+      if (patch.status === "confirmed") throw new ApiError(422, "daily_log_confirmation_required", "确认请使用独立的 confirm 接口。 ");
+      this.#assertVersion(user, expectedVersion);
+      const next = { ...existing, ...patch, id: existing.id, confirmed_by_user: false };
+      const now = timestamp(this.#now);
+      this.#db.prepare(`
+        UPDATE daily_logs
+        SET "date" = ?, completed = ?, problems = ?, learned = ?, tomorrow_plan = ?, ai_summary = ?, status = ?, confirmed_by_user = 0, updated_at = ?
+        WHERE user_id = ? AND id = ?
+      `).run(next.date, jsonList(next.completed), jsonList(next.problems), jsonList(next.learned), next.tomorrow_plan || "", next.ai_summary || "", next.status || existing.status, now, user.id, id);
+      const row = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      return { daily_log: dailyLogFromRow(row), meta: this.#bumpVersion(user, "update", "daily_log") };
+    });
+  }
+
+  confirmDailyLog(identity, { id, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existing) throw new ApiError(404, "daily_log_not_found", "这份成长日志不存在。 ");
+      if (existing.status === "confirmed" && existing.confirmed_by_user) {
+        return { daily_log: dailyLogFromRow(existing), changed: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      this.#assertVersion(user, expectedVersion);
+      const now = timestamp(this.#now);
+      this.#db.prepare("UPDATE daily_logs SET status = 'confirmed', confirmed_by_user = 1, updated_at = ? WHERE user_id = ? AND id = ?").run(now, user.id, id);
+      const row = this.#db.prepare("SELECT * FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      return { daily_log: dailyLogFromRow(row), changed: true, meta: this.#bumpVersion(user, "confirm", "daily_log") };
+    });
+  }
+
+  deleteDailyLog(identity, { id, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT id FROM daily_logs WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existing) throw new ApiError(404, "daily_log_not_found", "这份成长日志不存在。 ");
+      this.#assertVersion(user, expectedVersion);
+      this.#db.prepare("DELETE FROM daily_logs WHERE user_id = ? AND id = ?").run(user.id, id);
+      return { deleted: true, meta: this.#bumpVersion(user, "delete", "daily_log") };
+    });
+  }
+
+  listLearningEvidence(identity, { topic = null, skill = null, evidence_type: evidenceType = null, source_type: sourceType = null, limit = 50 } = {}) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const clauses = ["user_id = ?"];
+      const params = [user.id];
+      if (topic) { clauses.push("topic = ?"); params.push(topic); }
+      if (skill) { clauses.push("skill = ?"); params.push(skill); }
+      if (evidenceType) { clauses.push("evidence_type = ?"); params.push(evidenceType); }
+      if (sourceType) { clauses.push("source_type = ?"); params.push(sourceType); }
+      params.push(limit);
+      const rows = this.#db.prepare(`SELECT * FROM learning_evidence WHERE ${clauses.join(" AND ")} ORDER BY created_at DESC, id DESC LIMIT ?`).all(...params);
+      return { data: { learning_evidence: rows.map(evidenceFromRow) }, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+    });
+  }
+
+  getLearningEvidence(identity, id) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const row = this.#db.prepare("SELECT * FROM learning_evidence WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!row) throw new ApiError(404, "learning_evidence_not_found", "这条学习证据不存在。 ");
+      return { learning_evidence: evidenceFromRow(row), meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+    });
+  }
+
+  createLearningEvidence(identity, { input, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT * FROM learning_evidence WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      if (existing) {
+        if (!sameEvidence(evidenceFromRow(existing), input)) throw new ApiError(409, "learning_evidence_id_conflict", "同一证据标识不能对应不同内容。 ");
+        return { learning_evidence: evidenceFromRow(existing), created: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+      }
+      this.#assertVersion(user, expectedVersion);
+      if (input.source_id) {
+        const source = this.#db.prepare(`SELECT * FROM learning_evidence WHERE user_id = ? AND source_type = ? AND source_id = ? AND evidence_type = ? AND topic = ? AND skill = ?`).get(user.id, input.source_type, input.source_id, input.evidence_type, input.topic, input.skill);
+        if (source) {
+          if (!sameEvidence(evidenceFromRow(source), input)) throw new ApiError(409, "learning_evidence_source_conflict", "同一来源不能重复写入不同学习证据。 ");
+          return { learning_evidence: evidenceFromRow(source), created: false, meta: { data_version: Number(user.data_version), updated_at: user.updated_at } };
+        }
+      }
+      const now = timestamp(this.#now);
+      this.#db.prepare(`
+        INSERT INTO learning_evidence
+          (id, user_id, topic, skill, evidence_type, result, score, source_type, source_id, confidence, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(input.id, user.id, input.topic, input.skill, input.evidence_type, input.result, input.score, input.source_type, input.source_id || null, input.confidence, now, now);
+      const row = this.#db.prepare("SELECT * FROM learning_evidence WHERE user_id = ? AND id = ?").get(user.id, input.id);
+      return { learning_evidence: evidenceFromRow(row), created: true, meta: this.#bumpVersion(user, "create", "learning_evidence") };
+    });
+  }
+
+  deleteLearningEvidence(identity, { id, expectedVersion }) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const existing = this.#db.prepare("SELECT id FROM learning_evidence WHERE user_id = ? AND id = ?").get(user.id, id);
+      if (!existing) throw new ApiError(404, "learning_evidence_not_found", "这条学习证据不存在。 ");
+      this.#assertVersion(user, expectedVersion);
+      this.#db.prepare("DELETE FROM learning_evidence WHERE user_id = ? AND id = ?").run(user.id, id);
+      return { deleted: true, meta: this.#bumpVersion(user, "delete", "learning_evidence") };
+    });
+  }
+
+  contextInputs(identity, { conversationId = "main", date = null, memoryLimit = 100, evidenceLimit = 100 } = {}) {
+    return this.#transaction(() => {
+      const user = this.#userFor(identity);
+      const record = this.#recordFor(user.id);
+      const memoryRows = this.#db.prepare("SELECT * FROM memories WHERE user_id = ? AND status IN ('confirmed', 'proposed') ORDER BY updated_at DESC, id DESC LIMIT ?").all(user.id, memoryLimit);
+      const evidenceRows = this.#db.prepare("SELECT * FROM learning_evidence WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ?").all(user.id, evidenceLimit);
+      const todayLog = date ? this.#db.prepare('SELECT * FROM daily_logs WHERE user_id = ? AND "date" = ?').get(user.id, date) : null;
+      const messages = this.#db.prepare(`
+        SELECT * FROM conversation_messages
+        WHERE user_id = ? AND conversation_id = ?
+        ORDER BY occurred_at DESC, client_message_id DESC
+        LIMIT 12
+      `).all(user.id, conversationId).reverse().map(messageFromRow);
+      return {
+        // The Context Builder uses this internal owner marker only to reject
+        // any mismatched rows before projecting them. It is not emitted in
+        // the model-facing current_user projection.
+        profile: { ...(record?.preferences || {}), user_id: user.id },
+        agent_state: record?.agent_state || {},
+        current_task: record?.agent_state?.next_recommended_action || null,
+        today_state: { user_id: user.id, current_state: record?.agent_state?.current_state || {}, daily_log: dailyLogFromRow(todayLog) },
+        memories: memoryRows.filter(row => row.status === "confirmed").map(memoryFromRow),
+        proposed_memories: memoryRows.filter(row => row.status === "proposed").map(memoryFromRow),
+        learning_evidence: evidenceRows.map(evidenceFromRow),
+        recent_conversation: messages,
         meta: { data_version: Number(user.data_version), updated_at: user.updated_at },
       };
     });

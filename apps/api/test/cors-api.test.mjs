@@ -16,6 +16,7 @@ test("API permits the configured web origin and does not reflect unrelated origi
     assert.equal(allowed.status, 204);
     assert.equal(allowed.headers.get("access-control-allow-origin"), "http://localhost:4173");
     assert.match(allowed.headers.get("access-control-allow-headers"), /authorization/i);
+    assert.match(allowed.headers.get("access-control-allow-methods"), /DELETE/i);
     assert.doesNotMatch(allowed.headers.get("access-control-allow-headers"), /x-xuecheng-user-id/i);
     const rejected = await fetch(`${origin}/api/v1/profile`, { method: "OPTIONS", headers: { origin: "https://untrusted.example" } });
     assert.equal(rejected.status, 204);

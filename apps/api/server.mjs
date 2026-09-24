@@ -8,6 +8,10 @@ import { normalizeConversationId, normalizeMessageInput } from "./services/conve
 import { buildHomeResponse, buildHomeSyncSnapshot, mergeHomeSnapshot, normalizeHomeSnapshot } from "./services/home-service.mjs";
 import { applyProfilePatch, normalizeProfilePatch, profileResponse } from "./services/profile-service.mjs";
 import { addManualEvent, buildScheduleResponse, confirmSuggestion, normalizeDateKey, normalizeEventId, normalizeManualEventInput, normalizeSuggestionId, reviseManualEvent } from "./services/schedule-service.mjs";
+import { memorySourceResponse, normalizeMemoryFilters, normalizeMemoryId, normalizeMemoryInput } from "./services/memory-service.mjs";
+import { normalizeDailyLogInput, normalizeLogFilters, normalizeLogId } from "./services/daily-log-service.mjs";
+import { normalizeEvidenceFilters, normalizeEvidenceId, normalizeEvidenceInput } from "./services/learning-evidence-service.mjs";
+import { buildContextPreview, normalizeContextRequest } from "./services/context-service.mjs";
 
 const appRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const defaultDataDirectory = resolve(appRoot, "data", "api");
@@ -30,10 +34,22 @@ function initialized(record, module) {
 
 const syncPolicy = Object.freeze({
   sync_mode: "explicit_only",
-  allowed: ["home_snapshot", "profile_settings", "calendar_events", "conversation_text_messages"],
+  allowed: ["home_snapshot", "profile_settings", "calendar_events", "conversation_text_messages", "memories", "daily_logs", "learning_evidence"],
+  sync_conditions: Object.freeze({
+    memories: "confirmed_by_user_only",
+    daily_logs: "confirmed_by_user_only",
+    learning_evidence: "structured_summary_only",
+    conversation_text_messages: "explicit_user_selected_text_only",
+  }),
   never_automatic: ["model_api_keys", "raw_audio", "attachments", "avatar_binary", "source_materials", "diagnostic_logs"],
   local_migration: "requires_user_confirmation",
 });
+
+function requireIdempotencyKey(request, id) {
+  const key = String(request.headers["idempotency-key"] || "").trim();
+  if (!key) throw new ApiError(422, "idempotency_key_required", "创建记录需要与客户端标识一致的 Idempotency-Key。 ");
+  if (key !== id) throw new ApiError(422, "idempotency_key_mismatch", "Idempotency-Key 必须与记录标识一致。 ");
+}
 
 export function createApiServer({
   dataDirectory = process.env.XUECHENG_DATA_DIR || defaultDataDirectory,
@@ -94,6 +110,125 @@ export function createApiServer({
           return json(response, 200, responsePayload(profileResponse(outcome.record), outcome.meta), id, responseHeaders(outcome.meta));
         }
         throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 PATCH。");
+      }
+      if (url.pathname === "/api/v1/memories") {
+        const identity = await identityFor();
+        if (request.method === "GET") {
+          const outcome = store.listMemories(identity, normalizeMemoryFilters(url.searchParams));
+          return json(response, 200, responsePayload(outcome.data, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "POST") {
+          const input = normalizeMemoryInput(await readJson(request));
+          requireIdempotencyKey(request, input.id);
+          const outcome = store.createMemory(identity, { input, expectedVersion: expectedVersionFrom(request) });
+          return json(response, outcome.created ? 201 : 200, responsePayload({ memory: outcome.memory, idempotent_replay: !outcome.created }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 POST。 ");
+      }
+      const memoryTransitionMatch = url.pathname.match(/^\/api\/v1\/memories\/([^/]+)\/(confirm|archive)$/);
+      if (memoryTransitionMatch && request.method === "POST") {
+        const identity = await identityFor();
+        const outcome = store.transitionMemory(identity, {
+          id: normalizeMemoryId(memoryTransitionMatch[1]),
+          expectedVersion: expectedVersionFrom(request),
+          transition: memoryTransitionMatch[2],
+        });
+        return json(response, 200, responsePayload({ memory: outcome.memory, idempotent_replay: !outcome.changed }, outcome.meta), id, responseHeaders(outcome.meta));
+      }
+      const memorySourceMatch = url.pathname.match(/^\/api\/v1\/memories\/([^/]+)\/source$/);
+      if (memorySourceMatch) {
+        const identity = await identityFor();
+        if (request.method !== "GET") throw new ApiError(405, "method_not_allowed", "该接口只支持 GET。 ");
+        const outcome = store.getMemory(identity, normalizeMemoryId(memorySourceMatch[1]));
+        return json(response, 200, responsePayload({ source: memorySourceResponse(outcome.memory) }, outcome.meta), id, responseHeaders(outcome.meta));
+      }
+      const memoryMatch = url.pathname.match(/^\/api\/v1\/memories\/([^/]+)$/);
+      if (memoryMatch) {
+        const identity = await identityFor();
+        const memoryId = normalizeMemoryId(memoryMatch[1]);
+        if (request.method === "GET") {
+          const outcome = store.getMemory(identity, memoryId);
+          return json(response, 200, responsePayload({ memory: outcome.memory }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "DELETE") {
+          const outcome = store.deleteMemory(identity, { id: memoryId, expectedVersion: expectedVersionFrom(request) });
+          return json(response, 200, responsePayload({ deleted: outcome.deleted }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 DELETE。 ");
+      }
+      if (url.pathname === "/api/v1/daily-logs") {
+        const identity = await identityFor();
+        if (request.method === "GET") {
+          const outcome = store.listDailyLogs(identity, normalizeLogFilters(url.searchParams, now()));
+          return json(response, 200, responsePayload(outcome.data, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "POST") {
+          const input = normalizeDailyLogInput(await readJson(request), { now: now() });
+          requireIdempotencyKey(request, input.id);
+          const outcome = store.createDailyLog(identity, { input, expectedVersion: expectedVersionFrom(request) });
+          return json(response, outcome.created ? 201 : 200, responsePayload({ daily_log: outcome.daily_log, idempotent_replay: !outcome.created }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 POST。 ");
+      }
+      const logConfirmMatch = url.pathname.match(/^\/api\/v1\/daily-logs\/([^/]+)\/confirm$/);
+      if (logConfirmMatch && request.method === "POST") {
+        const identity = await identityFor();
+        const outcome = store.confirmDailyLog(identity, { id: normalizeLogId(logConfirmMatch[1]), expectedVersion: expectedVersionFrom(request) });
+        return json(response, 200, responsePayload({ daily_log: outcome.daily_log, idempotent_replay: !outcome.changed }, outcome.meta), id, responseHeaders(outcome.meta));
+      }
+      const logMatch = url.pathname.match(/^\/api\/v1\/daily-logs\/([^/]+)$/);
+      if (logMatch) {
+        const identity = await identityFor();
+        const logId = normalizeLogId(logMatch[1]);
+        if (request.method === "GET") {
+          const outcome = store.getDailyLog(identity, logId);
+          return json(response, 200, responsePayload({ daily_log: outcome.daily_log }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "PATCH") {
+          const patch = normalizeDailyLogInput(await readJson(request), { partial: true, now: now() });
+          const outcome = store.updateDailyLog(identity, { id: logId, expectedVersion: expectedVersionFrom(request), patch });
+          return json(response, 200, responsePayload({ daily_log: outcome.daily_log }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "DELETE") {
+          const outcome = store.deleteDailyLog(identity, { id: logId, expectedVersion: expectedVersionFrom(request) });
+          return json(response, 200, responsePayload({ deleted: outcome.deleted }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET、PATCH 和 DELETE。 ");
+      }
+      if (url.pathname === "/api/v1/learning-evidence") {
+        const identity = await identityFor();
+        if (request.method === "GET") {
+          const outcome = store.listLearningEvidence(identity, normalizeEvidenceFilters(url.searchParams));
+          return json(response, 200, responsePayload(outcome.data, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "POST") {
+          const input = normalizeEvidenceInput(await readJson(request));
+          requireIdempotencyKey(request, input.id);
+          const outcome = store.createLearningEvidence(identity, { input, expectedVersion: expectedVersionFrom(request) });
+          return json(response, outcome.created ? 201 : 200, responsePayload({ learning_evidence: outcome.learning_evidence, idempotent_replay: !outcome.created }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 POST。 ");
+      }
+      const evidenceMatch = url.pathname.match(/^\/api\/v1\/learning-evidence\/([^/]+)$/);
+      if (evidenceMatch) {
+        const identity = await identityFor();
+        const evidenceId = normalizeEvidenceId(evidenceMatch[1]);
+        if (request.method === "GET") {
+          const outcome = store.getLearningEvidence(identity, evidenceId);
+          return json(response, 200, responsePayload({ learning_evidence: outcome.learning_evidence }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        if (request.method === "DELETE") {
+          const outcome = store.deleteLearningEvidence(identity, { id: evidenceId, expectedVersion: expectedVersionFrom(request) });
+          return json(response, 200, responsePayload({ deleted: outcome.deleted }, outcome.meta), id, responseHeaders(outcome.meta));
+        }
+        throw new ApiError(405, "method_not_allowed", "该接口只支持 GET 和 DELETE。 ");
+      }
+      if (url.pathname === "/api/v1/context/preview" && request.method === "POST") {
+        const identity = await identityFor();
+        const requestInput = normalizeContextRequest(await readJson(request), now());
+        const source = store.contextInputs(identity, { conversationId: requestInput.conversationId, date: requestInput.currentDate, memoryLimit: requestInput.memoryLimit, evidenceLimit: requestInput.evidenceLimit });
+        const context = buildContextPreview({ source, request: requestInput, now: now().getTime() });
+        return json(response, 200, responsePayload(context, source.meta), id, responseHeaders(source.meta));
       }
       if (url.pathname === "/api/v1/schedule") {
         const identity = await identityFor();

@@ -98,7 +98,7 @@ test("SQLite migrations and user data survive a server restart", async () => {
     const database = new DatabaseSync(join(directory, "xuecheng.sqlite"));
     const migrations = database.prepare("SELECT version FROM schema_migrations ORDER BY version").all().map(row => row.version);
     database.close();
-    assert.deepEqual(migrations, ["001_initial_schema.sql", "002_sync_metadata.sql"]);
+    assert.deepEqual(migrations, ["001_initial_schema.sql", "002_sync_metadata.sql", "003_ai_memory_foundation.sql"]);
   } finally {
     if (server.listening) await new Promise(resolve => server.close(resolve));
     await rm(directory, { recursive: true, force: true });
