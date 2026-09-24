@@ -39,6 +39,7 @@ await Promise.all([
   cp(resolve(web, "lib", "remote-api.js"), resolve(runtime, "lib", "remote-api.js")),
   cp(resolve(web, "lib", "explicit-sync.js"), resolve(runtime, "lib", "explicit-sync.js")),
   cp(resolve(web, "lib", "app-repository.js"), resolve(runtime, "lib", "app-repository.js")),
+  cp(resolve(web, "lib", "memory-repository.js"), resolve(runtime, "lib", "memory-repository.js")),
 ]);
 
 await Promise.all([

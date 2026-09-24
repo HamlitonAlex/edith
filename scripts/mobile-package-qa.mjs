@@ -70,5 +70,10 @@ verify(nativeController.includes("WKUserScript") && nativeController.includes("a
 verify(project.includes("XuechengBridgeViewController.swift in Sources"), "the native keyboard bridge controller is not compiled into the app");
 await access(resolve(publicRoot, "runtime", "assets", "xuecheng-mark.svg"));
 checks += 1;
+verify(shippedRuntime.includes('from "./lib/memory-repository.js"'), "current runtime must load the Memory Foundation");
+await access(resolve(publicRoot, "runtime", "lib", "memory-repository.js"));
+checks += 1;
+await access(resolve(publicRoot, "runtime", "agent", "companion-memory.js"));
+checks += 1;
 
 console.log(`mobile package QA passed: ${checks} checks, build=${buildVersions[0]}`);
