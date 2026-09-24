@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" role="img" aria-labelledby="title desc">
+  <title id="title">学程语音触点雾感透明素材</title>
+  <desc id="desc">Transparent lower-screen voice mist with irregular upward diffusion, large clear areas, subdued grey-green layers, and a tiny clay-orange focus.</desc>
+  <defs>
+    <linearGradient id="riseLeft" x1=".56" y1="1" x2=".05" y2=".14">
+      <stop offset="0" stop-color="#4C6257" stop-opacity=".44"/><stop offset=".48" stop-color="#809087" stop-opacity=".23"/><stop offset="1" stop-color="#B8C1BB" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="riseRight" x1=".45" y1="1" x2=".94" y2=".2">
+      <stop offset="0" stop-color="#53685D" stop-opacity=".38"/><stop offset=".5" stop-color="#91A097" stop-opacity=".2"/><stop offset="1" stop-color="#CED4D0" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="touchWarm" cx="50%" cy="70%" r="50%">
+      <stop offset="0" stop-color="#C88D77" stop-opacity=".4"/><stop offset=".35" stop-color="#DBB09F" stop-opacity=".17"/><stop offset="1" stop-color="#DBB09F" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="voiceBlur40" x="-30%" y="-42%" width="160%" height="184%"><feGaussianBlur stdDeviation="40"/></filter>
+    <filter id="voiceBlur70" x="-38%" y="-48%" width="176%" height="196%"><feGaussianBlur stdDeviation="54"/></filter>
+  </defs>
+  <!-- Top third intentionally remains transparent so conversation content stays clear. -->
+  <g filter="url(#voiceBlur70)">
+    <path d="M-160 744c179-217 362-293 548-227 109 39 158 130 232 181 86 60 199 65 340 17 123-42 259-47 408-16v183H-160Z" fill="url(#riseLeft)"/>
+    <path d="M1218 760c-112-171-246-253-401-247-117 5-185 71-277 93-121 29-224-27-321-119-73-69-157-102-252-98 80 92 129 183 147 274 12 62 8 127-11 195Z" fill="url(#riseRight)"/>
+    <ellipse cx="600" cy="675" rx="226" ry="170" fill="url(#touchWarm)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" filter="url(#voiceBlur40)">
+    <path d="M53 670c158-117 300-138 425-64 106 63 189 65 286 8 117-69 247-78 390-26" stroke="#F5F6F2" stroke-width="38" opacity=".42"/>
+    <path d="M254 710c99-86 187-119 265-98 62 17 111 66 177 76 82 12 158-17 227-88" stroke="#DDE4DE" stroke-width="30" opacity=".28"/>
+  </g>
+</svg>

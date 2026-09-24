@@ -5,21 +5,33 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve.mjs",
+    "dev:ui": "vite --config apps/web/vite.config.ts",
+    "dev:api": "node apps/api/server.mjs",
+    "build:ui": "vite build --config apps/web/vite.config.ts",
+    "test:ui-preview": "playwright test --config apps/web/playwright.preview.config.mjs",
     "build:web": "node scripts/build-mobile.mjs",
     "build:mobile": "node scripts/build-mobile.mjs",
-    "mobile:sync": "npm run build:mobile && cap sync ios",
+    "mobile:sync": "npm run build:mobile && cap copy ios",
     "mobile:open": "cap open ios",
     "test": "node --test packages/event-schema/test/*.test.js apps/web/test/*.test.js && node scripts/test-server.mjs",
+    "test:api": "node --test --test-concurrency=1 apps/api/test/*.test.mjs",
     "test:delivery": "node scripts/delivery-qa.mjs",
     "test:mobile-package": "node scripts/mobile-package-qa.mjs"
   },
   "dependencies": {
     "@capacitor/core": "^8.5.1",
     "@capacitor/ios": "^8.5.1",
-    "@phosphor-icons/web": "^2.1.2"
+    "@phosphor-icons/web": "^2.1.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@types/react": "^19.2.5",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^5.1.1",
     "@capacitor/cli": "^8.5.1",
-    "@playwright/test": "^1.63.0"
+    "@playwright/test": "^1.63.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.2.4"
   }
 }

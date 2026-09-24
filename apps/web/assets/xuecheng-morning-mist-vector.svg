@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1600" role="img" aria-labelledby="title desc">
+  <title id="title">学程清晨雾感透明品牌素材</title>
+  <desc id="desc">Transparent abstract mist with irregular low-contrast grey-green folds, broad clear space, and a restrained clay-orange glow.</desc>
+  <defs>
+    <linearGradient id="sageLeft" x1="0" y1="1" x2="0.78" y2="0.18">
+      <stop offset="0" stop-color="#53685D" stop-opacity=".46"/><stop offset=".42" stop-color="#71847A" stop-opacity=".25"/><stop offset="1" stop-color="#AAB6AF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="sageRight" x1="1" y1="1" x2=".18" y2=".08">
+      <stop offset="0" stop-color="#465D52" stop-opacity=".42"/><stop offset=".46" stop-color="#84958C" stop-opacity=".22"/><stop offset="1" stop-color="#CBD2CD" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pearl" x1=".05" y1=".9" x2=".88" y2=".12">
+      <stop offset="0" stop-color="#E6E9E3" stop-opacity=".7"/><stop offset=".55" stop-color="#F7F5EF" stop-opacity=".3"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="clay" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#C88D77" stop-opacity=".34"/><stop offset=".46" stop-color="#DDB7A7" stop-opacity=".14"/><stop offset="1" stop-color="#DDB7A7" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="blur36" x="-28%" y="-28%" width="156%" height="156%"><feGaussianBlur stdDeviation="36"/></filter>
+    <filter id="blur64" x="-35%" y="-35%" width="170%" height="170%"><feGaussianBlur stdDeviation="64"/></filter>
+    <filter id="blur92" x="-42%" y="-42%" width="184%" height="184%"><feGaussianBlur stdDeviation="72"/></filter>
+  </defs>
+  <!-- The centre is intentionally empty. These edge fields are designed to be cropped. -->
+  <g filter="url(#blur92)">
+    <path d="M-210 1040C-38 886 116 842 275 912c148 65 197 228 362 300 95 42 183 43 266 23-116 184-282 300-500 344-231 47-436 17-613-66Z" fill="url(#sageLeft)"/>
+    <path d="M1356 878c-174 15-296 74-364 176-67 101-66 221-182 310-98 76-215 107-352 94 144 124 317 191 519 181 207-10 368-79 482-204Z" fill="url(#sageRight)"/>
+    <path d="M795-174c-19 140 17 246 108 319 90 72 200 79 276 175 56 71 79 157 69 257 94-127 129-281 96-463-33-184-110-314-231-390Z" fill="#87988F" opacity=".1"/>
+  </g>
+  <g filter="url(#blur64)">
+    <path d="M-126 1320c204-244 396-301 574-173 113 82 187 183 349 217-117 82-247 123-391 123-210 0-388-56-532-167Z" fill="url(#pearl)" opacity=".86"/>
+    <path d="M1288 1192c-172-120-332-128-481-23-96 68-159 171-287 241 166 38 331 20 493-53 145-66 237-121 275-165Z" fill="#DDE3DE" opacity=".35"/>
+    <ellipse cx="976" cy="405" rx="164" ry="128" fill="url(#clay)"/>
+  </g>
+  <g fill="none" stroke-linecap="round" filter="url(#blur36)">
+    <path d="M-70 1214c171-134 314-171 428-111 101 53 173 162 318 202" stroke="#F7F6F0" stroke-width="42" opacity=".42"/>
+    <path d="M628 1392c136-45 233-124 291-237 47-91 130-158 250-200" stroke="#F9F8F4" stroke-width="34" opacity=".36"/>
+    <path d="M867 188c87 31 151 84 192 159" stroke="#EDF0EC" stroke-width="28" opacity=".24"/>
+  </g>
+</svg>

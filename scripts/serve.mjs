@@ -42,7 +42,7 @@ function routePath(pathname) {
   if (decoded === "/planner") return { root: webRoot, relative: "planner.html" };
   if (decoded === "/prototype") return { root: webRoot, relative: "index.html" };
   if (decoded === "/ui-directions") return { root: webRoot, relative: "ui-directions.html" };
-  if (["/app.js", "/styles.css", "/planner.js", "/planner.css", "/companion.js", "/companion.css", "/companion-v2.css", "/companion-v3.css", "/iphone.js", "/local-backup.js", "/iphone.css", "/iphone-refinement.css", "/phosphor-icons.css", "/ui-directions.html", "/ui-directions.css", "/ui-directions.js", "/manifest.webmanifest", "/sw.js"].includes(decoded)) {
+  if (["/app.js", "/styles.css", "/planner.js", "/planner.css", "/companion.js", "/companion.css", "/companion-v2.css", "/companion-v3.css", "/iphone.js", "/local-backup.js", "/iphone.css", "/iphone-refinement.css", "/phosphor-icons.css", "/ui-directions.html", "/ui-directions.css", "/ui-directions.js", "/brand-mist-preview.html", "/manifest.webmanifest", "/sw.js"].includes(decoded)) {
     return { root: webRoot, relative: decoded.slice(1) };
   }
   if (decoded.startsWith("/data/") || decoded.startsWith("/lib/") || decoded.startsWith("/assets/") || decoded.startsWith("/agent/")) {

@@ -1,0 +1,7 @@
+.prompt { flex: 0 0 auto; padding: 16px; border: 1px solid var(--color-border); border-radius: 20px; background: var(--color-surface); color: var(--color-primary-text); }
+.prompt p { margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+.prompt blockquote { margin: 0 0 12px; color: var(--color-secondary-text); font-size: 13px; line-height: 1.5; }
+.prompt div { display: flex; gap: 8px; }
+.prompt button { min-height: 36px; padding: 0 14px; border: 0; border-radius: 18px; background: var(--color-primary-green); color: white; font-size: 13px; }
+.prompt button + button { background: transparent; color: var(--color-secondary-text); }
+.debug { color: var(--color-secondary-text); font-size: 11px; }

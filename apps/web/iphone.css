@@ -1,22 +1,22 @@
 :root[data-theme="day"]{
   --app-height:100dvh;--ease-out-quart:cubic-bezier(.25,1,.5,1);--ease-out-quint:cubic-bezier(.22,1,.36,1);
-  --canvas:#e8e4da;--canvas-soft:#f4f0e7;--surface:#fbf8f0;--surface-strong:#e9e3d7;
-  --ink:#292b24;--muted:#5d6157;--faint:#5d6157;--action:#315443;--action-strong:#234536;--on-action:#f8f5eb;
-  --spark:#c8953c;--spark-soft:#efe3c4;--leaf:#5c7563;--task:#e9efe9;--task-ink:#202923;
-  --accent-general:#c58e2e;--accent-growth:#b9563d;--accent-wellbeing:#5c7563;--accent-reflection:#8b5968;
-  --line:#d5cec0;--shadow:0 24px 72px rgba(38,54,44,.13);
-  --wash-one:#dce5dc;--wash-two:#ece4d7;--glass:#faf7efe8;--glass-line:#ffffffb8;
+  --canvas:#e9e5d9;--canvas-soft:#f6f4e7;--surface:#fcfbf7;--surface-strong:#e6e3da;
+  --ink:#30334d;--muted:#606165;--faint:#62636b;--action:#4b4e72;--action-strong:#393c5b;--on-action:#fdfcf8;
+  --spark:#e4a268;--spark-soft:#f4dec0;--leaf:#5fa3b0;--task:#edf0ee;--task-ink:#30394a;
+  --accent-general:#5fa3b0;--accent-growth:#9e7867;--accent-wellbeing:#5daa80;--accent-reflection:#4b4e72;
+  --line:#d3d0c8;--shadow:0 24px 72px rgba(45,48,76,.14);
+  --wash-one:#dce8e8;--wash-two:#ece4d7;--glass:#faf9f2e8;--glass-line:#ffffffbc;
   --radius-control:10px;--radius-card:16px;--radius-floating:22px;--keyboard-inset:0px;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei UI",sans-serif
 }
 :root[data-theme="night"]{
   --app-height:100dvh;--ease-out-quart:cubic-bezier(.25,1,.5,1);--ease-out-quint:cubic-bezier(.22,1,.36,1);
-  --canvas:#191d1b;--canvas-soft:#202522;--surface:#292f2b;--surface-strong:#343b36;
-  --ink:#f3ece6;--muted:#c3b8af;--faint:#c3b8af;--action:#8da998;--action-strong:#bad0c0;--on-action:#18241d;
-  --spark:#d2aa5c;--spark-soft:#4b4532;--leaf:#91ad9a;--task:#28342d;--task-ink:#edf4ef;
-  --accent-general:#d5aa58;--accent-growth:#d17960;--accent-wellbeing:#8eaa91;--accent-reflection:#bc8391;
-  --line:#465049;--shadow:0 24px 72px rgba(7,12,9,.42);
-  --wash-one:#314238;--wash-two:#2f3330;--glass:#242a26e8;--glass-line:#ffffff18;
+  --canvas:#191b2a;--canvas-soft:#222535;--surface:#2b2f42;--surface-strong:#383d52;
+  --ink:#f6f4e7;--muted:#c8c6cf;--faint:#acaab5;--action:#aaaed0;--action-strong:#d9ddf4;--on-action:#22263a;
+  --spark:#e4a268;--spark-soft:#5b4c3c;--leaf:#8ebbc6;--task:#293440;--task-ink:#edf2ed;
+  --accent-general:#8dbdca;--accent-growth:#d0a998;--accent-wellbeing:#8dbf9d;--accent-reflection:#aaaed0;
+  --line:#4b4e61;--shadow:0 24px 72px rgba(6,8,18,.5);
+  --wash-one:#303950;--wash-two:#312f3e;--glass:#272b3de8;--glass-line:#ffffff1c;
   --radius-control:10px;--radius-card:16px;--radius-floating:22px;--keyboard-inset:0px;
   font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei UI",sans-serif
 }

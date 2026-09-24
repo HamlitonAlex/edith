@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
-  <meta name="theme-color" content="#f5f6f3">
+  <meta name="theme-color" content="#fcfbf8">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="学程">
   <link rel="icon" href="./assets/xuecheng-mark.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./assets/xuecheng-mark.png">
-  <link rel="preload" href="./assets/onboarding-morning-v2.png" as="image" type="image/png">
+  <link rel="preload" href="./assets/brand/xuecheng-launch-mist.png" as="image" type="image/png">
   <link rel="manifest" href="./manifest.webmanifest">
   <title>学程 · 知道你下一步为什么而学</title>
   <meta name="description" content="从你的目标和现实时间出发，找到现在值得学的一小步。聊清原因，一起调整，由你决定。">
@@ -19,33 +19,40 @@
 </head>
 <body>
   <main class="phone" aria-label="学程 iPhone 原型">
+    <section class="splash" id="splash" aria-label="学程启动" hidden>
+      <div class="splash-brand" aria-label="学程，陪你走更远的路">
+        <img class="splash-mark" src="./assets/xuecheng-mark.svg" alt="学程图标">
+        <div>
+          <b>学程</b>
+          <small>陪你，走更远的路</small>
+        </div>
+      </div>
+      <span class="splash-loading" aria-label="正在准备"></span>
+    </section>
     <section class="onboarding" id="onboarding" aria-label="初始设置" hidden>
-      <div class="onboarding-progress" aria-hidden="true"><i></i><i></i><i></i></div>
+      <header class="onboarding-top">
+        <span class="onboarding-brand"><img src="./assets/xuecheng-mark.svg" alt=""><b>学程</b></span>
+        <button type="button" class="onboarding-skip-all" data-onboarding-skip-all>暂时跳过</button>
+      </header>
+      <div class="onboarding-progress" aria-label="引导进度"><i></i><i></i><i></i></div>
       <article data-onboarding-step="partner">
-        <figure class="onboarding-visual">
-          <img src="./assets/onboarding-morning-v2.png" alt="晨光照在笔记本、热饮与正在记录的手上" fetchpriority="high">
-          <span><img class="onboarding-mark" src="./assets/xuecheng-mark.svg" alt="学程图标"></span>
-          <figcaption>知道你下一步为什么而学。</figcaption>
-        </figure>
-        <small>学程 · 你的学习引路人</small>
-        <h1>找到现在值得学的一小步。</h1>
-        <p>从你的目标和现实时间出发，聊清楚为什么值得做，再一起调整。先认识一下：你想怎么称呼我？</p>
+        <div class="onboarding-copy">
+          <small>初次见面</small>
+          <h1>我该怎样称呼？</h1>
+          <p>先从一个舒服的称呼开始。之后的建议、学习记录和相处方式都仍由你决定。</p>
+        </div>
         <label class="onboarding-field"><span>伙伴名字</span><input id="onboarding-name" value="小程" maxlength="12"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>以后再说</button><button type="button" data-onboarding-next>继续</button></div>
       </article>
       <article data-onboarding-step="relationship" hidden>
-        <small>相处方式</small>
-        <h1>我应该怎样陪你？</h1>
-        <p>这不是固定人设。相处越久，我越会从你的反馈里学会合适的分寸。</p>
+        <div class="onboarding-copy"><small>相处方式</small><h1>我应该怎样陪你？</h1><p>这不是固定人设。相处越久，我会从你的反馈里学会合适的分寸。</p></div>
         <div class="role-options onboarding-roles"><button type="button" data-onboarding-role="guide">引路人</button><button type="button" data-onboarding-role="friend">朋友</button><button type="button" data-onboarding-role="family">家人</button><button type="button" data-onboarding-role="partner">亲密伙伴</button></div>
         <label class="slider-field"><span>主动来找我的频率 <b id="onboarding-initiative-value">65%</b></span><input id="onboarding-initiative" type="range" min="0" max="1" step=".05" value=".65"></label>
         <label class="slider-field"><span>提出不同意见的直接程度 <b id="onboarding-directness-value">55%</b></span><input id="onboarding-directness" type="range" min="0" max="1" step=".05" value=".55"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>跳过</button><button type="button" data-onboarding-next>继续</button></div>
       </article>
       <article data-onboarding-step="boundary" hidden>
-        <small>数据边界</small>
-        <h1>先把边界说清楚。</h1>
-        <p>长期记忆默认只保存在这台设备。只有你明确同意后，我才会把当次对话所需的信息交给你选择的云端模型。</p>
+        <div class="onboarding-copy"><small>数据边界</small><h1>先把边界说清楚。</h1><p>长期记忆默认只保存在这台设备。只有你明确同意后，才会使用你选择的云端模型处理当次对话。</p></div>
         <label class="consent-card" for="cloud-consent"><span><b>允许使用云端模型</b><small>可随时在“资料与授权”中撤回</small></span><input class="switch" id="cloud-consent" type="checkbox"></label>
         <div class="onboarding-actions"><button type="button" data-onboarding-skip>暂时只用本地</button><button type="button" data-onboarding-finish>开始聊天</button></div>
       </article>
@@ -59,23 +66,58 @@
       </span>
     </div>
 
-    <section class="screen active chat-screen" id="chat-screen" data-screen="chat">
+    <section class="screen active home-screen" id="home-screen" data-screen="home">
+      <div class="home-brand-row" aria-label="学程">
+        <div class="home-wordmark"><img src="./assets/xuecheng-mark.svg" alt="学程图标"><span><b>学程</b><small>陪你，走更远的路</small></span></div>
+        <p><b id="home-date"></b><small>今天也在靠近更好的自己。</small></p>
+      </div>
+      <header class="home-header">
+        <div class="home-welcome" aria-labelledby="home-welcome-title">
+          <small id="home-greeting">你好，</small>
+          <h1 id="home-welcome-title">你。</h1>
+          <p id="home-welcome-subtitle">今天也在靠近更好的自己。</p>
+        </div>
+      </header>
+      <section class="home-next-card" id="home-next-card" aria-labelledby="home-next-title" hidden>
+        <div class="home-card-kicker"><span></span>下一步 <small id="home-next-source">基于你确认的方向</small></div>
+        <h2 id="home-next-title"></h2>
+        <p id="home-next-why"></p>
+        <div class="home-next-footer"><span><i class="ph ph-clock" aria-hidden="true"></i><b id="home-next-time"></b></span><button type="button" data-start-current>开始学习 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
+        <button class="home-discuss" type="button" data-discuss="我想先和你讨论一下这个安排。"><i class="ph ph-chat-circle" aria-hidden="true"></i> 和小程讨论这个任务 <i class="ph ph-caret-right" aria-hidden="true"></i></button>
+      </section>
+      <section class="home-empty home-next-card" id="home-empty" aria-labelledby="home-empty-title">
+        <div class="home-card-kicker"><span></span>下一步 <small>等你告诉我现在的状态</small></div>
+        <h2 id="home-empty-title">还不急着替你安排。</h2>
+        <p>先和小程说说现在的状态、想做的事或可用时间，再一起找到值得做的一小步。</p>
+        <div class="home-next-footer"><span><i class="ph ph-chat-circle" aria-hidden="true"></i><b>从一次对话开始</b></span><button type="button" data-open-screen="chat">开始聊天 <i class="ph ph-arrow-right" aria-hidden="true"></i></button></div>
+      </section>
+      <section class="home-schedule" aria-labelledby="home-schedule-title">
+        <div class="home-section-heading"><h2 id="home-schedule-title">下一条日程</h2><button type="button" data-open-screen="today">查看日程 <i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
+        <div id="home-schedule-content" class="home-schedule-content"></div>
+      </section>
+      <button class="home-path-summary" type="button" data-open-screen="path">
+        <span class="home-path-icon"><i class="ph ph-path" aria-hidden="true"></i></span>
+        <span><small>学习路径</small><b id="home-path-title">从真实的目标慢慢长出来</b><em id="home-path-copy">不预设方向，也不替你定义。</em></span>
+        <i class="ph ph-caret-right" aria-hidden="true"></i>
+      </button>
+    </section>
+
+    <section class="screen chat-screen" id="chat-screen" data-screen="chat" hidden>
       <div class="chat-atmosphere" aria-hidden="true">
-        <img src="./assets/onboarding-morning-v2.png" alt="" loading="eager" decoding="async">
       </div>
       <header class="companion-header">
-        <span class="companion-mark" aria-hidden="true"><img data-avatar src="./assets/xuecheng-mark.svg" alt=""></span>
-        <div><small>在你身边</small><h1 data-name>小程</h1></div>
+        <button class="chat-back" type="button" data-chat-back aria-label="返回首页"><i class="ph ph-caret-left" aria-hidden="true"></i></button>
+        <div class="chat-header-title"><h1>和小程对话</h1><small>随时聊聊你的学习与成长</small></div>
         <button class="conversation-model" id="conversation-model" type="button" aria-label="切换当前对话模型">本地判断</button>
       </header>
 
-      <div class="conversation" id="conversation" aria-live="polite">
-        <div class="empty-conversation" id="empty-conversation"><b>你最近想学会什么？</b><p>也可以聊聊正在做的项目、卡住的地方，或今天有多少时间。我们一起找出值得先走的一小步。</p></div>
+      <div class="conversation" id="conversation" data-conversation-state="idle_empty" aria-live="polite">
+        <div class="empty-conversation" id="empty-conversation"><b>Hi，今天想从哪里开始？</b><p>想聊聊现在的状态，还是直接开始一件事？</p></div>
         <div id="dynamic-messages"></div>
         <article class="plan-proposal" id="agent-proposal" hidden>
-          <header><span>我替你判断的下一件事</span><time id="proposal-time">20 分钟</time></header>
+          <header><span>我觉得现在值得做</span><time id="proposal-time">20 分钟</time></header>
           <figure class="proposal-atmosphere" id="proposal-atmosphere">
-            <img src="./assets/onboarding-morning-v2.png" alt="晨光中的学习桌，作为进入下一步前的氛围提示" loading="lazy">
+            <img src="./assets/brand/xuecheng-task-mist.png" alt="" loading="lazy" decoding="async">
             <figcaption><small>现在</small><span>先把这一小步放进今天。</span></figcaption>
           </figure>
           <div class="proposal-route" aria-hidden="true">
@@ -92,47 +134,68 @@
           <figure class="proposal-media" id="proposal-media" hidden><img id="proposal-media-image" alt="" loading="lazy" referrerpolicy="no-referrer"></figure>
           <dl class="task-detail-list proposal-reason"><div class="proposal-why"><dt>为什么是现在</dt><dd id="proposal-why"></dd></div></dl>
           <details class="proposal-details">
-            <summary>查看怎么做和完成标准</summary>
-            <dl class="task-detail-list">
+            <summary>为什么</summary>
+            <dl class="task-detail-list proposal-evidence">
+              <div><dt>我观察到</dt><dd id="proposal-observation" data-proposal-observation></dd></div>
+              <div><dt>当前情境</dt><dd id="proposal-context"></dd></div>
+              <div><dt>关联方向</dt><dd id="proposal-related"></dd></div>
+              <div><dt>当前缺口</dt><dd id="proposal-gap"></dd></div>
+              <div><dt>为什么不是别的方向</dt><dd id="proposal-alternatives" data-proposal-alternatives></dd></div>
+              <div><dt>预期收益</dt><dd id="proposal-gain"></dd></div>
+              <div><dt>置信度</dt><dd id="proposal-confidence" data-proposal-confidence></dd></div>
               <div><dt>怎么做</dt><dd id="proposal-instructions"></dd></div>
               <div><dt>完成标准</dt><dd id="proposal-completion"></dd></div>
             </dl>
           </details>
           <div class="plan-actions">
-            <button id="start-action" type="button">开始</button>
-            <button id="discuss-action" type="button">和她讨论</button>
+            <button id="start-action" type="button">就这样做</button>
+            <button id="discuss-action" type="button">和她聊聊</button>
+            <button id="change-action" type="button">换个方向</button>
           </div>
         </article>
       </div>
 
-      <form class="composer" id="chat-form">
+      <form class="composer" id="chat-form" data-voice-state="idle" data-input-state="idle">
         <div class="attachment-preview" id="attachment-preview" hidden></div>
         <button class="attachment-button" id="attachment-trigger" type="button" aria-label="添加照片或文件"><i class="ph ph-plus" aria-hidden="true"></i></button>
         <input id="attachment-input" type="file" accept="image/*,text/*,application/pdf" multiple hidden>
-        <textarea id="chat-input" rows="1" placeholder="输入，或长按这里说话" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
-        <button class="send-button" type="submit" aria-label="发送"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
+        <textarea id="chat-input" rows="1" placeholder="和小程说说现在的想法……" aria-label="给小程发消息" data-pronoun-placeholder></textarea>
+        <button class="send-button voice-mode" type="button" aria-label="按住说话"><i class="ph ph-arrow-up" aria-hidden="true"></i></button>
+        <div class="voice-gesture" aria-live="polite" aria-atomic="true"><span class="voice-gesture-rings" aria-hidden="true"><i></i><i></i><i></i></span><b id="voice-status">正在聆听</b><small id="voice-hint">松开后转成文字 · 上滑取消</small></div>
       </form>
     </section>
 
     <section class="screen today-screen" data-screen="today" hidden>
-      <header class="page-header"><small id="today-date">今天</small><h1><span data-pronoun>她</span>替你理好的今天</h1><p>不是固定课表。每一项都会根据你的状态重新判断。</p></header>
-      <div class="energy-check" id="energy-check"><div><span>傍晚精力确认</span><b>17:45 主动询问</b></div><button data-open-screen="chat">现在告诉<span data-pronoun>她</span></button></div>
-      <div class="empty-state" id="today-empty"><b>今天还没有替你下结论。</b><p>先聊聊你正在经历什么。信息不够时，学程不会用通用任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
-      <ol class="agenda" id="today-agenda"></ol>
+      <header class="page-header"><small>我的日程</small><h1>把今天留给重要的事</h1><p>日历里的安排属于你；学程的建议会先说明，再由你确认。</p></header>
+      <div class="calendar-controls" aria-label="切换日程日期"><button type="button" data-calendar-offset="-1" aria-label="前一天"><i class="ph ph-caret-left" aria-hidden="true"></i></button><b id="today-date">今天</b><button type="button" data-calendar-offset="1" aria-label="后一天"><i class="ph ph-caret-right" aria-hidden="true"></i></button></div>
+      <div class="week-strip" id="week-strip" aria-label="本周日期"></div>
+      <div class="energy-check" id="energy-check"><div><span>现在的状态</span><b>需要时，再告诉<span data-pronoun>她</span></b></div><button data-open-screen="chat">聊两句</button></div>
+      <div class="calendar-actions"><button type="button" id="calendar-import-today">导入日历</button><button type="button" id="calendar-add">手动添加</button></div>
+      <div class="empty-state" id="today-empty"><b>这一天还没有日程或建议。</b><p>你可以导入真实日历，也可以先和小程聊聊；她不会拿固定任务填满这里。</p><button type="button" data-open-screen="chat">回到对话</button></div>
+      <section class="schedule-group" id="confirmed-schedule-group" aria-labelledby="confirmed-schedule-title">
+        <div class="schedule-group-heading"><h2 id="confirmed-schedule-title">已确认日程</h2><span>你的安排</span></div>
+        <ol class="agenda schedule-timeline" id="today-agenda"></ol>
+      </section>
+      <section class="ai-schedule-suggestion" id="ai-schedule-suggestion" aria-labelledby="ai-schedule-title" hidden>
+        <div class="schedule-group-heading"><h2 id="ai-schedule-title">AI 建议</h2><span>等待你确认</span></div>
+        <div id="ai-schedule-content"></div>
+      </section>
     </section>
 
     <section class="screen path-screen" data-screen="path" hidden>
       <header class="page-header"><small><span data-pronoun>她</span>正在和你一起形成</small><h1>人生不是一张预制地图</h1><p>这里记录方向的变化，也保留<span data-pronoun>她</span>为什么这样建议。</p></header>
       <div class="empty-state" id="path-empty"><b>方向会从对话里长出来。</b><p>在你确认之前，学程不会擅自给你贴目标或能力标签。</p></div>
       <section class="current-direction" id="current-direction" hidden><small>当前确认的方向</small><h2 id="direction-title"></h2><p>这是现在的方向，不是永远不能改变的身份标签。</p></section>
-      <div class="path-list" id="path-list"></div>
+      <section class="path-stage-card" id="path-stage-card" hidden><small>当前阶段</small><h2 id="path-stage-title"></h2><p id="path-stage-copy"></p></section>
+      <div class="path-section-heading"><h2>路径证据</h2><span>会随真实进展更新</span></div>
+      <div class="path-list path-timeline" id="path-list"></div>
       <button class="talk-about-path" data-open-screen="chat">和<span data-pronoun>她</span>聊聊这个方向</button>
     </section>
 
     <section class="screen us-screen" data-screen="us" hidden>
       <header class="profile-hero">
         <figure class="profile-atmosphere" aria-hidden="true">
-          <img src="./assets/onboarding-morning-v2.png" alt="">
+          <img src="./assets/xuecheng-morning-mist-vector.svg" alt="">
           <span class="profile-atmosphere-mark"><img src="./assets/xuecheng-mark.svg" alt=""></span>
         </figure>
         <div class="profile-identity">
@@ -145,6 +208,24 @@
         <p id="relationship-copy">她会像一位了解你的朋友，也会在需要时挑战你。</p>
       </header>
 
+      <section class="understanding-section preference-section" aria-labelledby="understanding-title">
+        <small>她现在知道的我</small>
+        <h2 id="understanding-title">从一起经历的事里慢慢形成</h2>
+        <p class="section-hint">不是档案，也不会替你定义自己；有理解错的地方，告诉她就好。</p>
+        <div class="understanding-list" id="understanding-list"></div>
+        <button class="correct-understanding" id="correct-understanding" type="button">这里有理解错的吗？</button>
+      </section>
+
+      <section class="sync-center preference-section" aria-labelledby="sync-center-title">
+        <small>跨设备同步</small>
+        <h2 id="sync-center-title">由你决定什么时候同步</h2>
+        <p class="section-hint"><b id="sync-status-title">仅在这台设备</b><span id="sync-status-detail">不会在后台上传对话或资料。</span></p>
+        <div class="sync-actions"><button id="sync-login" type="button" hidden>登录</button><button id="sync-now" type="button" hidden>立即同步</button></div>
+      </section>
+
+      <details class="companion-preferences">
+        <summary>调整相处方式</summary>
+        <p>这些只影响她表达和主动出现的分寸，不会取代从相处里形成的理解。</p>
       <section class="preference-section"><h2>你希望<span data-pronoun>她</span>更像谁</h2><div class="role-options">
         <button type="button" data-role="guide">引路人</button><button type="button" data-role="friend">朋友</button><button type="button" data-role="family">家人</button><button type="button" data-role="partner">伴侣式伙伴</button>
       </div></section>
@@ -157,17 +238,18 @@
         <span><b>系统设置</b><small>模型、本地数据与通知</small></span>
         <i class="ph ph-caret-right settings-entry-chevron" aria-hidden="true"></i>
       </button>
+      </details>
     </section>
 
     <section class="screen settings-screen" data-screen="settings" hidden>
-      <div class="settings-atmosphere" aria-hidden="true"><img src="./assets/onboarding-path.webp" alt=""></div>
+      <div class="settings-atmosphere" aria-hidden="true"><img src="./assets/xuecheng-morning-mist-vector.svg" alt=""></div>
       <header class="settings-header">
         <button type="button" data-open-screen="us" aria-label="返回我们"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>
         <div><small>学程</small><h1>设置</h1></div>
       </header>
       <section class="settings-section" aria-labelledby="appearance-title">
         <div class="settings-title"><div><h2 id="appearance-title">界面氛围</h2></div><span>手动选择</span></div>
-        <p class="settings-note appearance-note">只改变空间明暗，森林绿与微光点缀保持不变。</p>
+        <p class="settings-note appearance-note">只改变空间明暗；雾绿、深绿与陶土橙的层次保持不变。</p>
         <div class="appearance-switch" role="group" aria-label="界面氛围"><button type="button" data-theme-option="day">日间</button><button type="button" data-theme-option="night">夜间</button></div>
       </section>
       <section class="settings-section" aria-labelledby="plan-title">
@@ -214,15 +296,19 @@
       <form method="dialog"><small>补充当前对话</small><h2>把现实里的内容带进来</h2><div class="attachment-options"><button value="camera" data-attachment-source="camera">拍照</button><button value="photo" data-attachment-source="photo">选择照片</button><button value="file" data-attachment-source="file">选择文件</button><button value="paste" data-attachment-source="paste">粘贴文字</button></div><button value="cancel">取消</button></form>
     </dialog>
 
+    <dialog class="action-dialog schedule-dialog" id="schedule-dialog">
+      <form method="dialog"><small>仅保存到当前设备</small><h2>添加日程</h2><label class="model-field"><span>事项</span><input id="schedule-title" maxlength="60" placeholder="例如：Python 练习"></label><label class="model-field"><span>时间</span><input id="schedule-time" type="datetime-local"></label><div><button value="cancel">取消</button><button value="confirm" id="save-schedule">保存</button></div></form>
+    </dialog>
+
     <dialog class="action-dialog" id="paste-dialog">
       <form method="dialog"><small>补充当前对话</small><h2>粘贴一段文字</h2><textarea id="pasted-text" rows="7" placeholder="笔记、聊天内容、网页片段……"></textarea><div><button value="cancel">取消</button><button value="confirm" id="confirm-paste">加入对话</button></div></form>
     </dialog>
 
     <nav class="bottom-nav" aria-label="主要页面">
-      <button type="button" class="active" data-nav="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i><span>对话</span></button>
-      <button type="button" data-nav="today"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>今天</span></button>
-      <button type="button" data-nav="path"><i class="ph ph-path" aria-hidden="true"></i><span>路径</span></button>
-      <button type="button" data-nav="us"><i class="ph ph-user-circle" aria-hidden="true"></i><span>我们</span></button>
+      <button type="button" class="active" data-nav="home"><i class="ph ph-house" aria-hidden="true"></i><span>首页</span></button>
+      <button type="button" data-nav="chat"><i class="ph ph-chat-circle" aria-hidden="true"></i><span>对话</span></button>
+      <button type="button" data-nav="today"><i class="ph ph-calendar-blank" aria-hidden="true"></i><span>日程</span></button>
+      <button type="button" data-nav="us"><i class="ph ph-user-circle" aria-hidden="true"></i><span>我的</span></button>
     </nav>
     <div class="app-toast" id="app-toast" role="status" aria-live="polite"></div>
   </main>

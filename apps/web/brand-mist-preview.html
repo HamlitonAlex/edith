@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>学程 · brand-mist 素材对照</title>
+  <style>
+    :root{color-scheme:light;--ink:#252a27;--muted:#68736d;--green:#304b3d;--mist:#eef2ed;--orange:#c88d77;--canvas:#f6f5f0}
+    *{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--canvas);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+    body{padding:32px clamp(18px,4vw,64px) 64px}
+    .intro{max-width:1120px;margin:0 auto 28px}.eyebrow{color:var(--green);font:600 12px/1.4 ui-monospace,SFMono-Regular,monospace;letter-spacing:.16em;text-transform:uppercase}.intro h1{margin:10px 0 8px;font:500 clamp(28px,4vw,46px)/1.1 Georgia,"Times New Roman",serif}.intro p{max-width:720px;margin:0;color:var(--muted);line-height:1.7}
+    .board{max-width:1120px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px;align-items:start}
+    .panel{overflow:hidden;background:#fffdf9;border:1px solid rgba(48,75,61,.12);border-radius:26px;box-shadow:0 18px 46px rgba(48,75,61,.08)}.panel-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px 16px;border-bottom:1px solid rgba(48,75,61,.1)}.panel-head b{font-size:14px}.panel-head span{font-size:12px;color:var(--muted)}
+    .reference-frame{padding:18px;background:#f0eee7}.reference-frame img{display:block;width:100%;height:auto;border-radius:16px;box-shadow:0 9px 24px rgba(37,42,39,.12)}
+    .asset-frame{position:relative;min-height:580px;padding:26px;background:radial-gradient(circle at 50% 40%,#fffefa 0 25%,#f5f7f2 65%,#e8eee8 100%);overflow:hidden}.asset-frame::after{content:"";position:absolute;inset:14px;border:1px dashed rgba(48,75,61,.15);border-radius:18px;pointer-events:none}.asset-frame img{position:absolute;inset:24px;width:calc(100% - 48px);height:calc(100% - 48px);object-fit:contain}.asset-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:16px 20px 20px;border-top:1px solid rgba(48,75,61,.1)}.swatch{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}.swatch i{width:18px;height:18px;border-radius:50%;border:1px solid rgba(37,42,39,.1)}.swatch .sage{background:#6f8c7d}.swatch .orange{background:#c88d77}.swatch .paper{background:#fcfcfb}
+    .notes{max-width:1120px;margin:22px auto 0;display:grid;grid-template-columns:1.2fr .8fr;gap:22px}.notes section{padding:20px 22px;border-radius:22px;background:rgba(238,242,237,.72);border:1px solid rgba(48,75,61,.1)}.notes h2{margin:0 0 10px;font-size:15px}.notes ul{margin:0;padding-left:18px;color:var(--muted);font-size:13px;line-height:1.8}.notes strong{color:var(--green)}
+    @media (max-width:760px){body{padding:20px 14px 40px}.board,.notes{grid-template-columns:1fr;gap:16px}.asset-frame{min-height:480px}.panel{border-radius:20px}.notes section{padding:16px 18px}}
+  </style>
+</head>
+<body>
+  <header class="intro">
+    <div class="eyebrow">XUECHENG / BRAND MIST STUDY</div>
+    <h1>清晨雾感 · 独立素材对照</h1>
+    <p>左侧保留参考设计稿用于比对；右侧是透明背景的 <code>brand-mist.svg</code>。素材只负责抽象的色带、暖光与留白，不承担页面文字、按钮或布局。</p>
+  </header>
+  <main class="board">
+    <section class="panel">
+      <div class="panel-head"><b>A · 原设计稿</b><span>仅供视觉比对</span></div>
+      <div class="reference-frame"><img src="./assets/brand-mist-reference.png" alt="原始设计稿参考图"></div>
+    </section>
+    <section class="panel">
+      <div class="panel-head"><b>B · 独立抽象素材</b><span>透明 SVG / 离线可用</span></div>
+      <div class="asset-frame"><img src="./assets/brand-mist.svg" alt="学程清晨雾感抽象素材"></div>
+      <div class="asset-meta"><span class="swatch"><i class="sage"></i>雾绿</span><span class="swatch"><i class="orange"></i>陶土暖光</span><span class="swatch"><i class="paper"></i>中央留白</span></div>
+    </section>
+  </main>
+  <aside class="notes">
+    <section><h2>抽象结构</h2><ul><li>轮廓是从两侧和底部向内收拢的宽柔色带，不指向具体山脉、树叶或风景。</li><li>雾绿承担主要面积，陶土橙只在右上区域做低饱和的暖色回应。</li><li>中央刻意留白，方便之后承载品牌字标或一张焦点卡。</li></ul></section>
+    <section><h2>当前差异</h2><ul><li><strong>可以保留：</strong>色彩关系、留白、层叠曲线与低对比气质。</li><li><strong>只能近似：</strong>参考图的摄影式柔焦纹理与光学颗粒无法由纯 SVG 完全复现。</li></ul></section>
+  </aside>
+</body>
+</html>

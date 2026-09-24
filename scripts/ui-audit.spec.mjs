@@ -2,19 +2,48 @@ import { test, expect } from "@playwright/test";
 
 test.use({ viewport: { width: 390, height: 844 }, colorScheme: "light", launchOptions: { channel: "msedge" } });
 
-test("all visible controls have a real response", async ({ page }) => {
-  const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
+async function enterFirstRunOnboarding(page) {
   await page.goto("http://127.0.0.1:4173/");
   await page.evaluate(() => localStorage.clear());
   await page.reload();
+
+  // Splash is its own short-lived state; it must not be a hidden first slide of onboarding.
+  await expect(page.locator("#splash")).toBeVisible();
+  await expect(page.locator("#onboarding")).toBeHidden();
+  await expect(page.locator("#splash")).toBeHidden();
   await expect(page.locator('[data-onboarding-step="partner"]')).toBeVisible();
+}
+
+async function waitForActiveScreen(page, name) {
+  const screen = page.locator(`[data-screen="${name}"]`);
+  await expect(screen).toBeVisible();
+  await page.waitForFunction(screenName => {
+    const candidate = document.querySelector(`[data-screen="${screenName}"]`);
+    return candidate?.classList.contains("active")
+      && !candidate.hidden
+      && Number.parseFloat(getComputedStyle(candidate).opacity) > .99;
+  }, name);
+}
+
+async function openTab(page, name) {
+  await page.locator(`[data-nav="${name}"]`).click();
+  await waitForActiveScreen(page, name);
+}
+
+test("all visible controls have a real response", async ({ page }) => {
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await enterFirstRunOnboarding(page);
   await page.locator('[data-onboarding-next]:visible').click();
   await expect(page.locator('[data-onboarding-step="relationship"]')).toBeVisible();
   await page.locator('[data-onboarding-role="guide"]').click();
   await page.locator('[data-onboarding-next]:visible').click();
   await expect(page.locator('[data-onboarding-step="boundary"]')).toBeVisible();
   await page.locator('[data-onboarding-finish]').click();
+  await expect(page.locator("#splash")).toBeHidden();
+  await expect(page.locator("#onboarding")).toBeHidden();
+  await waitForActiveScreen(page, "home");
+  await openTab(page, "chat");
   await expect(page.locator("#empty-conversation")).toBeVisible();
   await expect(page.locator("#agent-proposal")).toBeHidden();
   await page.locator("#attachment-trigger").click();
@@ -26,9 +55,9 @@ test("all visible controls have a real response", async ({ page }) => {
   await expect(page.locator("#attachment-preview")).toContainText("粘贴的文字");
   await page.locator("[data-remove-attachment]").click();
   await expect(page.locator("#attachment-preview")).toBeHidden();
-  await page.locator('[data-nav="today"]').click();
+  await openTab(page, "today");
   await expect(page.locator("#today-empty")).toBeVisible();
-  await page.locator('[data-nav="chat"]').click();
+  await openTab(page, "chat");
 
   await page.locator("#chat-input").fill("我希望以后能独立做出真正有人用的产品");
   await page.locator("#chat-form").evaluate(form => form.requestSubmit());
@@ -46,21 +75,30 @@ test("all visible controls have a real response", async ({ page }) => {
   await expect(page.locator("#external-action-dialog")).toBeVisible();
   await page.locator('#external-action-dialog button[value="cancel"]').click();
 
-  await page.locator('[data-nav="us"]').click();
-  await page.locator('[data-gender="male"]').click();
+  await openTab(page, "us");
+  await page.locator("details.companion-preferences > summary").click();
+  const maleGender = page.locator('[data-gender="male"]');
+  await maleGender.scrollIntoViewIfNeeded();
+  await maleGender.click();
   await expect(page.locator("#relationship-copy")).toContainText("他会");
-  await page.locator('[data-role="friend"]').click();
+  const friendRole = page.locator('[data-role="friend"]');
+  await friendRole.scrollIntoViewIfNeeded();
+  await friendRole.click();
   await expect(page.locator("#relationship-copy")).toContainText("朋友");
   await page.locator('[data-open-screen="settings"]').click();
+  await waitForActiveScreen(page, "settings");
   await page.locator('[data-theme-option="night"]').click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "night");
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "night");
   await expect(page.locator("#dynamic-messages")).toContainText("独立做出真正有人用的产品");
   await expect(page.locator(".conversation-day-divider")).toContainText("今天");
-  await page.locator('[data-nav="us"]').click();
-  await page.locator('[data-open-screen="settings"]').click();
-  await expect(page.locator('[data-screen="settings"]')).toBeVisible();
+  await openTab(page, "us");
+  await page.locator("details.companion-preferences > summary").click();
+  const settingsEntry = page.locator('[data-open-screen="settings"]');
+  await settingsEntry.scrollIntoViewIfNeeded();
+  await settingsEntry.click();
+  await waitForActiveScreen(page, "settings");
   await page.locator("#provider-select").selectOption("deepseek");
   await expect(page.locator("#api-endpoint")).toHaveValue(/api\.deepseek\.com/);
   await page.locator("#settings-cloud-consent").check();
@@ -73,7 +111,8 @@ test("all visible controls have a real response", async ({ page }) => {
   await page.locator("#calendar-file").setInputFiles({ name: "today.ics", mimeType: "text/calendar", buffer: Buffer.from("BEGIN:VCALENDAR\nBEGIN:VEVENT\nDTSTART:20260911T180000\nSUMMARY:学校拍摄\nEND:VEVENT\nEND:VCALENDAR") });
   await expect(page.locator("#calendar-summary")).toContainText("1 项");
   await page.locator('[data-open-screen="us"]').first().click();
-  await page.locator('[data-nav="chat"]').click();
+  await waitForActiveScreen(page, "us");
+  await openTab(page, "chat");
   await page.locator("#conversation-model").click();
   await expect(page.locator("#model-dialog")).toBeVisible();
   await page.locator('#model-dialog button[value="cancel"]').click();
@@ -85,19 +124,20 @@ test("short Space types while long press starts and stops voice input", async ({
     window.__voiceStarts = 0;
     window.__voiceStops = 0;
     window.SpeechRecognition = class {
-      start() { window.__voiceStarts += 1; }
+      start() {
+        window.__voiceStarts += 1;
+        this.onstart?.();
+      }
       stop() {
         window.__voiceStops += 1;
         this.onend?.();
       }
     };
   });
-  await page.goto("http://127.0.0.1:4173/");
-  await page.evaluate(() => localStorage.clear());
-  await page.reload();
-  await page.locator('[data-onboarding-skip]:visible').click();
-  await page.locator('[data-onboarding-skip]:visible').click();
-  await page.locator('[data-onboarding-skip]:visible').click();
+  await enterFirstRunOnboarding(page);
+  await page.locator('[data-onboarding-skip-all]').click();
+  await waitForActiveScreen(page, "home");
+  await openTab(page, "chat");
 
   const input = page.locator("#chat-input");
   await input.focus();
@@ -114,10 +154,11 @@ test("short Space types while long press starts and stops voice input", async ({
   await expect(page.locator("#chat-form")).not.toHaveClass(/listening/);
   expect(await page.evaluate(() => [window.__voiceStarts, window.__voiceStops])).toEqual([1, 1]);
 
-  await input.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 2, isPrimary: true });
+  const voiceButton = page.locator("#chat-form .send-button");
+  await voiceButton.dispatchEvent("pointerdown", { pointerType: "touch", pointerId: 2, isPrimary: true });
   await page.waitForTimeout(420);
   await expect(page.locator("#chat-form")).toHaveClass(/listening/);
-  await input.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 2, isPrimary: true });
+  await voiceButton.dispatchEvent("pointerup", { pointerType: "touch", pointerId: 2, isPrimary: true });
   await expect(page.locator("#chat-form")).not.toHaveClass(/listening/);
   expect(await page.evaluate(() => [window.__voiceStarts, window.__voiceStops])).toEqual([2, 2]);
 });

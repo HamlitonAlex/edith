@@ -4,4 +4,9 @@ Thumbs.db
 node_modules/
 coverage/
 dist/
+.vite/
+data/
+.env
+.env.*
+!.env.example
 

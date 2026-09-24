@@ -29,19 +29,28 @@ test("web and iOS ship one font-independent 学程 brand mark", () => {
   assert.match(manifest, /"background_color": "#eceeeb"/);
 });
 
-test("the visual system uses quiet neutrals with directional accent colors", () => {
+test("Pixso tokens drive the launch, surface and emphasis colors", () => {
   for (const token of ["accent-general", "accent-growth", "accent-wellbeing", "accent-reflection"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(html, /class="onboarding-visual"/);
-  assert.match(html, /assets\/onboarding-morning-v2\.png/);
-  assert.match(html, /onboarding-morning-v2\.png[^>]*as="image"/);
-  assert.match(html, /onboarding-morning-v2\.png[^>]*fetchpriority="high"/);
-  assert.match(refinementCss, /onboarding-visual:before/);
-  assert.match(refinementCss, /onboarding-visual figcaption\{[^}]*backdrop-filter:blur\(16px\)/);
+  assert.match(html, /id="splash"/);
+  assert.match(html, /id="onboarding"/);
+  assert.doesNotMatch(html, /class="onboarding-visual"/);
+  assert.match(html, /assets\/brand\/xuecheng-launch-mist\.png/);
+  assert.match(html, /xuecheng-launch-mist\.png[^>]*as="image"/);
+  assert.match(refinementCss, /学程 V3\.1/);
+  assert.match(refinementCss, /Pixso 01: Splash/);
+  assert.match(refinementCss, /Pixso 02: First guide/);
   assert.doesNotMatch(css, /--canvas:#11110f|--canvas-soft:#171614/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
-  assert.match(html, /name="theme-color" content="#f5f6f3"/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-surface:\s*#ffffff/);
+  assert.match(refinementCss, /--xc-surface-muted:\s*#f5f3ec/);
+  assert.match(refinementCss, /--xc-blue:\s*#8fafc2/);
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
+  assert.match(refinementCss, /--xc-orange:\s*#bf8873/);
+  assert.match(refinementCss, /--xc-line:\s*#e4e9e5/);
+  assert.match(js, /day: "#fcfbf8", night: "#1f2a25"/);
+  assert.match(html, /name="theme-color" content="#fcfbf8"/);
 });
 
 test("iPhone UI offers only a manual day and night atmosphere", () => {
@@ -65,8 +74,10 @@ test("daily work names the platform, action, content and completion", () => {
 
 test("the primary recommendation reveals detail progressively", () => {
   assert.match(html, /<details class="proposal-details"/);
-  assert.match(html, /<summary>查看怎么做和完成标准<\/summary>/);
+  assert.match(html, /<summary>为什么<\/summary>/);
   assert.match(html, /id="proposal-why"/);
+  assert.match(html, /id="proposal-observation"/);
+  assert.match(html, /id="proposal-alternatives"/);
   assert.ok(html.indexOf('id="proposal-why"') < html.indexOf('class="proposal-details"'));
   assert.ok(html.indexOf('id="dynamic-messages"') < html.indexOf('id="agent-proposal"'));
 });
@@ -77,14 +88,15 @@ test("settings read like a finished product instead of a numbered design spec", 
   assert.match(html, /id="model-title">模型与智能/);
 });
 
-test("the refined visual system uses forest neutrals and one radius scale", () => {
+test("the refined visual system exposes Pixso spacing, radius and shadow tokens", () => {
   for (const token of ["radius-control", "radius-card", "radius-floating"]) {
     assert.match(css, new RegExp(`--${token}:`));
   }
-  assert.match(css, /--canvas:#191d1b/);
-  assert.match(css, /--canvas-soft:#202522/);
-  assert.doesNotMatch(css, /--canvas:#211d1c|--canvas-soft:#282321/);
-  assert.match(js, /day: "#f5f6f3", night: "#202522"/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-mist:\s*#e9efeb/);
+  for (const token of ["--space-1", "--space-2", "--space-3", "--space-4", "--space-5", "--page-margin", "--radius-card-sm", "--radius-sheet", "--radius-pill", "--shadow-card", "--shadow-floating"]) assert.match(refinementCss, new RegExp(`${token}:`));
+  assert.doesNotMatch(css, /--canvas:#191d1b/);
+  assert.match(js, /day: "#fcfbf8", night: "#1f2a25"/);
 });
 
 test("visible product copy avoids typographic dash decoration", () => {
@@ -131,7 +143,7 @@ test("small supporting text keeps AA contrast on every theme canvas", () => {
 });
 
 test("shared brand actions keep readable text in both atmospheres", () => {
-  assert.match(css, /--on-action:#f8f5eb/);
+  assert.match(css, /--on-action:#fdfcf8/);
   assert.match(css, /\.role-options button\.active\{[^}]*color:var\(--on-action\)/);
 });
 
@@ -143,8 +155,12 @@ test("text entry avoids iOS focus zoom and tracks the visual keyboard viewport",
   assert.match(html, /interactive-widget=resizes-content/);
   assert.doesNotMatch(html, /maximum-scale=1/);
   assert.doesNotMatch(html, /user-scalable=no/);
-  assert.match(refinementCss, /\.composer textarea:focus-visible\{outline:0\}/);
-  assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\{display:none\}/);
+  assert.match(refinementCss, /\.composer textarea:focus-visible\s*\{\s*outline:\s*0/);
+  assert.match(refinementCss, /\.composer textarea::-webkit-scrollbar\s*\{\s*display:\s*none/);
+});
+
+test("model configuration controls avoid iOS focus zoom", () => {
+  assert.match(refinementCss, /\.settings-screen \.model-field input[\s\S]*font-size:\s*16px/);
 });
 
 test("the native shell uses the real iOS status bar and keeps the focused control in view", () => {
@@ -187,15 +203,15 @@ test("functional controls use one local Phosphor icon family", () => {
 });
 
 test("bottom navigation is a floating rounded control layer over a quiet canvas", () => {
-  assert.match(refinementCss, /\.bottom-nav\s*\{[^}]*right:\s*12px[^}]*left:\s*12px[^}]*border-radius:\s*24px/s);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*right:\s*12px[\s\S]*left:\s*12px[\s\S]*border-radius:\s*27px/s);
   assert.match(refinementCss, /\.phone::after,[\s\S]*\.plan-proposal::after\s*\{\s*display:\s*none/);
-  assert.match(refinementCss, /\.chat-screen\s*\{\s*background:\s*transparent/);
-  assert.match(refinementCss, /\.bottom-nav button span\{[^}]*clip-path:inset\(50%\)/s);
+  assert.match(refinementCss, /\.chat-screen\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.bottom-nav button\s*\{[\s\S]*min-height:\s*54px/s);
 });
 
 test("dynamic recommendations keep content covers optional while atmosphere stays generic", () => {
   assert.match(html, /class="proposal-atmosphere"[^>]*id="proposal-atmosphere"/);
-  assert.match(html, /onboarding-morning-v2\.png/);
+  assert.match(html, /xuecheng-morning-mist-vector\.svg/);
   assert.match(html, /id="proposal-media"[^>]*hidden/);
   assert.match(html, /id="proposal-media-image"[^>]*referrerpolicy="no-referrer"/);
   assert.doesNotMatch(html, /id="proposal-media-image"[^>]*src=/);
@@ -207,9 +223,10 @@ test("dynamic recommendations keep content covers optional while atmosphere stay
 
 test("the recommendation opens as atmosphere and settles after starting", () => {
   assert.match(js, /classList\.toggle\("started", action\?\.status === "accepted"\)/);
-  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent[^}]*box-shadow:none/);
-  assert.match(refinementCss, /\.plan-proposal\.started \.proposal-atmosphere\{[^}]*height:70px/);
-  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*border-radius:0[^}]*background:transparent/);
+  assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*border:\s*1px[\s\S]*background:/);
+  assert.match(refinementCss, /\.proposal-atmosphere\s*\{\s*display:\s*none/);
+  assert.match(refinementCss, /\.plan-proposal::before\s*\{[\s\S]*width:\s*38%[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green-deep\)/);
 });
 
 test("warm themes stay muted and the main proposal presents one primary decision", () => {
@@ -217,17 +234,34 @@ test("warm themes stay muted and the main proposal presents one primary decision
   assert.match(html, /id="start-action"/);
   assert.match(html, /id="discuss-action"/);
   assert.doesNotMatch(html, /id="adopt-plan"|接受这个安排/);
-  assert.match(refinementCss, /\.plan-actions\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\) auto/s);
+  assert.match(refinementCss, /\.plan-actions\s*\{[\s\S]*grid-template-columns:\s*minmax\(0,\s*1fr\) minmax\(0,\s*1fr\) auto/s);
   assert.match(refinementCss, /button:focus-visible/);
+});
+
+test("the next-step layer speaks like a judgment and gives three human exits", () => {
+  assert.match(html, /我觉得现在值得做/);
+  assert.match(html, /id="start-action"[^>]*>就这样做/);
+  assert.match(html, /id="discuss-action"[^>]*>和她聊聊/);
+  assert.match(html, /id="change-action"[^>]*>换个方向/);
+  assert.match(js, /change-action/);
+  assert.doesNotMatch(html, /今天的任务/);
+});
+
+test("the us page surfaces the companion's understanding before configuration", () => {
+  assert.match(html, /她现在知道的我/);
+  assert.match(html, /id="understanding-list"/);
+  assert.match(html, /这里有理解错的吗？/);
+  assert.match(js, /function renderUnderstanding\(\)/);
 });
 
 test("an accepted next step clearly becomes an in-progress state everywhere it appears", () => {
   assert.match(js, /const started = action\?\.status === "accepted"/);
-  assert.match(js, /const actionLabel = started \? "进行中"/);
+  assert.match(js, /started \? "进行中" : "开始学习"/);
   assert.match(js, /data-start-current \$\{started \? "disabled" : ""\}/);
   assert.match(js, /start\.textContent = started \? "进行中"/);
-  assert.match(refinementCss, /\.plan-proposal\.started #start-action/);
-  assert.match(refinementCss, /\.agenda li\.next\.started \[data-start-current\]/);
+  assert.match(js, /#home-next-card \[data-start-current\]/);
+  assert.match(refinementCss, /\.plan-actions #start-action/);
+  assert.match(refinementCss, /\.ai-suggestion-card/);
 });
 
 test("navigation and new messages use purposeful reduced-motion-safe transitions", () => {
@@ -250,12 +284,13 @@ test("settings exposes real BYOK and backup controls", () => {
   assert.match(html, /id="save-model-config"/);
   assert.match(html, /id="quiet-start"/);
   assert.match(html, /id="agent-proposal"/);
-  assert.match(js, /name === "settings" \? "us" : name/);
+  assert.match(js, /name === "settings" \? "us" : name === "path" \? "home" : name/);
 });
 
 test("the companion identity is quiet, personal and gender configurable", () => {
-  assert.match(html, /class="companion-mark"/);
-  assert.doesNotMatch(html, /class="avatar-button"|class="quiet-action"/);
+  assert.match(html, /class="chat-header-title"/);
+  assert.match(html, /和小程对话/);
+  assert.doesNotMatch(html, /class="quiet-action"/);
   for (const gender of ["female", "male", "neutral"]) assert.match(html, new RegExp(`data-gender="${gender}"`));
   assert.match(js, /gender: "female"/);
   assert.match(js, /pronounFor/);
@@ -264,7 +299,7 @@ test("the companion identity is quiet, personal and gender configurable", () => 
 test("task interaction is concrete, negotiable and confirms external jumps", () => {
   assert.match(html, /id="external-action-dialog"/);
   assert.match(html, /id="confirm-external-action"/);
-  assert.match(js, /growth-trace/);
+  assert.match(js, /sourceActionId/);
   assert.doesNotMatch(html, />已完成<|>待开始</);
   assert.match(js, /openExternalConfirmation/);
   assert.match(js, /discussCurrentAction/);
@@ -277,103 +312,174 @@ test("the entire composer supports hold to talk", () => {
   assert.match(js, /document\.activeElement !== chatInput/);
   assert.match(js, /holdTimer/);
   assert.match(js, /confidence/);
+  assert.match(js, /inputRevision/);
+  assert.match(js, /revisionAtStart/);
+  assert.match(js, /旧结果没有覆盖当前文字/);
   assert.match(infoPlist, /NSSpeechRecognitionUsageDescription/);
   assert.match(infoPlist, /NSMicrophoneUsageDescription/);
 });
 
-test("selected controls use botanical green and the tab bar has restrained depth", () => {
-  assert.match(css, /--action:#315443/);
-  assert.match(css, /--action-strong:#234536/);
-  assert.match(refinementCss, /\.bottom-nav\{[^}]*background:color-mix\(in srgb,var\(--surface\) 78%,transparent\)/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active\{[^}]*background:var\(--action\)/s);
+test("iOS voice input uses a real native Speech framework bridge", () => {
+  const controller = readFileSync(new URL("../../../ios/App/App/XuechengBridgeViewController.swift", import.meta.url), "utf8");
+
+  assert.match(controller, /import Speech/);
+  assert.match(controller, /import AVFoundation/);
+  assert.match(controller, /SFSpeechRecognizer/);
+  assert.match(controller, /AVAudioEngine/);
+  assert.match(controller, /xuechengSpeech/);
+  assert.match(controller, /requiresOnDeviceRecognition/);
+  assert.match(controller, /xuecheng:speech/);
+  assert.match(js, /window\.webkit\?\.messageHandlers\?\.xuechengSpeech/);
+  assert.match(js, /data-voice-state/);
+  assert.doesNotMatch(js, /confidence\s*>=\s*\.72\)\s*surface\.requestSubmit/);
 });
 
-test("the chosen production direction leads with botanical immersion and editorial clarity", () => {
-  assert.match(refinementCss, /Chosen direction: 70% botanical immersion, 30% warm editorial clarity/);
-  assert.match(css, /--canvas-soft:#f4f0e7/);
-  assert.match(css, /--surface:#fbf8f0/);
-  assert.match(css, /--radius-card:16px/);
-  assert.match(refinementCss, /\.plan-proposal\{[^}]*border:0[^}]*background:transparent/);
-  assert.match(refinementCss, /\.chat-atmosphere\{[^}]*height:256px/);
-  assert.match(refinementCss, /\.bottom-nav\{[^}]*right:14px[^}]*left:14px[^}]*border-radius:23px/);
+test("short greetings stay local and assistant markdown is rendered safely", () => {
+  assert.match(js, /function isSimpleGreeting/);
+  assert.match(js, /&& !simpleGreeting/);
+  assert.match(js, /function formatMessageHtml/);
+  assert.match(js, /<strong>\$1<\/strong>/);
+  assert.match(js, /formatMessageHtml\(message\.text\)/);
+  assert.match(js, /welcomeTitle\.hidden = !userLabel/);
+  assert.match(html, /class="chat-header-title"[\s\S]*和小程对话/);
 });
 
-test("the chat surface carries the immersive image without duplicating a live resource", () => {
-  assert.match(html, /class="screen active chat-screen" id="chat-screen"/);
+test("selected controls use forest green and the tab bar has restrained depth", () => {
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
+  assert.match(refinementCss, /--xc-glass:\s*rgba\(255, 255, 255, \.8\)/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*background:\s*rgba\(255, 255, 255, \.8\)/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{[\s\S]*background:\s*var\(--xc-green\)/s);
+});
+
+test("the chosen production direction leads with morning mist and editorial clarity", () => {
+  assert.match(refinementCss, /reference-aligned surface/);
+  assert.match(refinementCss, /--xc-bg:\s*#fcfbf8/);
+  assert.match(refinementCss, /--xc-green:\s*#263e32/);
+  assert.match(refinementCss, /--radius-card:\s*24px/);
+  assert.match(refinementCss, /\.plan-proposal\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.chat-atmosphere\s*\{[\s\S]*display:\s*none/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{[\s\S]*border-radius:\s*27px/);
+});
+
+test("the V3.1 home is the active work surface and chat stays abstract", () => {
+  assert.match(html, /class="screen active home-screen" id="home-screen"/);
+  assert.match(html, /class="screen chat-screen" id="chat-screen" data-screen="chat" hidden/);
+  assert.match(html, /id="home-next-card"/);
+  assert.match(html, /id="home-schedule-content"/);
+  assert.match(html, /class="home-path-summary"[^>]*data-open-screen="path"/);
   assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true"/);
-  assert.match(html, /class="chat-atmosphere"[\s\S]*?loading="eager"/);
+  assert.match(html, /class="chat-atmosphere"[^>]*aria-hidden="true">\s*<\/div>/);
   assert.match(js, /classList\.toggle\("has-proposal", Boolean\(action\)\)/);
-  assert.match(refinementCss, /\.chat-screen\.has-proposal \.chat-atmosphere\{[^}]*opacity:0/);
+  assert.match(refinementCss, /\.chat-atmosphere img/);
+});
+
+test("V3.2 keeps four primary bottom tabs, a unified composer, and bounded voice feedback", () => {
+  assert.match(html, /data-nav="home"/);
+  assert.match(html, /data-nav="chat"/);
+  assert.match(html, /data-nav="today"/);
+  assert.match(html, /data-nav="us"/);
+  const bottomNav = html.match(/<nav class="bottom-nav"[\s\S]*?<\/nav>/)?.[0] || "";
+  assert.equal((bottomNav.match(/data-nav="/g) || []).length, 4);
+  assert.match(html, /class="voice-gesture"/);
+  assert.match(refinementCss, /\.composer\s*\{[\s\S]*grid-template-columns:\s*40px minmax\(0, 1fr\) 40px/s);
+  assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture/);
+  assert.match(js, /event\.clientY >= startY - 54/);
+});
+
+test("the production surfaces place the three supplied mist images only in their intended roles", () => {
+  assert.match(html, /id="splash"/);
+  assert.match(html, /class="proposal-atmosphere"[\s\S]*?xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.splash\s*\{[\s\S]*xuecheng-launch-mist\.png/);
+  assert.match(refinementCss, /home-next-card::after[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.plan-proposal::before[\s\S]*xuecheng-task-mist\.png/);
+  assert.match(refinementCss, /\.composer\[data-voice-state="recording"\] \.voice-gesture[\s\S]*xuecheng-voice-mist\.png/);
+  assert.doesNotMatch(html, /assets\/brand-mist\.svg/);
+  assert.doesNotMatch(js, /assets\/brand-mist\.svg/);
+  assert.match(refinementCss, /\.chat-atmosphere img[\s\S]*display: none !important/);
+  assert.match(refinementCss, /\.proposal-atmosphere img[\s\S]*display: none !important/);
+  assert.match(js, /event\.target\.closest\("button,input,textarea,select,a"\)/);
+  assert.match(js, /if \(chatInput\.value\.trim\(\) \|\| pendingAttachments\.length\) return/);
+  assert.match(js, /surface\.addEventListener\("pointermove"/);
+  assert.match(js, /if \(holding \|\| voiceController\.isListening\(\)\) voiceController\.cancel\(\)/);
+  assert.doesNotMatch(refinementCss, /voice-volume/);
+});
+
+test("the supplied mist images are packaged as local PNG assets", () => {
+  for (const asset of ["xuecheng-launch-mist.png", "xuecheng-task-mist.png", "xuecheng-voice-mist.png"]) {
+    const path = new URL(`../assets/brand/${asset}`, import.meta.url);
+    assert.equal(existsSync(path), true);
+    const source = readFileSync(path);
+    assert.equal(source.subarray(1, 4).toString(), "PNG");
+    assert.ok(source.length > 1_000_000);
+  }
 });
 
 test("secondary screens share one hierarchy grammar while keeping their own density", () => {
-  assert.match(refinementCss, /Unified hierarchy: the same depth grammar, tuned density per screen/);
-  assert.match(refinementCss, /\.screen:not\(\.chat-screen\)\{[^}]*background:/);
-  assert.match(refinementCss, /\.page-header::before\{[^}]*background:linear-gradient/);
-  assert.match(refinementCss, /\.agenda li\{position:relative/);
-  assert.match(refinementCss, /\.settings-section\{[^}]*backdrop-filter:blur\(18px\)/);
-  assert.match(refinementCss, /\.agenda-actions \[data-start-current\]\{[^}]*background:var\(--action\)/);
-  assert.match(refinementCss, /\.model-field input,.model-field select,.setting-field select\{color:var\(--ink\)}/);
-  assert.match(refinementCss, /\.talk-about-path,.primary-settings-action/);
+  assert.match(refinementCss, /Today, path and settings use the same cards/);
+  assert.match(refinementCss, /\.page-header\s*\{[\s\S]*padding:/);
+  assert.match(refinementCss, /\.agenda li\.calendar-entry\s*\{/);
+  assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*background:/);
+  assert.match(refinementCss, /\.model-field input,[\s\S]*\.model-field select/);
+  assert.match(refinementCss, /\.talk-about-path/);
 });
 
-test("companion and settings pages use a full-width immersive atmosphere", () => {
+test("companion and settings pages preserve safe-area content boundaries", () => {
   assert.match(html, /class="profile-atmosphere"[^>]*aria-hidden="true"/);
   assert.match(html, /class="settings-atmosphere"[^>]*aria-hidden="true"/);
-  assert.match(refinementCss, /\.us-screen,\.settings-screen\{[^}]*padding-right:0[^}]*padding-left:0/);
-  assert.match(refinementCss, /\.profile-atmosphere\{[^}]*height:244px[^}]*overflow:hidden/);
-  assert.match(refinementCss, /\.settings-header\{[^}]*margin-top:-190px/);
-  assert.match(refinementCss, /\.settings-section\{[^}]*margin:0[^}]*border-radius:0[^}]*box-shadow:none/);
-  assert.match(refinementCss, /@media\(max-width:600px\)\{\.us-screen,\.settings-screen\{[^}]*padding-left:0\}\.us-screen\{padding-top:0\}/);
+  assert.match(refinementCss, /\.us-screen,[\s\S]*\.settings-screen\s*\{[\s\S]*padding-right:\s*var\(--page-margin\)[\s\S]*padding-left:\s*var\(--page-margin\)/);
+  assert.match(refinementCss, /\.profile-atmosphere\s*\{[\s\S]*display:\s*none/);
+  assert.match(refinementCss, /\.settings-header\s*\{[\s\S]*padding-top:/);
+  assert.match(refinementCss, /\.settings-section\s*\{[\s\S]*border-radius:\s*22px/);
+  assert.match(refinementCss, /native-shell \.settings-screen\s*\{\s*padding-top:\s*0/);
 });
 
 test("the conversation model stays understandable without becoming a large selector", () => {
   assert.match(js, /selectedModelLabel = state\.currentConversationModel === "local" \? "本地"/);
-  assert.match(js, /class="model-status-dot"/);
-  assert.match(refinementCss, /\.companion-header \.conversation-model\{[^}]*max-width:108px[^}]*height:36px/);
-  assert.match(refinementCss, /#model-dialog\{[^}]*inset:calc\(70px \+ env\(safe-area-inset-top\)\) 16px auto auto/);
-  assert.match(refinementCss, /#model-dialog::backdrop\{background:transparent/);
+  assert.match(js, /class="visually-hidden"/);
+  assert.match(js, /ph-dots-three/);
+  assert.match(refinementCss, /\.conversation-model\s*\{/);
+  assert.match(refinementCss, /#model-dialog\s*\{[\s\S]*max-height:/);
+  assert.match(refinementCss, /#model-dialog form\s*\{/);
 });
 
-test("today and path imagery remains visible beneath a botanical reading layer", () => {
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*opacity:\.76[^}]*saturate\(\.74\)/);
-  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*radial-gradient\(ellipse at 108% 115%[^}]*var\(--action\)/);
-  assert.match(refinementCss, /\.agenda li\.next,.current-direction\{[^}]*border-radius:24px[^}]*box-shadow:/);
+test("today and path screens use abstract surfaces without photo backgrounds", () => {
+  assert.match(refinementCss, /\.agenda-atmosphere/);
+  assert.match(refinementCss, /\.direction-atmosphere/);
+  assert.match(refinementCss, /\.ai-suggestion-card\s*\{[\s\S]*border-radius:\s*var\(--radius-card\)/);
+  assert.match(refinementCss, /\.current-direction\s*\{[\s\S]*border-radius:\s*var\(--radius-card\)/);
 });
 
 test("the current mobile release fixes full bleed and stays portrait-first", () => {
   assert.match(html, /学程 1\.0\.2 · 本地个人版/);
-  assert.match(refinementCss, /1\.0\.1 release correction/);
-  assert.match(refinementCss, /\.us-screen\{padding-top:0\}/);
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{opacity:\.86/);
+  assert.match(refinementCss, /@media \(max-width: 600px\)/);
+  assert.match(refinementCss, /\.phone\s*\{[\s\S]*width:\s*100%/);
+  assert.match(refinementCss, /\.bottom-nav\s*\{/);
   const phoneOrientations = infoPlist.match(/<key>UISupportedInterfaceOrientations<\/key>[\s\S]*?<\/array>/)?.[0] || "";
   assert.match(phoneOrientations, /UIInterfaceOrientationPortrait/);
   assert.doesNotMatch(phoneOrientations, /Landscape/);
 });
 
-test("selected decision layers can carry quiet imagery without making every surface a card", () => {
-  assert.match(js, /className = "agenda-atmosphere"/);
+test("selected decision layers use CSS atmosphere without making every surface a card", () => {
   assert.match(js, /safeImageUrl\(action\.resource\?\.image_url\)/);
-  assert.match(js, /className = "direction-atmosphere"/);
-  assert.match(refinementCss, /\.agenda-atmosphere,.direction-atmosphere\{[^}]*position:absolute/);
-  assert.match(refinementCss, /\.agenda li\.next::after,.current-direction::after\{[^}]*linear-gradient/);
-  assert.match(refinementCss, /:root\[data-theme="night"\] \.agenda-atmosphere,:root\[data-theme="night"\] \.direction-atmosphere/);
-  assert.match(refinementCss, /prefers-reduced-transparency:reduce/);
+  assert.match(refinementCss, /\.phone\s*\{[\s\S]*radial-gradient/s);
+  assert.match(refinementCss, /\.chat-atmosphere img/);
+  assert.match(refinementCss, /\.direction-atmosphere/);
+  assert.match(refinementCss, /backdrop-filter:\s*blur/);
 });
 
-test("the shared canvas carries quiet daytime and nighttime atmosphere without extra content", () => {
-  assert.match(refinementCss, /Ambient atmosphere: two quiet fields of brand light/);
-  assert.match(refinementCss, /\.phone\{[\s\S]*?var\(--accent-growth\)[\s\S]*?var\(--action\)[\s\S]*?linear-gradient\(165deg/s);
-  assert.match(refinementCss, /:root\[data-theme="night"\] \.phone\{[\s\S]*?var\(--accent-reflection\)[\s\S]*?var\(--action\)/s);
-  assert.match(refinementCss, /\.settings-screen\{background:linear-gradient\(180deg,[^}]*transparent/);
+test("the shared canvas stays white-led with restrained daytime and nighttime atmosphere", () => {
+  assert.match(refinementCss, /radial-gradient\(ellipse 52% 24%/);
+  assert.match(refinementCss, /linear-gradient\(145deg, var\(--xc-bg\)/s);
+  assert.match(refinementCss, /:root\[data-theme="night"\]/);
+  assert.match(refinementCss, /\.settings-screen\s*\{/);
 });
 
 test("the next-step card uses a branded route and a single dominant action", () => {
   assert.match(html, /class="proposal-route"[^>]*aria-hidden="true"/);
   assert.match(html, /class="route-now"/);
-  assert.match(refinementCss, /\.plan-actions #start-action\{[^}]*justify-content:flex-start[^}]*background:var\(--action\)/s);
-  assert.match(refinementCss, /\.plan-actions #discuss-action\{[^}]*border:0[^}]*background:transparent/s);
-  assert.match(refinementCss, /\.bottom-nav button\.active::after\{[^}]*border-radius:50%/s);
+  assert.match(refinementCss, /\.plan-actions #start-action\s*\{[\s\S]*background:\s*var\(--xc-green\)/s);
+  assert.match(refinementCss, /\.plan-actions\s*\{[\s\S]*grid-template-columns:/s);
+  assert.match(refinementCss, /\.bottom-nav button\.active\s*\{/s);
 });
 
 test("new users begin without fabricated personal history", () => {
@@ -383,10 +489,33 @@ test("new users begin without fabricated personal history", () => {
 
 test("first run is a skippable three-step conversation-led setup", () => {
   assert.match(html, /id="onboarding"/);
+  assert.match(html, /id="splash"/);
   for (const step of ["partner", "relationship", "boundary"]) assert.match(html, new RegExp(`data-onboarding-step="${step}"`));
   assert.match(html, /data-onboarding-skip/);
+  assert.match(html, /data-onboarding-skip-all/);
   assert.match(html, /id="cloud-consent"/);
+  assert.match(js, /let splashPhase = state\.onboardingComplete \? "complete" : "showing"/);
+  assert.match(js, /function scheduleSplash\(\)/);
+  assert.match(js, /\$\("#splash"\)\.hidden = !showSplash/);
+  assert.match(js, /\$\("#onboarding"\)\.hidden = state\.onboardingComplete \|\| showSplash/);
+  assert.doesNotMatch(html, /class="onboarding-visual"/);
+  assert.doesNotMatch(refinementCss, /\.onboarding-visual\s*\{[\s\S]*min-height:\s*650px/);
   assert.doesNotMatch(html, /哔哩哔哩 · 通识|农业革命|42 个来自/);
+});
+
+test("Pixso schedule and voice state surfaces reuse real data rather than fabricated items", () => {
+  assert.match(html, /id="week-strip"/);
+  assert.match(html, /id="confirmed-schedule-group"/);
+  assert.match(html, /id="ai-schedule-suggestion"/);
+  assert.match(js, /sourceActionId/);
+  assert.match(js, /actionConfirmed/);
+  assert.match(html, /id="path-stage-card"/);
+  assert.match(js, /data-path-state/);
+  assert.match(html, /data-input-state="idle"/);
+  assert.match(js, /composer\.dataset\.inputState/);
+  assert.match(js, /data-voice-visual-state/);
+  assert.match(html, /id="voice-status"/);
+  assert.match(html, /id="voice-hint"/);
 });
 
 test("composer owns attachment capture and preview", () => {
@@ -396,8 +525,9 @@ test("composer owns attachment capture and preview", () => {
   assert.match(html, /拍照|选择照片|选择文件|粘贴文字/);
 });
 
-test("assistant messages do not repeat an avatar", () => {
-  assert.doesNotMatch(js, /companion-message"><img/);
+test("assistant messages use the saved companion mark without affecting user bubbles", () => {
+  assert.match(js, /companion-message"><img/);
+  assert.doesNotMatch(js, /user-message"><img/);
 });
 
 test("source permissions are real settings rather than development placeholders", () => {

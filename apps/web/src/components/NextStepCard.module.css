@@ -1,0 +1,14 @@
+.card { position: relative; overflow: hidden; min-height: 246px; padding: 24px; isolation: isolate; }
+.mist { position: absolute; z-index: -1; inset: 0 0 0 auto; width: 42%; opacity: .58; background: url("/assets/brand/xuecheng-task-mist.png") right center / cover no-repeat; mask-image: linear-gradient(to left, #000 35%, transparent); }
+.content { display: grid; gap: 10px; max-width: 100%; }
+.kicker { display: inline-flex; align-items: center; gap: 8px; color: var(--color-secondary-text); font-size: 14px; }
+.kicker i { width: 10px; height: 10px; border-radius: 50%; background: var(--color-terracotta); box-shadow: 0 0 0 5px rgb(191 136 115 / 14%); }
+.card h2 { margin: 4px 0 0; font: 500 27px/1.25 var(--font-brand); letter-spacing: .01em; }
+.card p { max-width: 238px; margin: 0; color: var(--color-secondary-text); font-size: 15px; line-height: 1.55; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; color: var(--color-secondary-text); font-size: 14px; }
+.primary { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--color-primary-green); color: white; cursor: pointer; font-weight: 700; }
+.primary span, .primary b { margin-left: 5px; font-size: 18px; font-weight: 400; }
+.discuss { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; margin-top: 2px; padding: 0 16px; border: 0; border-radius: 999px; background: rgb(255 255 255 / 70%); color: var(--color-primary-text); cursor: pointer; text-align: left; }
+.discuss b { font-size: 24px; font-weight: 400; }
+.card[data-state="error"] .primary { background: var(--color-terracotta); }
+@media (max-width: 340px) { .card { padding: 20px; } h2 { font-size: 24px; } .primary { padding: 0 14px; } }

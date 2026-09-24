@@ -1,0 +1,35 @@
+.card {
+  border: 1px solid color-mix(in srgb, var(--color-border) 86%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  box-shadow: 0 12px 28px rgb(38 53 45 / 7%);
+  backdrop-filter: blur(18px);
+}
+
+.card[data-state="active"] {
+  border-color: color-mix(in srgb, var(--color-primary-green) 24%, var(--color-border));
+  box-shadow: 0 14px 32px rgb(38 62 50 / 12%);
+}
+
+.card[data-state="disabled"] {
+  opacity: 0.52;
+  pointer-events: none;
+}
+
+.card[data-state="loading"] {
+  background: linear-gradient(100deg, var(--color-surface), var(--color-mist-green), var(--color-surface));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.card[data-state="error"] {
+  border-color: color-mix(in srgb, var(--color-terracotta) 62%, var(--color-border));
+}
+
+@keyframes shimmer {
+  to { background-position: -200% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card[data-state="loading"] { animation: none; }
+}

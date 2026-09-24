@@ -1,0 +1,27 @@
+:root {
+  /* Pixso light-mode primitives. */
+  --color-background: #fcfbf8;
+  --color-surface: #ffffff;
+  --color-primary-text: #26352d;
+  --color-secondary-text: #66746c;
+  --color-primary-green: #263e32;
+  --color-mist-green: #e9efeb;
+  --color-terracotta: #bf8873;
+  --color-border: #e4e9e5;
+
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+
+  --radius-card: 24px;
+  --radius-input: 36px;
+
+  --font-brand: "Noto Serif SC", "Songti SC", "STSong", serif;
+  --font-title-large: 32px;
+  --font-title-medium: 24px;
+  --font-body: 16px;
+  --font-caption: 13px;
+  --font-ui: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}

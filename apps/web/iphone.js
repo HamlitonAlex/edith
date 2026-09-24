@@ -3,6 +3,11 @@ import { createEncryptedBackup, readEncryptedBackup } from "./local-backup.js";
 import { MODEL_PROVIDERS, fetchProviderModels, getProvider, requestProviderReply } from "./agent/model-providers.js";
 import { conversationDayLabel, formatConversationTime, mergeStoredConversation } from "./lib/conversation-history.js";
 import { resolveAppViewport } from "./lib/viewport-height.js";
+import { authConfigFromWindow, createAuthSession } from "./lib/auth-session.js";
+import { apiBaseFromWindow, createRemoteApi } from "./lib/remote-api.js";
+import { createAppRepository, mergeRemoteMessages } from "./lib/app-repository.js";
+import { createMemoryRepository, memoryScopeForIdentity } from "./lib/memory-repository.js";
+import { contextualNextStep, memoryCandidateFromMessage, modelInputFromContext } from "./agent/companion-memory.js";
 
 const storageKey = "xuecheng:iphone:v2";
 const agentStorageKey = "xuecheng:agent:v1";
@@ -10,12 +15,18 @@ const nativeShell = Boolean(window.__XUECHENG_NATIVE_SHELL__ || window.Capacitor
 document.documentElement.classList.toggle("native-shell", nativeShell);
 const defaultAvatar = "./assets/xuecheng-mark.svg";
 const legacyDefaultAvatar = "./assets/companion-default.png";
-const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null };
+const defaults = { name: "小程", theme: "day", role: "guide", gender: "female", initiative: .65, directness: .55, avatar: defaultAvatar, messages: [], currentConversationModel: "local", modelConfig: null, cloudConsent: false, onboardingComplete: false, sources: [], calendarEvents: [], quietStart: "23:00", quietEnd: "07:30", urgentOverride: true, dailyAtmosphere: null, syncMeta: { remoteVersion: null, lastSyncedAt: null, dirty: false } };
 const legacyThemes = { apricot: "day", sage: "day", plum: "day", citrus: "day", meadow: "day", berry: "day", dusk: "day", elegant: "day", silver: "night" };
-const themeColors = { day: "#f5f6f3", night: "#202522" };
+const themeColors = { day: "#fcfbf8", night: "#1f2a25" };
+const ratio = (value, fallback) => {
+  const number = Number(value);
+  return Number.isFinite(number) ? Math.max(0, Math.min(1, number)) : fallback;
+};
+const objectValue = value => value && typeof value === "object" && !Array.isArray(value) ? value : {};
+const stringList = value => Array.isArray(value) ? value.filter(item => typeof item === "string") : [];
+const objectList = value => Array.isArray(value) ? value.filter(item => item && typeof item === "object" && !Array.isArray(item)) : [];
 const dailyAtmospheres = [
-  { id: "desk", src: "./assets/onboarding-morning-v2.png" },
-  { id: "path", src: "./assets/onboarding-path.webp" },
+  { id: "mist", src: "./assets/xuecheng-morning-mist-vector.svg" },
 ];
 const pronounFor = gender => gender === "male" ? "他" : gender === "neutral" ? "TA" : "她";
 const roleCopy = (role, pronoun) => ({
@@ -27,38 +38,135 @@ const roleCopy = (role, pronoun) => ({
 
 const $ = selector => document.querySelector(selector);
 let toastTimer;
+// Each authenticated account gets its own device-local bucket. Anonymous data
+// remains local and is never silently promoted into a signed-in account.
+let activeLocalScope = "anonymous";
 let state = load();
 let agentState = loadAgent();
+const auth = createAuthSession({ configuration: authConfigFromWindow() });
+const remoteApi = createRemoteApi({ baseUrl: apiBaseFromWindow(), auth });
+const repository = createAppRepository({ auth, api: remoteApi });
+const memoryRepository = createMemoryRepository();
+let activeMemoryId = memoryRepository.listMemories().filter(item => item.status === "proposed").at(-1)?.id || null;
+let contextDebug = null;
 let pendingAttachments = [];
 let onboardingIndex = 0;
-const screenOrder = ["chat", "today", "path", "us", "settings"];
+let splashPhase = state.onboardingComplete ? "complete" : "showing";
+let splashTimer = null;
+let calendarViewDate = new Date();
+const screenOrder = ["home", "chat", "today", "path", "us", "settings"];
 const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 let screenAnimations = [];
+let isSending = false;
+const conversationStatuses = new Set(["idle_empty", "generating", "conversation_active", "conversation_restored"]);
+let conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+
+function setConversationStatus(status) {
+  if (conversationStatuses.has(status)) conversationStatus = status;
+  notifyReactHost("xuecheng:runtime-snapshot");
+}
+
+function notifyReactHost(type = "xuecheng:runtime-snapshot", detail = {}) {
+  if (window.parent === window) return;
+  try { window.parent.postMessage({ type, detail }, "*"); } catch { /* parent may be navigating */ }
+}
+
+function parseStoredObject(value) {
+  try {
+    const parsed = JSON.parse(value || "{}");
+    return objectValue(parsed);
+  } catch {
+    return {};
+  }
+}
+
+function normalizeAvatar(value) {
+  const avatar = typeof value === "string" ? value.trim() : "";
+  if (!avatar || avatar === legacyDefaultAvatar) return defaultAvatar;
+  if (/^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(avatar)) return avatar;
+  if (/^(?:\.{0,2}\/|\/)/.test(avatar) && !avatar.startsWith("//")) return avatar;
+  return safeImageUrl(avatar) || defaultAvatar;
+}
+
+function normalizePreferences(saved = {}, { legacyMessages = [], currentMessages = [] } = {}) {
+  const source = objectValue(saved);
+  const role = ["guide", "friend", "family", "partner"].includes(source.role) ? source.role : defaults.role;
+  const gender = ["female", "male", "neutral"].includes(source.gender) ? source.gender : defaults.gender;
+  const theme = legacyThemes[source.theme] || (["day", "night"].includes(source.theme) ? source.theme : defaults.theme);
+  const modelConfig = objectValue(source.modelConfig);
+  const messages = mergeStoredConversation(legacyMessages, Array.isArray(currentMessages) && currentMessages.length ? currentMessages : source.messages)
+    .filter(message => !(message.role === "assistant" && message.kind === "work-state"));
+  return {
+    ...defaults,
+    ...source,
+    name: typeof source.name === "string" && source.name.trim() ? source.name.trim().slice(0, 24) : defaults.name,
+    theme,
+    role,
+    gender,
+    initiative: ratio(source.initiative, defaults.initiative),
+    directness: ratio(source.directness, defaults.directness),
+    avatar: normalizeAvatar(source.avatar),
+    messages,
+    sources: stringList(source.sources),
+    calendarEvents: objectList(source.calendarEvents),
+    pendingSourceNames: stringList(source.pendingSourceNames),
+    currentConversationModel: typeof source.currentConversationModel === "string" && source.currentConversationModel.trim() ? source.currentConversationModel.trim() : defaults.currentConversationModel,
+    modelConfig: Object.keys(modelConfig).length ? {
+      providerId: typeof modelConfig.providerId === "string" ? modelConfig.providerId : "",
+      endpoint: typeof modelConfig.endpoint === "string" ? modelConfig.endpoint.trim() : "",
+      model: typeof modelConfig.model === "string" ? modelConfig.model.trim() : "",
+    } : null,
+    cloudConsent: Boolean(source.cloudConsent),
+    onboardingComplete: Boolean(source.onboardingComplete),
+    quietStart: typeof source.quietStart === "string" ? source.quietStart : defaults.quietStart,
+    quietEnd: typeof source.quietEnd === "string" ? source.quietEnd : defaults.quietEnd,
+    urgentOverride: source.urgentOverride !== false,
+    dailyAtmosphere: objectValue(source.dailyAtmosphere).day ? source.dailyAtmosphere : null,
+    syncMeta: {
+      remoteVersion: Number.isInteger(source.syncMeta?.remoteVersion) ? source.syncMeta.remoteVersion : null,
+      lastSyncedAt: typeof source.syncMeta?.lastSyncedAt === "string" ? source.syncMeta.lastSyncedAt : null,
+      dirty: Boolean(source.syncMeta?.dirty),
+    },
+  };
+}
+
+function scopedStorageKey(base, scope = activeLocalScope) {
+  return scope === "anonymous" ? base : `${base}:account:${scope}`;
+}
 
 function load() {
   try {
-    const current = JSON.parse(localStorage.getItem(storageKey) || "{}");
-    const legacy = JSON.parse(localStorage.getItem("xuecheng:iphone:v1") || "{}");
+    const current = parseStoredObject(localStorage.getItem(scopedStorageKey(storageKey)));
+    const legacy = activeLocalScope === "anonymous" ? parseStoredObject(localStorage.getItem("xuecheng:iphone:v1")) : {};
     const saved = Object.keys(current).length ? current : legacy;
-    saved.messages = mergeStoredConversation(legacy.messages, current.messages);
-    const savedAvatar = saved.avatar && saved.avatar !== legacyDefaultAvatar ? saved.avatar : defaultAvatar;
-    return { ...defaults, ...saved, theme: legacyThemes[saved.theme] || saved.theme || defaults.theme, avatar: savedAvatar };
+    return normalizePreferences(saved, { legacyMessages: legacy.messages, currentMessages: current.messages });
   } catch {
-    return { ...defaults };
+    return normalizePreferences();
+  }
+}
+
+function persistStorage(key, value) {
+  try {
+    const serialized = typeof value === "string" ? value : JSON.stringify(value);
+    localStorage.setItem(key, serialized);
+    return true;
+  } catch {
+    showToast("设备空间不足或浏览器禁止保存，本次内容暂留在页面中");
+    return false;
   }
 }
 
 function save() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  return persistStorage(scopedStorageKey(storageKey), state);
 }
 
 function loadAgent() {
-  try { return hydrateAgentState(JSON.parse(localStorage.getItem(agentStorageKey) || "null")); }
+  try { return hydrateAgentState(JSON.parse(localStorage.getItem(scopedStorageKey(agentStorageKey)) || "null")); }
   catch { return createAgentState(); }
 }
 
 function saveAgent() {
-  localStorage.setItem(agentStorageKey, JSON.stringify(agentState));
+  return persistStorage(scopedStorageKey(agentStorageKey), agentState);
 }
 
 function localDayKey(date = new Date()) {
@@ -68,19 +176,12 @@ function localDayKey(date = new Date()) {
   return `${year}-${month}-${day}`;
 }
 
-function chooseDailyAtmosphere(action) {
+function chooseDailyAtmosphere(_action) {
   const day = localDayKey();
   if (state.dailyAtmosphere?.day === day) {
     return dailyAtmospheres.find(item => item.id === state.dailyAtmosphere.id) || dailyAtmospheres[0];
   }
-  const topic = `${action?.skill_id || ""} ${action?.title || ""}`;
-  let hash = 0;
-  for (const character of `${day}|${topic || "welcome"}`) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
-  const id = /历史|农业|社会|哲学|人文|艺术|通识/.test(topic)
-    ? "path"
-    : /网络|编程|AI|产品|项目|软件/.test(topic)
-      ? "desk"
-      : dailyAtmospheres[hash % dailyAtmospheres.length].id;
+  const id = dailyAtmospheres[0].id;
   state.dailyAtmosphere = { day, id };
   save();
   return dailyAtmospheres.find(item => item.id === id) || dailyAtmospheres[0];
@@ -99,11 +200,47 @@ function renderChatAtmosphere(action) {
 }
 
 function addMessage(message) {
-  state.messages.push({ ...message, createdAt: new Date().toISOString() });
+  const createdAt = message.createdAt || new Date().toISOString();
+  const draft = { ...message, createdAt };
+  // Persist the transport identifier beside the local message so retries can
+  // safely reach the server without producing a second conversation record.
+  const stored = { ...draft, clientMessageId: message.clientMessageId || `msg_${crypto.randomUUID().replaceAll("-", "")}` };
+  state.messages.push(stored);
+  return stored;
 }
 
 function escapeHtml(value = "") {
   return String(value).replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+}
+
+function formatMessageHtml(value = "") {
+  return escapeHtml(value)
+    .replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n/g, "<br>");
+}
+
+function isSimpleGreeting(value = "") {
+  return /^(?:你好|您好|嗨|哈喽|hello|hi|早上好|下午好|晚上好)[!！。,.，\s]*$/i.test(String(value).trim());
+}
+
+const microphoneIcon = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M9 21h6"></path></svg>`;
+const sendIcon = `<i class="ph ph-arrow-up" aria-hidden="true"></i>`;
+
+function syncComposerAction() {
+  const button = $(".send-button");
+  const input = $("#chat-input");
+  const composer = $("#chat-form");
+  if (!button || !input || !composer) return;
+  const hasContent = Boolean(input.value.trim() || pendingAttachments.length);
+  const voiceMode = !hasContent && !isSending;
+  const multiLine = input.value.includes("\n") || input.scrollHeight > 56;
+  composer.dataset.inputState = hasContent ? (multiLine ? "multiline" : "filled") : "idle";
+  button.classList.toggle("voice-mode", voiceMode);
+  button.classList.toggle("ready", hasContent);
+  button.type = voiceMode ? "button" : "submit";
+  button.setAttribute("aria-label", voiceMode ? "按住说话" : "发送");
+  const markup = voiceMode ? microphoneIcon : sendIcon;
+  if (button.innerHTML !== markup) button.innerHTML = markup;
 }
 
 function safeImageUrl(value) {
@@ -112,6 +249,11 @@ function safeImageUrl(value) {
     const url = new URL(value, window.location.href);
     return ["http:", "https:"].includes(url.protocol) ? url.href : "";
   } catch { return ""; }
+}
+
+function safeAttachmentDataUrl(value) {
+  const dataUrl = typeof value === "string" ? value.trim() : "";
+  return /^data:image\/(?:png|jpe?g|gif|webp|avif);base64,[a-z0-9+/=\s]+$/i.test(dataUrl) ? dataUrl : "";
 }
 
 function renderOnboarding() {
@@ -127,11 +269,38 @@ function renderOnboarding() {
   $("#onboarding-directness-value").textContent = `${Math.round(state.directness * 100)}%`;
 }
 
+function completeOnboarding() {
+  state.onboardingComplete = true;
+  splashPhase = "complete";
+  clearTimeout(splashTimer);
+  splashTimer = null;
+  save();
+  render();
+}
+
+function finishSplash() {
+  if (state.onboardingComplete || splashPhase !== "showing") return;
+  splashPhase = "complete";
+  splashTimer = null;
+  render();
+}
+
+function scheduleSplash() {
+  if (state.onboardingComplete || splashPhase !== "showing" || splashTimer) return;
+  const delay = reduceMotion.matches ? 0 : 950;
+  splashTimer = window.setTimeout(finishSplash, delay);
+}
+
 function renderAttachments() {
   const preview = $("#attachment-preview");
   preview.hidden = pendingAttachments.length === 0;
-  preview.innerHTML = pendingAttachments.map((item, index) => `<div class="attachment-chip">${item.type.startsWith("image/") ? `<img src="${item.dataUrl}" alt="">` : ""}<span>${escapeHtml(item.name)}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`).join("");
-  $(".send-button").classList.toggle("ready", Boolean($("#chat-input").value.trim() || pendingAttachments.length));
+  preview.innerHTML = pendingAttachments.map((item, index) => {
+    const type = String(item?.type || "");
+    const image = type.startsWith("image/") ? safeAttachmentDataUrl(item?.dataUrl) : "";
+    return `<div class="attachment-chip">${image ? `<img src="${escapeHtml(image)}" alt="">` : ""}<span>${escapeHtml(item?.name || "未命名附件")}</span><button type="button" data-remove-attachment="${index}" aria-label="移除附件">×</button></div>`;
+  }).join("");
+  syncComposerAction();
+  notifyReactHost();
 }
 
 function renderModelControls() {
@@ -155,55 +324,283 @@ function showToast(message) {
   const toast = $("#app-toast");
   toast.textContent = message;
   toast.classList.add("show");
+  notifyReactHost("xuecheng:runtime-toast", { message: String(message || "") });
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove("show"), 2400);
+}
+
+function showDialog(selector) {
+  const dialog = $(selector);
+  if (!dialog) return false;
+  try {
+    if (!dialog.open) dialog.showModal();
+    return true;
+  } catch {
+    showToast("这个窗口暂时无法打开，请稍后再试");
+    return false;
+  }
+}
+
+function calendarDateKey(date) {
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function calendarEventDate(event) {
+  const match = String(event?.start || "").match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+  if (!match) return null;
+  return { key: `${match[1]}${match[2]}${match[3]}`, time: match[4] ? `${match[4]}:${match[5] || "00"}` : "全天" };
+}
+
+function calendarTimestamp(date, time = "09:00") {
+  const [hour, minute] = time.split(":");
+  return `${calendarDateKey(date)}T${String(hour || "09").padStart(2, "0")}${String(minute || "00").padStart(2, "0")}00`;
+}
+
+function calendarInputDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function renderWeekStrip(selectedDate) {
+  const start = new Date(selectedDate);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+  const weekday = new Intl.DateTimeFormat("zh-CN", { weekday: "short" });
+  $("#week-strip").innerHTML = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(start);
+    date.setDate(start.getDate() + index);
+    const active = calendarDateKey(date) === calendarDateKey(selectedDate);
+    return `<button type="button" data-calendar-day="${calendarInputDate(date)}" aria-pressed="${active}"><small>${escapeHtml(weekday.format(date).replace("周", ""))}</small><b>${date.getDate()}</b></button>`;
+  }).join("");
 }
 
 function renderToday(pronoun) {
   const action = agentState.next_recommended_action;
   const agenda = $("#today-agenda");
+  const targetKey = calendarDateKey(calendarViewDate);
+  const isToday = targetKey === calendarDateKey(new Date());
+  $("#today-date").textContent = isToday
+    ? "今天"
+    : new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(calendarViewDate);
+  renderWeekStrip(calendarViewDate);
   $("#energy-check").hidden = !agentState.long_term_goals.length;
-  $("#today-empty").hidden = Boolean(action);
+  const calendarEntries = state.calendarEvents
+    .map(event => ({ event, parsed: calendarEventDate(event) }))
+    .filter(item => item.parsed?.key === targetKey)
+    .sort((left, right) => left.parsed.time.localeCompare(right.parsed.time));
   const started = action?.status === "accepted";
-  const actionLabel = started ? "进行中" : action?.resource?.url ? `打开${escapeHtml(action.platform)}并开始` : "开始讲解";
-  agenda.innerHTML = action ? `<li class="next ${started ? "started" : ""}"><time>下一步<small>${action.duration_minutes} 分钟</small></time><div><small>${escapeHtml(action.platform)} · ${escapeHtml(agentState.skills[action.skill_id]?.label || "当前方向")}</small><h2>${escapeHtml(action.title)}</h2><p class="growth-trace"><b>为什么现在：</b>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${actionLabel}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}讨论</button></div></div><span>${started ? "正在推进" : "现在最值得推进"}</span></li>` : "";
-  const next = agenda.querySelector(".next");
-  if (!next || !action) return;
-  const atmosphere = document.createElement("img");
-  atmosphere.className = "agenda-atmosphere";
-  atmosphere.alt = "";
-  atmosphere.setAttribute("aria-hidden", "true");
-  atmosphere.loading = "lazy";
-  atmosphere.src = safeImageUrl(action.resource?.image_url) || "./assets/onboarding-path.webp";
-  atmosphere.addEventListener("error", () => {
-    if (atmosphere.dataset.fallback) { atmosphere.remove(); return; }
-    atmosphere.dataset.fallback = "true";
-    atmosphere.src = "./assets/onboarding-path.webp";
-  });
-  next.prepend(atmosphere);
+  const actionConfirmed = Boolean(action?.id) && calendarEntries.some(({ event }) => event.sourceActionId === action.id);
+  const suggestion = action && isToday && !actionConfirmed
+    ? `<article class="ai-suggestion-card ${started ? "started" : ""}"><div class="ai-suggestion-kicker"><span></span><small>学程建议 · 尚未写入日程</small><b>${action.duration_minutes} 分钟</b></div><h3>${escapeHtml(action.title)}</h3><p>${escapeHtml(action.why_now)}</p><details class="agenda-details"><summary>查看怎么做和完成标准</summary><p><b>怎么做：</b>${escapeHtml(action.instructions)}</p><p><b>完成标准：</b>${escapeHtml(action.completion_criteria)}</p></details><div class="agenda-actions"><button type="button" data-start-current ${started ? "disabled" : ""}>${started ? "进行中" : "开始学习"}</button><button type="button" data-discuss="这个安排哪里不适合我？">和${pronoun}聊聊</button><button type="button" data-add-action-calendar>${started ? "加入今天日程" : "确认并加入日程"}</button><button class="subtle-action" type="button" data-dismiss-suggestion>暂不安排</button></div></article>`
+    : "";
+  const events = calendarEntries.map(({ event, parsed }) => {
+    const isConfirmedSuggestion = Boolean(action?.id) && event.sourceActionId === action.id;
+    return `<li class="calendar-entry"><time>${escapeHtml(parsed.time)}</time><span class="timeline-dot" aria-hidden="true"></span><div><small>${isConfirmedSuggestion ? "已确认的 AI 建议" : "你的日程"}</small><h2>${escapeHtml(event.summary || "未命名安排")}</h2><p>${isConfirmedSuggestion ? "已写入本地日程" : "已保存在当前设备"}</p></div><span>已确认</span></li>`;
+  }).join("");
+  $("#confirmed-schedule-group").hidden = !events;
+  $("#ai-schedule-suggestion").hidden = !suggestion;
+  $("#ai-schedule-content").innerHTML = suggestion;
+  $("#today-empty").hidden = Boolean(events || suggestion);
+  agenda.innerHTML = events;
+}
+
+function formatCalendarEvent(event) {
+  const raw = String(event?.start || "").trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2}))?/);
+  if (!match) return { time: "未设时间", detail: "已从你的本地日历导入" };
+  const [, year, month, day, hour, minute] = match;
+  const date = `${Number(month)}月${Number(day)}日`;
+  return { time: hour ? `${hour}:${minute || "00"}` : date, detail: year ? `${date} · 已从你的本地日历导入` : "已从你的本地日历导入" };
+}
+
+function renderHome() {
+  const action = agentState.next_recommended_action;
+  const now = new Date();
+  const hour = now.getHours();
+  $("#home-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "short" }).format(now);
+  const userLabel = typeof state.userName === "string" && state.userName.trim() ? state.userName.trim().slice(0, 24) : "";
+  const greeting = hour < 11 ? "早上好" : hour < 18 ? "下午好" : "晚上好";
+  $("#home-greeting").textContent = userLabel ? `${greeting}，` : greeting;
+  const welcomeTitle = $("#home-welcome-title");
+  welcomeTitle.textContent = userLabel ? `${userLabel}。` : "";
+  welcomeTitle.hidden = !userLabel;
+  const subtitle = $("#home-welcome-subtitle");
+  if (subtitle) subtitle.textContent = state.messages.length ? "今天也在靠近更好的自己。" : "从一小步开始，也从真实的状态开始。";
+  $("#home-next-card").hidden = !action;
+  $("#home-empty").hidden = Boolean(action);
+  if (action) {
+    const started = action.status === "accepted";
+    $("#home-next-title").textContent = action.title;
+    $("#home-next-why").textContent = action.why_now;
+    $("#home-next-time").textContent = `${action.duration_minutes} 分钟`;
+    $("#home-next-source").textContent = started ? "正在进行" : `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
+    const start = $("#home-next-card [data-start-current]");
+    start.textContent = started ? "进行中" : "开始学习";
+    start.disabled = started;
+  }
+  const todayKey = calendarDateKey(now);
+  const nextEvent = [...state.calendarEvents]
+    .map(event => ({ event, date: calendarEventDate(event) }))
+    .filter(({ date }) => date?.key >= todayKey)
+    .sort((left, right) => `${left.date.key}${left.date.time}`.localeCompare(`${right.date.key}${right.date.time}`))[0]?.event
+    || state.calendarEvents[0];
+  $("#home-schedule-content").innerHTML = nextEvent
+    ? `<span class="home-schedule-time">${escapeHtml(formatCalendarEvent(nextEvent).time)}</span><span><b>${escapeHtml(nextEvent.summary || "未命名安排")}</b><small>${escapeHtml(formatCalendarEvent(nextEvent).detail)}</small></span>`
+    : `<span class="home-schedule-empty"><i class="ph ph-calendar-dots" aria-hidden="true"></i><span><b>还没有导入日程</b><small>导入 .ics 日历后，学程会把真实安排作为判断依据。</small></span></span>`;
+  const goal = agentState.long_term_goals[0];
+  $("#home-path-title").textContent = goal?.text || "从真实的目标慢慢长出来";
+  $("#home-path-copy").textContent = goal
+    ? `${Object.values(agentState.skills).filter(skill => skill.evidence.length).length} 个正在积累的证据`
+    : "不预设方向，也不替你定义。";
 }
 
 function renderPath() {
   const goal = agentState.long_term_goals[0];
   const direction = $("#current-direction");
+  const stage = $("#path-stage-card");
   $("#path-empty").hidden = Boolean(goal);
   direction.hidden = !goal;
   $("#direction-title").textContent = goal?.text || "";
-  direction.querySelector(".direction-atmosphere")?.remove();
-  if (goal) {
-    const atmosphere = document.createElement("img");
-    atmosphere.className = "direction-atmosphere";
-    atmosphere.alt = "";
-    atmosphere.setAttribute("aria-hidden", "true");
-    atmosphere.loading = "lazy";
-    atmosphere.src = "./assets/onboarding-path.webp";
-    direction.prepend(atmosphere);
-  }
   const skills = Object.values(agentState.skills).filter(skill => skill.evidence.length);
-  $("#path-list").innerHTML = skills.map((skill, index) => `<article><i>${String(index + 1).padStart(2, "0")}</i><div><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`).join("");
+  const current = skills.find(skill => Number(skill.confidence || 0) < .8) || skills.at(-1);
+  stage.hidden = !goal || !current;
+  $("#path-stage-title").textContent = current?.label || "";
+  $("#path-stage-copy").textContent = current
+    ? `已有 ${current.evidence.length} 条真实证据。下一步会根据你的完成情况继续调整。`
+    : "";
+  $("#path-list").innerHTML = skills.map((skill, index) => {
+    const confidence = Number(skill.confidence || 0);
+    const status = confidence >= .8 ? "done" : skill === current ? "current" : "upcoming";
+    const label = status === "done" ? "已形成证据" : status === "current" ? "当前推进" : "等待更多经历";
+    return `<article data-path-state="${status}"><span class="path-node" aria-hidden="true"></span><div><small>${label}</small><b>${escapeHtml(skill.label)}</b><p>${escapeHtml(skill.evidence.at(-1))}</p></div></article>`;
+  }).join("");
+}
+
+function renderUnderstanding() {
+  const goal = agentState.long_term_goals[0]?.text;
+  const interests = agentState.interests
+    .map(item => typeof item === "string" ? item : item?.label || item?.text)
+    .filter(Boolean);
+  const latestConstraint = agentState.current_constraints.at(-1);
+  const constraint = typeof latestConstraint === "string" ? latestConstraint : latestConstraint?.text;
+  const rows = [
+    ["最近最重要", goal || "我还不急着替你下结论"],
+    ["反复出现的兴趣", interests.length ? interests.slice(0, 3).join("、") : "还在慢慢了解"],
+    ["更适合的方式", agentState.recent_learning.length ? "先通过对话把事情拆成一小步" : "还没有足够证据判断"],
+    ["当前现实", constraint || "暂时没有需要长期记住的限制"],
+  ];
+  $("#understanding-list").innerHTML = rows.map(([label, value]) => `<div><small>${escapeHtml(label)}</small><p>${escapeHtml(value)}</p></div>`).join("");
+}
+
+// Repository boundary: components render and mutate local state, while these
+// functions decide if an authenticated, explicitly requested remote action is safe.
+function refreshSyncMetadata({ dirty = state.syncMeta?.dirty } = {}) {
+  const remote = repository.getState();
+  state.syncMeta = {
+    remoteVersion: Number.isInteger(remote.remoteVersion) ? remote.remoteVersion : null,
+    lastSyncedAt: remote.lastSyncedAt || state.syncMeta?.lastSyncedAt || null,
+    dirty: Boolean(dirty),
+  };
+}
+
+function markLocalDirty() {
+  if (auth.getState().authenticated) state.syncMeta = { ...state.syncMeta, dirty: true };
+}
+
+function syncStatusCopy() {
+  const authState = auth.getState();
+  const remote = repository.getState();
+  if (!authState.configured) return { title: "仅在这台设备", detail: "登录服务尚未配置；不会上传你的数据。", action: "" };
+  if (authState.status === "signing_in") return { title: "正在登录", detail: "正在安全地完成登录验证。", action: "" };
+  if (!authState.authenticated || remote.syncStatus === "needs_login") return { title: "需要登录", detail: "登录后仍需由你主动选择同步。", action: "login" };
+  if (remote.syncStatus === "syncing" || remote.syncStatus === "loading") return { title: "正在同步", detail: "正在核对已允许同步的数据。", action: "" };
+  if (remote.syncStatus === "conflict") return { title: "发现数据冲突", detail: "为避免覆盖另一台设备的数据，本次没有自动写入。", action: "sync" };
+  if (remote.syncStatus === "forbidden") return { title: "没有同步权限", detail: "当前登录身份没有访问这些数据的权限。", action: "" };
+  if (remote.syncStatus === "service_unavailable") return { title: "服务尚未配置", detail: "服务器暂时不能安全接收私人数据。", action: "" };
+  if (remote.syncStatus === "failed") return { title: "同步失败", detail: "本地数据仍在设备上；网络恢复后可再试。", action: "sync" };
+  if (remote.syncStatus === "synced") return { title: "已同步", detail: remote.lastSyncedAt ? `最近同步：${new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit" }).format(new Date(remote.lastSyncedAt))}` : "已与当前账号保持一致。", action: "sync" };
+  return { title: "等待你确认同步", detail: "不会在后台上传对话或资料。", action: "sync" };
+}
+
+function renderSyncCenter() {
+  const status = syncStatusCopy();
+  const title = $("#sync-status-title");
+  const detail = $("#sync-status-detail");
+  const login = $("#sync-login");
+  const button = $("#sync-now");
+  if (!title || !detail || !login || !button) return;
+  title.textContent = status.title;
+  detail.textContent = status.detail;
+  login.hidden = status.action !== "login";
+  button.hidden = status.action !== "sync";
+  button.disabled = repository.getState().syncStatus === "syncing";
+  notifyReactHost();
+}
+
+async function activateAuthenticatedScope(authState) {
+  const nextScope = authState.authenticated ? await repository.accountScopeFor(authState.identity) : "anonymous";
+  if (nextScope === activeLocalScope) return;
+  // Persist before switching so an account never overwrites another account's local cache.
+  save();
+  saveAgent();
+  activeLocalScope = nextScope;
+  memoryRepository.setScope(authState.authenticated ? memoryScopeForIdentity(authState.identity) : "anonymous");
+  activeMemoryId = memoryRepository.listMemories().filter(item => item.status === "proposed").at(-1)?.id || null;
+  state = load();
+  agentState = loadAgent();
+  projectConfirmedGoals();
+  conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+  splashPhase = state.onboardingComplete ? "complete" : "showing";
+  render();
+  await hydrateRemoteState();
+}
+
+async function hydrateRemoteState() {
+  if (!auth.getState().authenticated) {
+    renderSyncCenter();
+    return;
+  }
+  const result = await repository.readRemote({
+    preferences: state,
+    agentState,
+    messages: state.messages,
+    localDirty: Boolean(state.syncMeta?.dirty),
+  });
+  if (result.applied) {
+    state = normalizePreferences({ ...result.preferences, messages: result.messages, onboardingComplete: true }, { currentMessages: result.messages });
+    agentState = hydrateAgentState(result.agentState);
+    conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+    splashPhase = "complete";
+  }
+  refreshSyncMetadata({ dirty: result.applied ? false : state.syncMeta?.dirty });
+  save();
+  saveAgent();
+  render();
+}
+
+async function syncCurrentAccount() {
+  // Backfill stable IDs before the first upload of older local text history.
+  state.messages = mergeRemoteMessages(state.messages, []);
+  const result = await repository.syncAll({ preferences: state, agentState, messages: state.messages });
+  refreshSyncMetadata({ dirty: result.syncStatus !== "synced" && Boolean(state.syncMeta?.dirty) });
+  if (result.syncStatus === "synced") {
+    state.syncMeta.dirty = false;
+    showToast("已同步当前账号允许保存的数据");
+  } else if (result.syncStatus === "needs_login") {
+    showToast("请先登录；这台设备上的数据没有上传");
+  } else if (result.syncStatus === "conflict") {
+    showToast("发现另一份更新，已停止同步以避免覆盖数据");
+  } else {
+    showToast("这次同步没有完成，本地数据仍在设备上");
+  }
+  save();
+  saveAgent();
+  render();
 }
 
 function render() {
+  if (conversationStatus !== "generating" && conversationStatus !== "conversation_active") {
+    conversationStatus = state.messages.length ? "conversation_restored" : "idle_empty";
+  }
   const pronoun = pronounFor(state.gender);
   document.documentElement.dataset.theme = state.theme;
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", themeColors[state.theme] || themeColors.day);
@@ -228,10 +625,12 @@ function render() {
   const selectedModel = state.currentConversationModel === "local" ? "本地判断" : state.currentConversationModel;
   const selectedModelLabel = state.currentConversationModel === "local" ? "本地" : selectedModel.replace(/^models\//, "").slice(0, 12);
   $("#model-summary").textContent = selectedModel;
-  $("#conversation-model").innerHTML = `<span class="model-status-dot" aria-hidden="true"></span><b>${escapeHtml(selectedModelLabel)}</b><i class="ph ph-caret-down" aria-hidden="true"></i>`;
+  $("#conversation-model").innerHTML = `<span class="visually-hidden">${escapeHtml(selectedModelLabel)}</span><i class="ph ph-dots-three" aria-hidden="true"></i>`;
   $("#conversation-model").setAttribute("aria-label", `选择对话模型，当前：${selectedModel}`);
   $("#conversation-model").title = `当前：${selectedModel}`;
   let previousDay = "";
+  const conversation = $("#conversation");
+  conversation.dataset.conversationState = conversationStatus;
   $("#dynamic-messages").innerHTML = state.messages.map(message => {
     const day = conversationDayLabel(message.createdAt);
     const divider = day !== previousDay ? `<div class="conversation-day-divider"><span>${escapeHtml(day)}</span></div>` : "";
@@ -239,12 +638,14 @@ function render() {
     const time = formatConversationTime(message.createdAt);
     const content = message.role === "user"
       ? `<article class="message user-message"><div><p>${escapeHtml(message.text)}</p>${message.attachments?.length ? `<small class="message-attachments">${message.attachments.map(item => escapeHtml(item.name)).join(" · ")}</small>` : ""}<time>${time}</time></div></article>`
-      : `<article class="message companion-message"><div><p>${escapeHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${escapeHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
+      : `<article class="message companion-message"><img src="${escapeHtml(state.avatar)}" alt="" aria-hidden="true"><div><p>${formatMessageHtml(message.text)}</p>${message.rationale ? `<details class="decision-trace"><summary>她为什么这样判断</summary><p>${formatMessageHtml(message.rationale)}</p></details>` : ""}<time>${time}</time></div></article>`;
     return divider + content;
   }).join("");
-  $("#empty-conversation").hidden = state.messages.length > 0 || Boolean(agentState.next_recommended_action);
+  $("#empty-conversation").hidden = conversationStatus !== "idle_empty" || state.messages.length > 0 || Boolean(agentState.next_recommended_action);
+  renderHome();
   renderToday(pronoun);
   renderPath();
+  renderUnderstanding();
   $("#reset-avatar").hidden = state.avatar === defaultAvatar;
   const action = agentState.next_recommended_action;
   renderChatAtmosphere(action);
@@ -261,6 +662,21 @@ function render() {
     $("#proposal-platform").textContent = `${action.platform} · ${agentState.skills[action.skill_id]?.label || "当前方向"}`;
     $("#proposal-title").textContent = action.title;
     $("#proposal-why").textContent = action.why_now;
+    const context = action.current_context || {};
+    $("#proposal-observation").textContent = action.observation || "";
+    $("#proposal-context").textContent = [
+      context.stage,
+      context.available_minutes ? `今天约 ${context.available_minutes} 分钟` : "今天可用时间未确认",
+      ...(Array.isArray(context.constraints) ? context.constraints : []),
+    ].filter(Boolean).join("；");
+    $("#proposal-related").textContent = action.related_direction?.text || action.related_direction || "当前方向";
+    $("#proposal-gap").textContent = action.gap?.label || action.gap?.id || "当前缺口";
+    const alternatives = Array.isArray(action.why_not_other_directions)
+      ? action.why_not_other_directions
+      : action.why_not_other_directions ? [action.why_not_other_directions] : [];
+    $("#proposal-alternatives").textContent = alternatives.join("\n");
+    $("#proposal-gain").textContent = action.expected_gain || "";
+    $("#proposal-confidence").textContent = `${Math.round((action.confidence ?? 0) * 100)}%`;
     $("#proposal-instructions").textContent = action.instructions;
     $("#proposal-completion").textContent = action.completion_criteria;
     const imageUrl = safeImageUrl(action.resource?.image_url);
@@ -272,11 +688,14 @@ function render() {
     }
     const start = $("#start-action");
     const started = action.status === "accepted";
-    start.textContent = started ? "进行中" : action.resource?.url ? `打开${action.platform}并开始` : "开始讲解";
+    start.textContent = started ? "进行中" : "就这样做";
     start.disabled = started;
-    $("#discuss-action").textContent = `和${pronoun}讨论`;
+    $("#discuss-action").textContent = `和${pronoun}聊聊`;
   }
-  $("#onboarding").hidden = state.onboardingComplete;
+  const showSplash = !state.onboardingComplete && splashPhase === "showing";
+  $("#splash").hidden = !showSplash;
+  $("#onboarding").hidden = state.onboardingComplete || showSplash;
+  $(".phone").classList.toggle("showing-splash", showSplash);
   $("#settings-cloud-consent").checked = state.cloudConsent;
   $("#cloud-consent").checked = state.cloudConsent;
   $("#source-summary").textContent = state.sources.length ? `${state.sources.length} 项资料可被引用，可随时清除` : "目前没有长期引用的资料";
@@ -284,6 +703,8 @@ function render() {
   renderModelControls();
   renderAttachments();
   renderOnboarding();
+  renderSyncCenter();
+  notifyReactHost();
 }
 
 function openScreen(name) {
@@ -291,6 +712,7 @@ function openScreen(name) {
   const currentName = currentScreen?.dataset.screen;
   if (currentName === name) return;
   const nextScreen = document.querySelector(`.screen[data-screen="${name}"]`);
+  if (!nextScreen) return;
   const phone = $(".phone");
   const direction = screenOrder.indexOf(name) < screenOrder.indexOf(currentName) ? -1 : 1;
   phone.dataset.direction = direction < 0 ? "backward" : "forward";
@@ -333,7 +755,7 @@ function openScreen(name) {
     }
   }
   document.querySelectorAll("[data-nav]").forEach(button => {
-    const navName = name === "settings" ? "us" : name;
+    const navName = name === "settings" ? "us" : name === "path" ? "home" : name;
     const active = button.dataset.nav === navName;
     button.classList.toggle("active", active);
     button.setAttribute("aria-current", active ? "page" : "false");
@@ -349,6 +771,7 @@ function openTaskConversation(prompt) {
 }
 
 document.querySelectorAll("[data-nav]").forEach(button => button.addEventListener("click", () => openScreen(button.dataset.nav)));
+document.querySelector("[data-chat-back]")?.addEventListener("click", () => openScreen("home"));
 document.querySelectorAll("[data-open-screen]").forEach(button => button.addEventListener("click", () => openScreen(button.dataset.openScreen)));
 document.querySelectorAll("[data-task-chat]").forEach(button => button.addEventListener("click", () => openTaskConversation(button.dataset.taskChat)));
 
@@ -360,10 +783,11 @@ document.querySelectorAll("[data-onboarding-next]").forEach(button => button.add
 }));
 document.querySelectorAll("[data-onboarding-skip]").forEach(button => button.addEventListener("click", () => {
   if (onboardingIndex < 2) onboardingIndex += 1;
-  else state.onboardingComplete = true;
+  else return completeOnboarding();
   save();
   render();
 }));
+document.querySelector("[data-onboarding-skip-all]")?.addEventListener("click", completeOnboarding);
 document.querySelectorAll("[data-onboarding-role]").forEach(button => button.addEventListener("click", () => {
   state.role = button.dataset.onboardingRole;
   renderOnboarding();
@@ -378,21 +802,61 @@ $("#cloud-consent").addEventListener("change", event => { state.cloudConsent = e
 $("[data-onboarding-finish]").addEventListener("click", () => {
   state.name = $("#onboarding-name").value.trim() || "小程";
   state.cloudConsent = $("#cloud-consent").checked;
-  state.onboardingComplete = true;
-  save();
-  render();
+  completeOnboarding();
   showToast("准备好了。先随便和我说一句吧");
 });
 
 const guideSystemPrompt = () => `你是学程中的${state.name}，一位会长期了解用户的私人教育引路人。你的任务不是生成课表，而是观察、判断、协商、陪伴执行和验收。自然交流；信息不足就只问最关键的一件事。每次最多提出一件下一步行动，必须具体说明做什么、多久、怎么做、完成标准、为什么现在值得。可以提出不同意见，但用户拥有最终决定权。不要声称看到了未提供的信息，不要暴露隐藏思维链。`;
 
-function modelMessages(latestText, attachments) {
-  const history = state.messages.slice(-12).map(message => ({ role: message.role, content: message.text }));
-  const attachmentText = attachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
-  const imageParts = attachments.filter(item => item.type.startsWith("image/")).map(item => ({ type: "image_url", image_url: { url: item.dataUrl } }));
-  const content = imageParts.length ? [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts] : `${latestText}${attachmentText}`;
-  if (history.at(-1)?.role === "user") history.pop();
-  return [...history, { role: "user", content }];
+function currentMemoryPrompt() {
+  return activeMemoryId ? memoryRepository.listMemories().find(item => item.id === activeMemoryId) || null : null;
+}
+
+function projectConfirmedGoals() {
+  let changed = false;
+  for (const item of memoryRepository.listMemories()) {
+    if (item.type !== "long_term" || item.status !== "confirmed" || !item.confirmed_by_user) continue;
+    if (agentState.long_term_goals.some(goal => goal.source_memory_id === item.id || goal.text === item.content)) continue;
+    agentState.long_term_goals.push({ id: `goal-${item.id}`, text: item.content, confidence: 1, source_memory_id: item.id });
+    changed = true;
+  }
+  if (changed) saveAgent();
+}
+
+function localLearningEvidence() {
+  return (agentState.learning_results || []).map(result => ({
+    id: result.id, topic: result.topic || "学习内容", skill: result.domain || "general",
+    evidence_type: result.evidence_type || "tutor_verification",
+    result: result.learned || result.result || "学习结果已记录", source_type: "tutor",
+    confidence: result.confidence, created_at: result.at,
+  }));
+}
+
+function refreshContextualNextStep() {
+  const action = contextualNextStep({
+    memories: memoryRepository.listMemories(),
+    evidence: [...memoryRepository.listLearningEvidence(), ...localLearningEvidence()],
+    dailyLogs: memoryRepository.listDailyLogs(),
+    today: agentState.today_context || {},
+    currentAction: agentState.next_recommended_action,
+  });
+  if (action && action.id !== agentState.next_recommended_action?.id) {
+    agentState.next_recommended_action = action;
+    saveAgent();
+  }
+}
+
+function modelMessages(latestText, attachments, boundedContext) {
+  const safeAttachments = Array.isArray(attachments) ? attachments.filter(Boolean) : [];
+  const attachmentText = safeAttachments.filter(item => item.text).map(item => `\n[附件：${item.name}]\n${item.text}`).join("");
+  const imageParts = safeAttachments
+    .filter(item => String(item?.type || "").startsWith("image/"))
+    .map(item => safeAttachmentDataUrl(item?.dataUrl))
+    .filter(Boolean)
+    .map(url => ({ type: "image_url", image_url: { url } }));
+  const built = modelInputFromContext(boundedContext, `${latestText}${attachmentText}`, guideSystemPrompt());
+  if (imageParts.length) built.messages[built.messages.length - 1].content = [{ type: "text", text: `${latestText || "请理解我发送的内容"}${attachmentText}` }, ...imageParts];
+  return built;
 }
 
 $("#chat-form").addEventListener("submit", async event => {
@@ -404,59 +868,120 @@ $("#chat-form").addEventListener("submit", async event => {
     input.focus();
     return;
   }
-  const submittedAttachments = pendingAttachments;
-  pendingAttachments = [];
-  $("#agent-proposal").classList.remove("discussing");
-  const userText = text || "请看看我发来的内容。";
-  addMessage({ role: "user", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
-  const agentResult = runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
-  agentState = agentResult.state;
-  input.value = "";
-  resizeComposer();
-  save();
-  saveAgent();
-  render();
-  const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local";
-  let reply = agentResult.reply;
-  if (useCloud) {
-    const working = document.createElement("article");
-    working.className = "message companion-message work-state";
-    working.innerHTML = "<div><p>正在结合你刚才说的内容……</p></div>";
-    $("#dynamic-messages").append(working);
-    const conversation = $("#conversation");
-    conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
-    try {
-      reply = await requestProviderReply({
-        ...state.modelConfig,
-        apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
-        system: guideSystemPrompt(),
-        messages: modelMessages(userText, submittedAttachments),
+  if (isSending) {
+    showToast("上一条还在处理，请稍等");
+    return;
+  }
+  isSending = true;
+  setConversationStatus("generating");
+  const sendButton = $(".send-button");
+  sendButton.disabled = true;
+  try {
+    const submittedAttachments = pendingAttachments;
+    pendingAttachments = [];
+    if (currentMemoryPrompt()?.status === "confirmed") activeMemoryId = null;
+    $("#agent-proposal").classList.remove("discussing");
+    const userText = text || "请看看我发来的内容。";
+    const submittedMessage = addMessage({ role: "user", source: "typing", text: userText, attachments: submittedAttachments.map(({ name, type }) => ({ name, type })) });
+    const priorLearningCount = agentState.learning_results?.length || 0;
+    const simpleGreeting = isSimpleGreeting(userText) && submittedAttachments.length === 0;
+    const agentResult = simpleGreeting
+      ? { state: agentState, kind: "conversation", reply: "你好，我在。今天想聊聊什么？" }
+      : runAgentTurn(agentState, `${userText}${submittedAttachments.filter(item => item.text).map(item => `\n${item.text}`).join("")}`);
+    agentState = agentResult.state;
+    if ((agentState.learning_results?.length || 0) > priorLearningCount) refreshContextualNextStep();
+    if (!submittedAttachments.length) {
+      const candidate = memoryCandidateFromMessage(userText, memoryRepository.listMemories());
+      if (candidate) {
+        try {
+          const proposed = memoryRepository.createMemory({ ...candidate, source_id: submittedMessage.clientMessageId });
+          activeMemoryId = proposed.memory.id;
+        } catch { showToast("这次记忆建议没有保存，聊天仍可继续"); }
+      }
+    }
+    input.value = "";
+    resizeComposer();
+    save();
+    saveAgent();
+    render();
+    const useCloud = state.cloudConsent && state.modelConfig?.model && state.currentConversationModel !== "local" && !simpleGreeting;
+    let reply = simpleGreeting ? "你好，我在。今天想聊聊什么？" : agentResult.kind === "proposal" ? (agentResult.summary_reply || agentResult.reply) : agentResult.reply;
+    if (useCloud) {
+      const working = document.createElement("article");
+      working.className = "message companion-message work-state";
+      working.innerHTML = "<div><p>正在整理你的想法……</p></div>";
+      $("#dynamic-messages").append(working);
+      const conversation = $("#conversation");
+      conversation.scrollTo({ top: conversation.scrollHeight, behavior: "auto" });
+      try {
+        const boundedContext = memoryRepository.buildContext({
+          current_user: {
+            name: state.name, role: state.role, gender: state.gender,
+            confirmed_directions: agentState.long_term_goals.map(goal => ({ text: goal.text, status: "confirmed", confirmed_by_user: true })),
+          },
+          current_conversation: { current_input: userText, messages: state.messages.slice(0, -1) },
+          current_task: agentState.next_recommended_action,
+          today_state: { current_state: agentState.current_state, available_minutes: agentState.today_context?.available_minutes },
+          learning_evidence: localLearningEvidence(),
+          max_chars: 8000,
+        });
+        const request = modelMessages(userText, submittedAttachments, boundedContext);
+        if (import.meta.env?.DEV && new URLSearchParams(location.search).get("context_debug") === "1") contextDebug = request.sources;
+        reply = await requestProviderReply({
+          ...state.modelConfig,
+          apiKey: sessionStorage.getItem(`xuecheng:key:${state.modelConfig.providerId}`) || "",
+          system: request.system,
+          messages: request.messages,
+        });
+      } catch (error) {
+        showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
+      } finally { working.remove(); }
+    }
+    const replyMessage = addMessage({ role: "assistant", source: "local_agent", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
+    setConversationStatus("conversation_active");
+    if (submittedAttachments.length) {
+      state.pendingSourceNames = submittedAttachments.map(item => item.name);
+      addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
+    } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
+      state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
+      state.pendingSourceNames = [];
+    } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
+      state.pendingSourceNames = [];
+    }
+    markLocalDirty();
+    save();
+    render();
+    // A sent message is an explicit user action. Only its confirmed text crosses
+    // the API boundary; attachments and raw voice never leave this device here.
+    if (auth.getState().authenticated) {
+      void Promise.all([
+        repository.sendMessage(submittedMessage, state.messages.indexOf(submittedMessage)),
+        repository.sendMessage(replyMessage, state.messages.indexOf(replyMessage)),
+      ]).then(() => {
+        refreshSyncMetadata();
+        save();
+        renderSyncCenter();
       });
-    } catch (error) {
-      showToast(`云端连接没有成功，已用本地判断继续：${error.message}`);
-    } finally { working.remove(); }
+    }
+    const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
+    recent.forEach((message, index) => {
+      message.style.setProperty("--enter-delay", `${index * 70}ms`);
+      if (!reduceMotion.matches) message.classList.add("message-enter");
+    });
+    requestAnimationFrame(() => {
+      const conversation = $("#conversation");
+      conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
+    });
+  } catch (error) {
+    setConversationStatus(state.messages.length ? "conversation_active" : "idle_empty");
+    render();
+    showToast(`这次发送没有完成：${error?.message || "请稍后再试"}`);
+  } finally {
+    isSending = false;
+    sendButton.disabled = false;
+    syncComposerAction();
+    notifyReactHost();
   }
-  addMessage({ role: "assistant", text: reply, kind: agentResult.kind, rationale: agentResult.kind === "proposal" ? "依据你刚才明确表达的目标、现有时间与最近对话；如果这些条件变化，我会重新判断。" : "" });
-  if (submittedAttachments.length) {
-    state.pendingSourceNames = submittedAttachments.map(item => item.name);
-    addMessage({ role: "assistant", text: "这些内容我先只用于这次对话。你希望其中哪些成为以后也能参考的资料？你也可以直接说“只用这一次”。", kind: "source-boundary" });
-  } else if (state.pendingSourceNames?.length && /长期|以后.*参考|记住|保留/.test(userText)) {
-    state.sources = [...new Set([...state.sources, ...state.pendingSourceNames])];
-    state.pendingSourceNames = [];
-  } else if (state.pendingSourceNames?.length && /只.*一次|不用记|别记|不保留/.test(userText)) {
-    state.pendingSourceNames = [];
-  }
-  save();
-  render();
-  const recent = [...document.querySelectorAll("#dynamic-messages .message")].slice(-2);
-  recent.forEach((message, index) => {
-    message.style.setProperty("--enter-delay", `${index * 70}ms`);
-    if (!reduceMotion.matches) message.classList.add("message-enter");
-  });
-  requestAnimationFrame(() => {
-    const conversation = $("#conversation");
-    conversation.scrollTo({ top: conversation.scrollHeight, behavior: reduceMotion.matches ? "auto" : "smooth" });
-  });
 });
 
 let pendingExternalUrl = "";
@@ -467,15 +992,33 @@ function acceptCurrentAction() {
   const result = runAgentTurn(agentState, "接受这个安排，现在开始");
   agentState = result.state;
   addMessage({ role: "assistant", text: result.reply, kind: result.kind });
+  setConversationStatus("conversation_active");
   save();
   saveAgent();
   render();
   return result;
 }
 
+function dismissCurrentScheduleSuggestion() {
+  const action = agentState.next_recommended_action;
+  if (!action) return;
+  // Reuse the existing planner's final-rejection transition instead of
+  // inventing a parallel schedule state. A later explicit sync then carries
+  // the withdrawn recommendation as part of the normal home snapshot.
+  const result = runAgentTurn(agentState, "我决定取消这个安排");
+  agentState = result.state;
+  addMessage({ role: "assistant", text: result.reply, kind: result.kind });
+  setConversationStatus("conversation_active");
+  markLocalDirty();
+  save();
+  saveAgent();
+  render();
+  showToast("这条建议没有写入日程；你之后可以再聊新的安排");
+}
+
 function openExternalConfirmation(url) {
   pendingExternalUrl = url;
-  $("#external-action-dialog").showModal();
+  showDialog("#external-action-dialog");
 }
 
 function discussCurrentAction(prompt = "这个安排有些地方不适合我，我们讨论一下。") {
@@ -483,6 +1026,7 @@ function discussCurrentAction(prompt = "这个安排有些地方不适合我，�
   openScreen("chat");
   $("#agent-proposal").classList.add("discussing");
   addMessage({ role: "assistant", text: action ? `可以。先不急着执行。${action.title}这件事里，是时间、内容、方式，还是我对“为什么现在”的判断让你觉得不合适？` : "可以，我们一起调整。你最想先改变哪一部分？" });
+  setConversationStatus("conversation_active");
   save();
   render();
   const input = $("#chat-input");
@@ -498,12 +1042,75 @@ $("#start-action").addEventListener("click", () => {
   showToast("已经开始，我会一次只陪你推进一小块");
 });
 $("#discuss-action").addEventListener("click", () => discussCurrentAction());
+$("#change-action").addEventListener("click", () => discussCurrentAction("我想换个方向，但想先和你说说原因。"));
+$("#correct-understanding").addEventListener("click", () => {
+  openScreen("chat");
+  const input = $("#chat-input");
+  input.value = "我想纠正你对我的一个理解：";
+  input.focus();
+});
+
+function localCalendarEvent(event) {
+  return {
+    ...event,
+    sourceActionId: event?.sourceActionId || event?.source_action_id || null,
+    duration_minutes: event?.duration_minutes || null,
+  };
+}
+
+async function confirmActionInCalendar(action) {
+  const payload = { start: calendarTimestamp(calendarViewDate), duration_minutes: action.duration_minutes };
+  const remote = await repository.confirmScheduleSuggestion(action.id, payload);
+  if (remote.ok) {
+    state.calendarEvents.push(localCalendarEvent(remote.event));
+    refreshSyncMetadata({ dirty: false });
+    save();
+    render();
+    showToast("已确认并写入日程");
+    return;
+  }
+  if (remote.state.syncStatus === "conflict") {
+    refreshSyncMetadata();
+    save();
+    renderSyncCenter();
+    showToast("另一台设备已更新日程；请先同步后再确认");
+    return;
+  }
+  // Offline use remains available. This event can only leave the device after
+  // the user explicitly retries sync from “我的”.
+  state.calendarEvents.push({ summary: action.title, ...payload, source: "confirmed-ai-suggestion", sourceActionId: action.id, status: "confirmed" });
+  markLocalDirty();
+  refreshSyncMetadata({ dirty: true });
+  save();
+  render();
+  showToast(remote.localOnly ? "已加入本地日程" : "网络未完成确认，已保存在本地等待你同步");
+}
+
 document.addEventListener("click", event => {
+  const calendarDay = event.target.closest("[data-calendar-day]");
+  if (calendarDay) {
+    const match = String(calendarDay.dataset.calendarDay || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (match) {
+      calendarViewDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+      renderToday(pronounFor(state.gender));
+    }
+    return;
+  }
   const external = event.target.closest("[data-external-url]");
   if (external) openExternalConfirmation(external.dataset.externalUrl);
   const discuss = event.target.closest("[data-discuss]");
   if (discuss) discussCurrentAction(discuss.dataset.discuss);
+  if (event.target.closest("[data-change-current]")) $("#change-action").click();
   if (event.target.closest("[data-start-current]")) $("#start-action").click();
+  if (event.target.closest("[data-dismiss-suggestion]")) dismissCurrentScheduleSuggestion();
+  if (event.target.closest("[data-add-action-calendar]")) {
+    const action = agentState.next_recommended_action;
+    if (!action) return;
+    const alreadyConfirmed = state.calendarEvents.some(item => item?.sourceActionId === action.id);
+    if (alreadyConfirmed) return showToast("这条建议已经在你的日程里了");
+    if (!window.confirm(`把“${action.title}”添加到今天的日程吗？`)) return;
+    void confirmActionInCalendar(action);
+  }
 });
 $("#confirm-external-action").addEventListener("click", () => {
   const url = pendingExternalUrl;
@@ -516,60 +1123,75 @@ document.addEventListener("visibilitychange", () => {
   if (document.visibilityState !== "visible" || !leftForExternalAction) return;
   leftForExternalAction = false;
   addMessage({ role: "assistant", text: "你回来了。刚才看到哪里？不用总结，随口说一句最让你停顿或意外的地方就行。", kind: "follow-up" });
+  setConversationStatus("conversation_active");
   save();
   render();
   openScreen("chat");
 });
 
-$("#companion-name").addEventListener("change", event => {
-  state.name = event.target.value.trim() || "小程";
+async function saveProfileChange(before, localMessage) {
+  markLocalDirty();
   save();
   render();
-  showToast(`以后就叫${pronounFor(state.gender)}“${state.name}”`);
+  const outcome = await repository.persistProfile(state);
+  refreshSyncMetadata({ dirty: outcome.syncStatus !== "synced" && Boolean(state.syncMeta?.dirty) });
+  // A server-side rejection is not silently turned into a remote preference.
+  // Transient failures remain local so the device stays usable while offline.
+  if (["conflict", "forbidden"].includes(outcome.syncStatus) || (outcome.syncStatus === "failed" && outcome.lastError !== "network_error")) {
+    state = before;
+    save();
+    render();
+    showToast("服务器没有保存这次修改，已恢复原来的设置");
+    return;
+  }
+  save();
+  renderSyncCenter();
+  showToast(outcome.syncStatus === "synced" ? `${localMessage}，已同步` : localMessage);
+}
+
+$("#companion-name").addEventListener("change", event => {
+  const before = structuredClone(state);
+  state.name = event.target.value.trim() || "小程";
+  void saveProfileChange(before, `以后就叫${pronounFor(state.gender)}“${state.name}”`);
 });
 
 document.querySelectorAll("[data-role]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.role = button.dataset.role;
-  save();
-  render();
-  showToast("相处方式已更新");
+  void saveProfileChange(before, "相处方式已更新");
 }));
 
 document.querySelectorAll("[data-theme-option]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.theme = button.dataset.themeOption;
-  save();
-  render();
-  showToast(`已经换成“${button.textContent.trim()}”`);
+  void saveProfileChange(before, `已经换成“${button.textContent.trim()}”`);
 }));
 
 document.querySelectorAll("[data-gender]").forEach(button => button.addEventListener("click", () => {
+  const before = structuredClone(state);
   state.gender = button.dataset.gender;
-  save();
-  render();
-  showToast("伙伴的称呼已经更新");
+  void saveProfileChange(before, "伙伴的称呼已经更新");
 }));
 
 [["#urgent-override", "urgentOverride"]].forEach(([selector, key]) => {
   $(selector).addEventListener("change", event => {
+    const before = structuredClone(state);
     state[key] = event.target.checked;
-    save();
-    render();
-    showToast("设置已保存");
+    void saveProfileChange(before, "设置已保存");
   });
 });
 
 [["#quiet-start", "quietStart"], ["#quiet-end", "quietEnd"]].forEach(([selector, key]) => {
   $(selector).addEventListener("change", event => {
+    const before = structuredClone(state);
     state[key] = event.target.value;
-    save();
-    render();
-    showToast(`安静时段：${state.quietStart} - ${state.quietEnd}`);
+    void saveProfileChange(before, `安静时段：${state.quietStart} - ${state.quietEnd}`);
   });
 });
 
 $("#conversation-model").addEventListener("click", () => {
   renderModelControls();
-  $("#model-dialog").showModal();
+  showDialog("#model-dialog");
 });
 $("#manage-models").addEventListener("click", () => {
   $("#model-dialog").close();
@@ -656,8 +1278,9 @@ $("#backup-file").addEventListener("change", async event => {
     const restored = await readEncryptedBackup(await file.text(), password);
     if (!restored.preferences || !restored.agent) throw new Error("备份内容不完整");
     if (!window.confirm("恢复会覆盖这台设备上当前的学程记忆。确定继续吗？")) return;
-    state = { ...defaults, ...restored.preferences };
+    state = normalizePreferences(restored.preferences);
     agentState = hydrateAgentState(restored.agent);
+    setConversationStatus(state.messages.length ? "conversation_restored" : "idle_empty");
     save();
     saveAgent();
     render();
@@ -666,10 +1289,18 @@ $("#backup-file").addEventListener("change", async event => {
   event.target.value = "";
 });
 
+let initiativeBeforeChange = null;
 $("#initiative").addEventListener("input", event => {
+  initiativeBeforeChange ||= structuredClone(state);
   state.initiative = Number(event.target.value);
+  markLocalDirty();
   save();
   render();
+});
+$("#initiative").addEventListener("change", () => {
+  const before = initiativeBeforeChange || structuredClone(state);
+  initiativeBeforeChange = null;
+  void saveProfileChange(before, "主动程度已更新");
 });
 
 const chatInput = $("#chat-input");
@@ -719,10 +1350,10 @@ $("#reset-avatar").addEventListener("click", () => {
 });
 
 const attachmentInput = $("#attachment-input");
-$("#attachment-trigger").addEventListener("click", () => $("#attachment-dialog").showModal());
+$("#attachment-trigger").addEventListener("click", () => showDialog("#attachment-dialog"));
 document.querySelectorAll("[data-attachment-source]").forEach(button => button.addEventListener("click", () => {
   const source = button.dataset.attachmentSource;
-  if (source === "paste") return setTimeout(() => $("#paste-dialog").showModal(), 0);
+  if (source === "paste") return setTimeout(() => showDialog("#paste-dialog"), 0);
   attachmentInput.accept = source === "photo" || source === "camera" ? "image/*" : "image/*,text/*,application/pdf";
   if (source === "camera") attachmentInput.setAttribute("capture", "environment");
   else attachmentInput.removeAttribute("capture");
@@ -766,21 +1397,69 @@ $("#confirm-paste").addEventListener("click", event => {
 });
 
 $("#calendar-import").addEventListener("click", () => $("#calendar-file").click());
+$("#calendar-import-today").addEventListener("click", () => $("#calendar-file").click());
+document.querySelectorAll("[data-calendar-offset]").forEach(button => button.addEventListener("click", () => {
+  calendarViewDate.setDate(calendarViewDate.getDate() + Number(button.dataset.calendarOffset || 0));
+  renderToday(pronounFor(state.gender));
+}));
+$("#calendar-add").addEventListener("click", () => {
+  const local = new Date(calendarViewDate);
+  local.setHours(9, 0, 0, 0);
+  $("#schedule-time").value = `${local.getFullYear()}-${String(local.getMonth() + 1).padStart(2, "0")}-${String(local.getDate()).padStart(2, "0")}T09:00`;
+  $("#schedule-title").value = "";
+  showDialog("#schedule-dialog");
+});
+$("#save-schedule").addEventListener("click", event => {
+  const title = $("#schedule-title").value.trim();
+  const value = $("#schedule-time").value;
+  if (!title || !value) {
+    event.preventDefault();
+    showToast("请补充事项和时间");
+    return;
+  }
+  const [date, time] = value.split("T");
+  const [year, month, day] = date.split("-");
+  const localEvent = { id: `event_${crypto.randomUUID()}`, summary: title, start: `${year}${month}${day}T${time.replace(":", "")}00`, duration_minutes: 30, source: "manual", status: "confirmed" };
+  void repository.createScheduleEvent({ summary: localEvent.summary, start: localEvent.start, duration_minutes: localEvent.duration_minutes }).then(remote => {
+    if (remote.ok) {
+      state.calendarEvents.push(localCalendarEvent(remote.event));
+      refreshSyncMetadata({ dirty: false });
+      showToast("日程已保存并同步");
+    } else if (remote.state.syncStatus === "conflict") {
+      refreshSyncMetadata();
+      showToast("日程版本已变化；没有覆盖另一台设备的数据");
+    } else {
+      state.calendarEvents.push(localEvent);
+      markLocalDirty();
+      refreshSyncMetadata({ dirty: true });
+      showToast(remote.localOnly ? "日程已保存到当前设备" : "网络未完成保存，已保留在当前设备");
+    }
+    save();
+    render();
+  });
+  calendarViewDate = new Date(`${value}:00`);
+});
 $("#calendar-file").addEventListener("change", async event => {
   const file = event.target.files?.[0];
   if (!file) return;
-  const source = await file.text();
-  const events = [...source.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map(match => {
-    const block = match[1];
-    const summary = block.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "未命名安排";
-    const start = block.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "";
-    return { summary, start };
-  });
-  state.calendarEvents = events;
-  save();
-  render();
-  showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
-  event.target.value = "";
+  try {
+    const source = await file.text();
+    const events = [...source.matchAll(/BEGIN:VEVENT([\s\S]*?)END:VEVENT/g)].map(match => {
+      const block = match[1];
+      const summary = block.match(/\nSUMMARY(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "未命名安排";
+      const start = block.match(/\nDTSTART(?:;[^:]*)?:(.*)/)?.[1]?.trim() || "";
+      return { summary, start };
+    });
+    state.calendarEvents = events;
+    markLocalDirty();
+    save();
+    render();
+    showToast(events.length ? `已在本地导入 ${events.length} 项日历安排` : "没有在文件中找到日历安排");
+  } catch (error) {
+    showToast(`日历文件读取失败：${error?.message || "格式无法识别"}`);
+  } finally {
+    event.target.value = "";
+  }
 });
 $("#clear-sources").addEventListener("click", () => {
   if (!state.sources.length) return showToast("目前没有长期引用的资料");
@@ -824,6 +1503,8 @@ function syncVisualViewport() {
   };
   document.documentElement.style.setProperty("--app-height", `${viewport.appHeight}px`);
   document.documentElement.style.setProperty("--keyboard-inset", `${viewport.keyboardInset || 0}px`);
+  const visibleHeight = Math.max(1, Math.round(viewport.appHeight - (viewport.keyboardInset || 0)));
+  document.documentElement.style.setProperty("--visible-viewport-height", `${visibleHeight}px`);
   const { keyboardOpen } = viewport;
   document.body.classList.toggle("keyboard-open", keyboardOpen);
   if (keyboardOpen) requestAnimationFrame(keepFocusedControlVisible);
@@ -847,72 +1528,314 @@ document.addEventListener("focusout", () => {
 });
 
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+const nativeSpeechBridge = window.webkit?.messageHandlers?.xuechengSpeech
+  || (window.parent !== window ? window.parent.webkit?.messageHandlers?.xuechengSpeech : null);
 let recognition = null;
+let voiceResetTimer = null;
+
 function createVoiceController(surface) {
+  let voiceState = "idle";
   let confidence = 0;
-  let listening = false;
-  const start = () => {
-    if (listening) return true;
-    if (!Recognition) {
-      showToast("当前环境暂不支持语音，请先用文字告诉她");
+  let inputRevision = 0;
+  let revisionAtStart = 0;
+  let applyingTranscript = false;
+
+  chatInput.addEventListener("input", () => {
+    if (!applyingTranscript) inputRevision += 1;
+  });
+
+  const setState = (next, { message = "", transcript = "" } = {}) => {
+    const wasActive = ["requesting", "recording", "recognizing"].includes(voiceState);
+    voiceState = next;
+    surface.setAttribute("data-voice-state", next);
+    surface.setAttribute("data-voice-visual-state", ({ cancelled: "cancel", success: "recognized", failure: "failed" }[next] || next));
+    surface.classList.toggle("listening", next === "recording");
+    surface.classList.toggle("recognizing", next === "recognizing");
+    clearTimeout(voiceResetTimer);
+    if (transcript.trim() && wasActive && inputRevision === revisionAtStart) {
+      applyingTranscript = true;
+      chatInput.value = transcript.trim();
+      chatInput.dispatchEvent(new Event("input", { bubbles: true }));
+      applyingTranscript = false;
+      resizeComposer();
+    } else if (transcript.trim() && inputRevision !== revisionAtStart) {
+      message = "识别已完成，但你已经修改了输入内容；旧结果没有覆盖当前文字";
+    }
+    chatInput.placeholder = next === "recording"
+      ? "正在听，松开结束"
+      : next === "recognizing"
+        ? "正在识别……"
+        : `和${pronounFor(state.gender)}说说现在的想法……`;
+    const voiceStatus = $("#voice-status");
+    const voiceHint = $("#voice-hint");
+    const voiceCopy = {
+      requesting: ["正在准备", "正在连接语音识别…"],
+      recording: ["正在聆听", "松开后转成文字 · 上滑取消"],
+      recognizing: ["正在识别", "正在把刚才的话转成文字…"],
+      success: ["已回填输入栏", "确认文字后再发送"],
+      failure: ["这次没有听清", "可以再按住说一次"],
+      cancelled: ["已取消", "没有保存本次录音"],
+      idle: ["正在聆听", "松开后转成文字 · 上滑取消"],
+    }[next] || ["正在聆听", "松开后转成文字 · 上滑取消"];
+    if (voiceStatus) voiceStatus.textContent = voiceCopy[0];
+    if (voiceHint) voiceHint.textContent = voiceCopy[1];
+    if (message) showToast(message);
+    syncComposerAction();
+    notifyReactHost("xuecheng:runtime-voice", { state: next, transcript: transcript.trim() });
+    if (["success", "failure", "cancelled"].includes(next)) voiceResetTimer = setTimeout(() => setState("idle"), 900);
+  };
+
+  const sendNativeCommand = (command, extra = {}) => {
+    try {
+      nativeSpeechBridge.postMessage({ command, ...extra });
+      return true;
+    } catch {
+      setState("failure", { message: "语音输入暂时不可用，请再试一次" });
       return false;
     }
-    listening = true;
-    confidence = 0;
-    surface.classList.add("listening");
-    chatInput.setAttribute("placeholder", "正在听，松开结束");
-    showToast("正在听，松开结束");
+  };
+
+  const startBrowserRecognition = () => {
+    if (!Recognition) {
+      setState("failure", { message: "当前环境不支持语音转文字，请使用键盘输入" });
+      return false;
+    }
     recognition = new Recognition();
     recognition.lang = "zh-CN";
     recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onstart = () => setState("recording", { message: "正在听，松开结束" });
     recognition.onresult = result => {
+      if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
       const best = result.results[0][0];
       confidence = Number(best.confidence || 0);
-      chatInput.value = best.transcript;
-      resizeComposer();
+      setState("success", {
+        transcript: best.transcript,
+        message: confidence && confidence < .72 ? "我不太确定是否听准了，请确认后再发送" : "已转成文字，请确认后发送",
+      });
+    };
+    recognition.onerror = event => {
+      if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
+      const denied = ["not-allowed", "service-not-allowed"].includes(event.error);
+      setState("failure", { message: denied ? "麦克风或语音识别权限未开启，请到系统设置中允许" : "没有听清，可以再按住说一次" });
     };
     recognition.onend = () => {
-      listening = false;
-      surface.classList.remove("listening");
-      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
-      if (chatInput.value.trim() && confidence >= .72) surface.requestSubmit();
-      else if (chatInput.value.trim()) showToast("我不太确定是否听准了，你看一眼再发送");
+      if (["recording", "recognizing"].includes(voiceState)) setState("failure", { message: "没有识别到文字，可以再试一次" });
+      recognition = null;
     };
-    recognition.onerror = () => {
-      listening = false;
-      surface.classList.remove("listening");
-      chatInput.placeholder = `和${pronounFor(state.gender)}说说现在的想法……`;
-      showToast("没有听清，可以再长按一次");
-    };
-    recognition.start();
-    navigator.vibrate?.(18);
-    return true;
+    try {
+      setState("requesting");
+      recognition.start();
+      return true;
+    } catch {
+      recognition = null;
+      setState("failure", { message: "语音输入暂时不可用，请再试一次" });
+      return false;
+    }
   };
+
+  const start = () => {
+    if (["recording", "recognizing"].includes(voiceState)) return true;
+    confidence = 0;
+    revisionAtStart = inputRevision;
+    clearTimeout(voiceResetTimer);
+    if (nativeSpeechBridge) {
+      const started = sendNativeCommand("start", { allowCloud: false, locale: "zh-CN" });
+      if (started) setState("requesting");
+      return started;
+    }
+    return startBrowserRecognition();
+  };
+
   const stop = () => {
-    if (!listening) return;
-    recognition?.stop();
+    if (!["requesting", "recording"].includes(voiceState)) return;
+    setState("recognizing", { message: "正在识别……" });
+    if (nativeSpeechBridge) sendNativeCommand("stop");
+    else recognition?.stop();
   };
-  return { start, stop, isListening: () => listening };
+
+  const cancel = () => {
+    if (!["requesting", "recording", "recognizing"].includes(voiceState)) return;
+    if (nativeSpeechBridge) sendNativeCommand("cancel");
+    else recognition?.abort();
+    setState("cancelled", { message: "已取消语音输入" });
+  };
+
+  window.addEventListener("xuecheng:speech", event => {
+    const detail = event.detail || {};
+    switch (detail.state) {
+      case "recording": setState("recording", { message: "正在听，松开结束" }); break;
+      case "recognizing": setState("recognizing", { message: "正在识别……" }); break;
+      case "success": {
+        if (!["requesting", "recording", "recognizing"].includes(voiceState)) break;
+        setState("success", { transcript: String(detail.transcript || ""), message: "已转成文字，请确认后发送" });
+        break;
+      }
+      case "permission-denied": setState("failure", { message: "麦克风或语音识别权限未开启，请到系统设置中允许" }); break;
+      case "cloud-consent-required": {
+        setState("idle");
+        const accepted = window.confirm("这台设备无法完全在本机识别。是否允许 Apple 处理本次语音以生成文字？音频仅用于本次转写。");
+        if (accepted) {
+          setState("requesting");
+          sendNativeCommand("start", { allowCloud: true, locale: "zh-CN" });
+        } else {
+          sendNativeCommand("cancel");
+          setState("cancelled", { message: "未上传音频，已取消语音输入" });
+        }
+        break;
+      }
+      case "cancelled": setState("cancelled", { message: "已取消语音输入" }); break;
+      default: setState("failure", { message: String(detail.message || "没有听清，可以再试一次") });
+    }
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) cancel();
+  });
+  setState("idle");
+  return { start, stop, cancel, isListening: () => ["requesting", "recording", "recognizing"].includes(voiceState) };
 }
 
 const voiceController = createVoiceController($("#chat-form"));
 function bindHoldToTalk(surface) {
   let holdTimer = null;
   let holding = false;
+  let startY = 0;
+  let cancelledBySlide = false;
+  const setOrigin = event => {
+    const bounds = surface.getBoundingClientRect();
+    const x = bounds.width ? ((event.clientX - bounds.left) / bounds.width) * 100 : 50;
+    const y = bounds.height ? ((event.clientY - bounds.top) / bounds.height) * 100 : 68;
+    surface.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    surface.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+  };
+  const clearOrigin = () => {
+    surface.style.removeProperty("--voice-origin-x");
+    surface.style.removeProperty("--voice-origin-y");
+  };
   const stop = () => {
     clearTimeout(holdTimer);
     holdTimer = null;
-    if (!holding) return;
-    holding = false;
-    voiceController.stop();
+    if (holding) {
+      holding = false;
+      voiceController.stop();
+    }
+    clearOrigin();
   };
   surface.addEventListener("pointerdown", event => {
-    if (event.target.closest("button,input")) return;
+    if (event.target.closest("button,input,textarea,select,a")) return;
+    if (chatInput.value.trim() || pendingAttachments.length) return;
+    startY = event.clientY;
+    cancelledBySlide = false;
+    setOrigin(event);
+    try { surface.setPointerCapture?.(event.pointerId); } catch { /* synthetic events may not expose a capturable pointer */ }
     holdTimer = setTimeout(() => {
+      holdTimer = null;
       holding = voiceController.start();
     }, 360);
   });
-  ["pointerup", "pointercancel", "pointerleave"].forEach(type => surface.addEventListener(type, stop));
+  surface.addEventListener("pointermove", event => {
+    if (cancelledBySlide || event.clientY >= startY - 54) return;
+    cancelledBySlide = true;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding || voiceController.isListening()) voiceController.cancel();
+    holding = false;
+    clearOrigin();
+  });
+  surface.addEventListener("pointerup", event => {
+    if (cancelledBySlide) {
+      clearOrigin();
+      cancelledBySlide = false;
+      return;
+    }
+    stop();
+    cancelledBySlide = false;
+  });
+  surface.addEventListener("pointerleave", stop);
+  surface.addEventListener("pointercancel", () => {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding) voiceController.cancel();
+    holding = false;
+    cancelledBySlide = false;
+    clearOrigin();
+  });
+}
+
+function bindVoiceButton(button) {
+  let holdTimer = null;
+  let holding = false;
+  let startY = 0;
+  let cancelledBySlide = false;
+  const surface = button.closest(".composer") || button;
+  const setOrigin = event => {
+    const bounds = surface.getBoundingClientRect();
+    const x = bounds.width ? ((event.clientX - bounds.left) / bounds.width) * 100 : 50;
+    const y = bounds.height ? ((event.clientY - bounds.top) / bounds.height) * 100 : 50;
+    surface.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    surface.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+    button.style.setProperty("--voice-origin-x", `${Math.max(0, Math.min(100, x))}%`);
+    button.style.setProperty("--voice-origin-y", `${Math.max(0, Math.min(100, y))}%`);
+  };
+  const clearOrigin = () => {
+    surface.style.removeProperty("--voice-origin-x");
+    surface.style.removeProperty("--voice-origin-y");
+    button.style.removeProperty("--voice-origin-x");
+    button.style.removeProperty("--voice-origin-y");
+  };
+  button.addEventListener("pointerdown", event => {
+    if (!button.classList.contains("voice-mode")) return;
+    event.preventDefault();
+    startY = event.clientY;
+    setOrigin(event);
+    cancelledBySlide = false;
+    if (Number.isFinite(event.pointerId)) {
+      try { button.setPointerCapture?.(event.pointerId); } catch { /* synthetic events may not expose a capturable pointer */ }
+    }
+    holdTimer = setTimeout(() => {
+      holdTimer = null;
+      holding = voiceController.start();
+    }, 260);
+  });
+  button.addEventListener("pointermove", event => {
+    if (!button.classList.contains("voice-mode") || cancelledBySlide || event.clientY >= startY - 54) return;
+    cancelledBySlide = true;
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding || voiceController.isListening()) voiceController.cancel();
+    holding = false;
+    clearOrigin();
+  });
+  button.addEventListener("pointerup", event => {
+    if (!button.classList.contains("voice-mode")) return;
+    event.preventDefault();
+    if (cancelledBySlide) {
+      clearOrigin();
+      return;
+    }
+    if (holdTimer) {
+      clearTimeout(holdTimer);
+      holdTimer = null;
+      showToast("按住麦克风说话，松开后转成文字");
+      clearOrigin();
+    } else if (holding) {
+      holding = false;
+      voiceController.stop();
+      clearOrigin();
+    }
+  });
+  button.addEventListener("pointercancel", () => {
+    clearTimeout(holdTimer);
+    holdTimer = null;
+    if (holding) voiceController.cancel();
+    holding = false;
+    cancelledBySlide = false;
+    clearOrigin();
+  });
+  button.addEventListener("click", event => {
+    if (button.classList.contains("voice-mode")) event.preventDefault();
+  });
 }
 
 function insertSpaceAtCursor(input) {
@@ -954,13 +1877,236 @@ function bindDesktopSpaceToTalk(input) {
   });
 }
 bindHoldToTalk($("#chat-form"));
+bindVoiceButton($(".send-button"));
 bindDesktopSpaceToTalk(chatInput);
+
+function reactRuntimeSnapshot() {
+  const remote = repository.getState();
+  const sync = syncStatusCopy();
+  return {
+    preferences: {
+      name: state.name,
+      role: state.role,
+      theme: state.theme,
+      quietStart: state.quietStart,
+      quietEnd: state.quietEnd,
+      gender: state.gender,
+      initiative: state.initiative,
+      directness: state.directness,
+      avatar: state.avatar,
+      cloudConsent: state.cloudConsent,
+      currentConversationModel: state.currentConversationModel,
+      modelConfig: state.modelConfig ? { ...state.modelConfig } : null,
+      onboardingComplete: state.onboardingComplete,
+      urgentOverride: state.urgentOverride,
+      messages: state.messages.map(message => ({
+        ...message,
+        attachments: Array.isArray(message.attachments) ? message.attachments.map(item => ({ name: String(item?.name || "附件"), type: String(item?.type || "") })) : [],
+      })),
+      calendarEvents: state.calendarEvents,
+    },
+    agent: {
+      long_term_goals: agentState.long_term_goals,
+      skills: agentState.skills,
+      next_recommended_action: agentState.next_recommended_action,
+    },
+    sync,
+    conversation: { status: conversationStatus, sending: isSending },
+    memoryPrompt: (() => {
+      const item = currentMemoryPrompt();
+      return item ? { id: item.id, content: item.content, status: item.status } : null;
+    })(),
+    contextDebug: import.meta.env?.DEV && new URLSearchParams(location.search).get("context_debug") === "1" ? contextDebug : null,
+    remote: { status: remote.syncStatus, lastSyncedAt: remote.lastSyncedAt || null },
+    auth: { status: auth.getState().status, configured: auth.getState().configured, authenticated: auth.getState().authenticated },
+    attachments: pendingAttachments.map(item => ({ name: String(item?.name || "附件"), type: String(item?.type || "") })),
+    calendarDate: calendarViewDate.getFullYear() + "-" + String(calendarViewDate.getMonth() + 1).padStart(2, "0") + "-" + String(calendarViewDate.getDate()).padStart(2, "0"),
+    modelProviders: MODEL_PROVIDERS.map(provider => ({ id: provider.id, name: provider.name, endpoint: provider.baseUrl })),
+    modelKeyConfigured: Boolean(state.modelConfig?.providerId && sessionStorage.getItem("xuecheng:key:" + state.modelConfig.providerId)),
+  };
+}
+
+window.__XUECHENG_REACT_RUNTIME__ = {
+  getSnapshot: reactRuntimeSnapshot,
+  confirmMemory(id) {
+    const item = currentMemoryPrompt();
+    if (!item || item.id !== id || item.status !== "proposed") return false;
+    memoryRepository.confirmMemory(id);
+    projectConfirmedGoals();
+    refreshContextualNextStep();
+    render();
+    return true;
+  },
+  dismissMemory(id) {
+    const item = currentMemoryPrompt();
+    if (!item || item.id !== id || item.status !== "proposed") return false;
+    memoryRepository.archiveMemory(id);
+    activeMemoryId = null;
+    render();
+    return true;
+  },
+  sendMessage(text) {
+    const input = $("#chat-input");
+    if (!input || isSending || !String(text || "").trim()) return false;
+    input.value = String(text);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    $("#chat-form").requestSubmit();
+    return true;
+  },
+  startVoice: () => voiceController.start(),
+  stopVoice: () => voiceController.stop(),
+  cancelVoice: () => voiceController.cancel(),
+  acceptAction: () => $("#start-action")?.click(),
+  discussAction(text) { discussCurrentAction(text); },
+  confirmSuggestion() {
+    const action = agentState.next_recommended_action;
+    if (!action) return;
+    if (state.calendarEvents.some(item => item?.sourceActionId === action.id)) return showToast("这条建议已经在你的日程里了");
+    void confirmActionInCalendar(action);
+  },
+  rejectSuggestion: () => $("#ai-schedule-suggestion [data-dismiss-suggestion]")?.click(),
+  setProfile(patch = {}) {
+    if (typeof patch.name === "string") { $("#companion-name").value = patch.name; $("#companion-name").dispatchEvent(new Event("change", { bubbles: true })); }
+    if (typeof patch.role === "string") $(`[data-role="${CSS.escape(patch.role)}"]`)?.click();
+    if (typeof patch.gender === "string") $(`[data-gender="${CSS.escape(patch.gender)}"]`)?.click();
+    if (typeof patch.initiative === "number") { $("#initiative").value = String(patch.initiative); $("#initiative").dispatchEvent(new Event("input", { bubbles: true })); $("#initiative").dispatchEvent(new Event("change", { bubbles: true })); }
+  },
+  setTheme(theme) { $(`[data-theme-option="${theme === "night" ? "night" : "day"}"]`)?.click(); },
+  setQuietHours(start, end) {
+    const first = $("#quiet-start"); const last = $("#quiet-end");
+    if (first) { first.value = start; first.dispatchEvent(new Event("change", { bubbles: true })); }
+    if (last) { last.value = end; last.dispatchEvent(new Event("change", { bubbles: true })); }
+  },
+  syncNow: () => $("#sync-now")?.click(),
+  beginLogin: () => $("#sync-login")?.click(),
+  createSchedule(summary, start) {
+    const title = $("#schedule-title"); const date = $("#schedule-time");
+    if (!title || !date) return;
+    title.value = summary;
+    date.value = start;
+    $("#save-schedule")?.click();
+  },
+  importCalendar: () => $("#calendar-file")?.click(),
+  chooseAttachment(source = "file") {
+    const input = $("#attachment-input");
+    if (!input) return;
+    input.accept = source === "photo" || source === "camera" ? "image/*" : "image/*,text/*,application/pdf";
+    if (source === "camera") input.setAttribute("capture", "environment");
+    else input.removeAttribute("capture");
+    input.click();
+  },
+  removeAttachment(index) {
+    pendingAttachments.splice(Number(index), 1);
+    renderAttachments();
+  },
+  addPastedText(text) {
+    const value = String(text || "").trim();
+    if (!value) return;
+    pendingAttachments.push({ name: "粘贴的文字", type: "text/plain", text: value, dataUrl: "" });
+    renderAttachments();
+  },
+  chooseAvatar: () => $("#avatar-input")?.click(),
+  resetAvatar: () => $("#reset-avatar")?.click(),
+  setCalendarDate(date) {
+    const match = String(date || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return;
+    calendarViewDate = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    renderToday(pronounFor(state.gender));
+    notifyReactHost();
+  },
+  async listModels(draft) {
+    return fetchProviderModels({ providerId: draft.providerId, endpoint: draft.endpoint, apiKey: draft.apiKey });
+  },
+  saveModel(draft) {
+    const provider = getProvider(draft.providerId);
+    if (!state.cloudConsent) { showToast("请先明确允许当前对话使用云端模型"); return false; }
+    if (!draft.model) { showToast("请先获取并选择一个模型"); return false; }
+    const apiKey = draft.apiKey || sessionStorage.getItem("xuecheng:key:" + provider.id) || "";
+    if (!apiKey && provider.id !== "ollama") { showToast("请先填写 API Key"); return false; }
+    if (draft.apiKey) sessionStorage.setItem("xuecheng:key:" + provider.id, draft.apiKey);
+    state.modelConfig = { providerId: provider.id, endpoint: draft.endpoint, model: draft.model };
+    state.currentConversationModel = draft.model;
+    save();
+    render();
+    showToast("模型已保存；Key 只在本次页面会话中保留");
+    return true;
+  },
+  setCloudConsent(allowed) {
+    const input = $("#settings-cloud-consent");
+    if (!input) return;
+    input.checked = Boolean(allowed);
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  },
+  exportBackup: () => $("#export-backup")?.click(),
+  importBackup: () => $("#import-backup")?.click(),
+  clearSources: () => $("#clear-sources")?.click(),
+  setUrgentOverride(enabled) {
+    const input = $("#urgent-override");
+    if (!input) return;
+    input.checked = Boolean(enabled);
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  },
+  async loadEarlierMessages(beforeId, limit = 50) {
+    if (!auth.getState().authenticated || !beforeId) throw new Error("请先登录，再读取更早的云端对话。");
+    const response = await remoteApi.listMessages("main", { before: String(beforeId), limit: Math.max(1, Math.min(100, Number(limit) || 50)) });
+    const payload = response?.data || response;
+    return Array.isArray(payload?.messages) ? payload.messages.map(message => ({
+      ...message,
+      clientMessageId: message.id,
+      createdAt: message.createdAt || message.occurred_at,
+    })) : [];
+  },
+  completeOnboarding(intent) {
+    state.onboardingIntent = String(intent || "growth");
+    state.onboardingComplete = true;
+    save();
+    render();
+  },
+};
+window.__XUECHENG_REACT_RUNTIME__.setProfile = patch => {
+  const before = structuredClone(state);
+  let changed = false;
+  if (typeof patch?.name === "string") { state.name = patch.name.trim().slice(0, 12) || "小程"; changed = true; }
+  if (["guide", "friend", "family", "partner"].includes(patch?.role)) { state.role = patch.role; changed = true; }
+  if (["female", "male", "neutral"].includes(patch?.gender)) { state.gender = patch.gender; changed = true; }
+  if (typeof patch?.initiative === "number") { state.initiative = ratio(patch.initiative, state.initiative); changed = true; }
+  if (typeof patch?.directness === "number") { state.directness = ratio(patch.directness, state.directness); changed = true; }
+  if (changed) void saveProfileChange(before, "相处方式已更新");
+};
+window.__XUECHENG_REACT_RUNTIME__.setQuietHours = (start, end) => {
+  const before = structuredClone(state);
+  state.quietStart = String(start || state.quietStart);
+  state.quietEnd = String(end || state.quietEnd);
+  if (state.quietStart !== before.quietStart || state.quietEnd !== before.quietEnd) void saveProfileChange(before, "安静时段已更新");
+};
+notifyReactHost("xuecheng:runtime-ready");
+
+$("#sync-login")?.addEventListener("click", async () => {
+  const result = await auth.beginLogin();
+  if (!result.started) showToast("登录服务尚未配置；会继续只保存在这台设备");
+  renderSyncCenter();
+});
+$("#sync-now")?.addEventListener("click", () => { void syncCurrentAccount(); });
+
+auth.subscribe(next => {
+  // The browser only changes scope after a real OIDC response; the token itself
+  // remains in memory and is never copied into preferences or backup data.
+  void activateAuthenticatedScope(next).catch(() => {
+    showToast("无法切换当前账号的本地空间；原有设备数据未被覆盖");
+    renderSyncCenter();
+  });
+  renderSyncCenter();
+  notifyReactHost();
+});
 
 $("#clock").textContent = new Intl.DateTimeFormat("zh-CN", { hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 $("#today-date").textContent = new Intl.DateTimeFormat("zh-CN", { month: "long", day: "numeric", weekday: "long" }).format(new Date());
 const initialScreen = new URLSearchParams(location.search).get("screen");
-if (["chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
+if (["home", "chat", "today", "path", "us", "settings"].includes(initialScreen)) openScreen(initialScreen);
 syncVisualViewport();
 resizeComposer();
+projectConfirmedGoals();
 render();
-if ("serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});
+scheduleSplash();
+void auth.restoreFromRedirect().then(activateAuthenticatedScope).catch(() => renderSyncCenter());
+if (window.parent === window && "serviceWorker" in navigator && location.protocol.startsWith("http")) navigator.serviceWorker.register("./sw.js").catch(() => {});
