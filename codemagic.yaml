@@ -8,6 +8,13 @@ workflows:
     scripts:
       - name: Build unsigned iOS Simulator app
         script: |
+          #!/usr/bin/env bash
+          set -o pipefail
+          mkdir -p "$CM_BUILD_DIR/build/codemagic"
+          echo "BUILD_STARTED_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "MACOS_VERSION=$(sw_vers -productVersion)"
+          xcodebuild -version
+          build_started=$(date +%s)
           xcodebuild build \
             -project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj" \
             -scheme "XuechengNative" \
@@ -17,7 +24,12 @@ workflows:
             -derivedDataPath "$CM_BUILD_DIR/build/codemagic/XuechengNative" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$CM_BUILD_DIR/build/codemagic/xcodebuild.log"
+          build_status=${PIPESTATUS[0]}
+          echo "BUILD_DURATION_SECONDS=$(($(date +%s) - build_started))"
+          echo "XCODEBUILD_EXIT_CODE=$build_status"
+          exit "$build_status"
     artifacts:
       - build/codemagic/XuechengNative/Build/Products/Debug-iphonesimulator/XuechengNative.app
+      - build/codemagic/xcodebuild.log
       - /tmp/xcodebuild_logs/*.log
