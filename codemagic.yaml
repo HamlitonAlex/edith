@@ -9,27 +9,44 @@ workflows:
       - name: Build unsigned iOS Simulator app
         script: |
           #!/usr/bin/env bash
-          set -o pipefail
+          set -euo pipefail
           mkdir -p "$CM_BUILD_DIR/build/codemagic"
+          project="$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+          output="$CM_BUILD_DIR/build/codemagic"
+          app="$output/XuechengNative/Build/Products/Debug-iphonesimulator/XuechengNative.app"
           echo "BUILD_STARTED_UTC=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           echo "MACOS_VERSION=$(sw_vers -productVersion)"
           xcodebuild -version
+          echo "COMMIT_SHA=${CM_COMMIT:-unknown}"
+          xcodebuild -list -project "$project" 2>&1 | tee "$output/schemes.log"
+          xcodebuild -resolvePackageDependencies -project "$project" -scheme "XuechengNative" 2>&1 | tee "$output/package-resolve.log"
           build_started=$(date +%s)
+          set +e
           xcodebuild build \
-            -project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj" \
+            -project "$project" \
             -scheme "XuechengNative" \
             -sdk iphonesimulator \
             -configuration Debug \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$CM_BUILD_DIR/build/codemagic/XuechengNative" \
+            -derivedDataPath "$output/XuechengNative" \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$CM_BUILD_DIR/build/codemagic/xcodebuild.log"
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tee "$output/xcodebuild.log"
           build_status=${PIPESTATUS[0]}
+          set -e
           echo "BUILD_DURATION_SECONDS=$(($(date +%s) - build_started))"
           echo "XCODEBUILD_EXIT_CODE=$build_status"
+          echo "XCODE_WARNING_LINES=$(grep -Ec 'warning:' "$output/xcodebuild.log" || true)"
+          if [[ "$build_status" -eq 0 ]]; then
+            test -d "$app"
+            ditto -c -k --sequesterRsrc --keepParent "$app" "$output/XuechengNative-simulator.app.zip"
+            echo "APP_ARTIFACT=$app"
+          fi
           exit "$build_status"
     artifacts:
       - build/codemagic/XuechengNative/Build/Products/Debug-iphonesimulator/XuechengNative.app
+      - build/codemagic/XuechengNative-simulator.app.zip
       - build/codemagic/xcodebuild.log
+      - build/codemagic/schemes.log
+      - build/codemagic/package-resolve.log
       - /tmp/xcodebuild_logs/*.log

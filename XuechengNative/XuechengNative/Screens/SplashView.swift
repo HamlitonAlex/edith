@@ -7,26 +7,32 @@ struct SplashView: View {
 
     var body: some View {
         ZStack {
-            AmbientBackground()
+            AmbientBackground(isSplash: true)
 
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
                     Image("BrandMark")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 116, height: 116)
-                        .clipShape(RoundedRectangle(cornerRadius: 31, style: .continuous))
+                        .frame(width: XuechengTheme.splashMarkSize, height: XuechengTheme.splashMarkSize)
+                        .clipShape(RoundedRectangle(cornerRadius: XuechengTheme.splashMarkRadius, style: .continuous))
+                        .background {
+                            RoundedRectangle(cornerRadius: XuechengTheme.splashMarkRadius, style: .continuous)
+                                .fill(XuechengTheme.graphite(scheme).opacity(scheme == .dark ? 0.45 : 0.16))
+                                .blur(radius: 23)
+                                .offset(y: 12)
+                        }
                         .shadowToken(.large, scheme: scheme)
 
                     Text("学程")
-                        .font(XuechengTheme.font(.wordmark))
-                        .tracking(5.2)
+                        .font(XuechengTypography.splashWordmark.font)
+                        .tracking(XuechengTypography.splashWordmark.letterSpacing)
                         .foregroundStyle(XuechengTheme.primaryText(scheme))
                         .padding(.top, 27)
 
                     Text("XUECHENG")
-                        .font(XuechengTheme.font(.brandMeta))
-                        .tracking(3.8)
+                        .font(XuechengTypography.brandLatin.font)
+                        .tracking(XuechengTypography.brandLatin.letterSpacing)
                         .foregroundStyle(XuechengTheme.secondaryText(scheme))
                         .padding(.top, 10)
                 }
@@ -39,12 +45,12 @@ struct SplashView: View {
                 HStack(spacing: 13) {
                     Rectangle().fill(XuechengTheme.secondaryText(scheme).opacity(0.42)).frame(width: 18, height: 1)
                     Text("让学习拥有方向")
-                        .font(XuechengTheme.font(.tagline))
-                        .tracking(1.8)
+                        .font(XuechengTypography.splashTagline.font)
+                        .tracking(XuechengTypography.splashTagline.letterSpacing)
                         .foregroundStyle(XuechengTheme.secondaryText(scheme))
                     Rectangle().fill(XuechengTheme.secondaryText(scheme).opacity(0.42)).frame(width: 18, height: 1)
                 }
-                .padding(.bottom, 72)
+                .padding(.bottom, XuechengTheme.splashCaptionBottomInset)
                 .opacity(appeared ? 1 : 0)
             }
         }

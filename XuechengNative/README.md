@@ -1,6 +1,19 @@
 # XuechengNative
 
-独立 SwiftUI 原生视觉验证工程。它不读取或修改 React、Capacitor、API、Repository 或 Agent 数据；当前页面内容用于本地静态展示。
+独立 SwiftUI 原生视觉验证工程。它不读取或修改 React、Capacitor、API、Repository 或 Agent 数据；当前页面内容来自 `Preview/PreviewFixtures.swift`，仅用于静态展示，不表示真实学习判断。
+
+## 工程分层
+
+- `App/`：启动状态与外观选择。启动后交给 `XuechengNavigation`。
+- `Components/`：可复用的卡片、按钮、栏目、输入、证据展示及独立于滚动内容的底部导航。
+- `DesignSystem/`：`XuechengTheme`、`XuechengTypography`、环境背景和原生 Material Surface。
+- `Models/`：仅供 UI 使用的 Direction、Goal、Capability、Evidence、Practice、NextStep、StudySession、LearnerProfile 等展示模型；不是数据库或 API 契约。
+- `Preview/`：统一的中文静态样本。实际产品接入时由服务端/Repository 映射到展示模型，不应把样本当业务数据。
+- `Screens/`：四个一级页面（今天、路径、小程、我的）及能力详情、学习过程、学习结果、日程、设置等二级页面。
+
+当前没有 `Services/` 实现：这轮不接后端，不增加虚假的服务层。以后接入时在此边界做数据映射，页面不直接处理 API。
+
+底部导航由 `Components/XuechengNavigation.swift` 在 `TabView` 外围的安全区域管理，不在页面 `ScrollView` 中；二级路径非空时隐藏。设置使用原生 `NavigationStack` 的返回栏，学习过程也不显示底部导航。
 
 ## 本地运行
 
@@ -10,9 +23,11 @@
 
 ## 视觉映射
 
-Figma Make MCP 已确认资源清单。当前 MCP 会话只返回源码资源链接，未能读取这些链接的文件正文；本工程的样式映射参考 2026-09-26 导出的 Make 源码快照。节点级坐标和在线文件最新改动尚未由 MCP 验证。
+2026-09-29 的 Figma Make 源码 ZIP 已用于校准 `XuechengTheme`、九个语义排版 Token、环境背景、共享 Surface 和底部导航。ZIP 没有独立的能力详情与学习结果页面源码；这两个原生页面仅继承共享 Token，不能称为逐页精准还原。
 
-原 Make 字体为 DM Sans 与 Noto Serif SC，通过 Google Fonts 引入。原生工程不下载或复制字体文件，使用 iOS 系统 Sans / Serif 字体及中文系统回退，以确保离线显示。
+工程中没有 Noto Sans SC、Noto Serif SC 或 DM Sans 字体文件，也没有 `UIAppFonts` 配置。`XuechengTypography` 暂用 iOS 系统 Sans / Serif 回退；获得合法字体资源后需接入并在 macOS 上验证 PostScript 名称。
+
+需在真实 iOS Simulator 中核对中文换行、原生安全区与 Material；CSS `backdrop-filter` 与 SwiftUI Material 不保证像素级等同。
 
 ## Codemagic
 

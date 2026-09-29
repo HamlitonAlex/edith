@@ -13,11 +13,22 @@
 		A10000000000000000000005 /* Surfaces.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005; };
 		A10000000000000000000006 /* FloatingGlassTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006; };
 		A10000000000000000000007 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007; };
-		A10000000000000000000008 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008; };
-		A10000000000000000000009 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009; };
-		A1000000000000000000000A /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A; };
+		A10000000000000000000008 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008; };
+		A10000000000000000000009 /* CompanionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009; };
+		A1000000000000000000000A /* MeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A; };
 		A1000000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B; };
 		A1000000000000000000000C /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000D; };
+		A1000000000000000000000D /* XuechengTypography.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000E; };
+		A1000000000000000000000E /* PreviewFixtures.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F; };
+		A1000000000000000000000F /* PathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000010; };
+		A10000000000000000000010 /* CapabilityDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011; };
+		A10000000000000000000011 /* StudySessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012; };
+		A10000000000000000000012 /* SessionResultView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013; };
+		A10000000000000000000013 /* ScheduleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000014; };
+		A10000000000000000000014 /* XuechengComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000015; };
+		A10000000000000000000015 /* XuechengNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016; };
+		A10000000000000000000016 /* PresentationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017; };
+		A10000000000000000000017 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -28,12 +39,23 @@
 		B10000000000000000000005 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Surfaces.swift; sourceTree = "<group>"; };
 		B10000000000000000000006 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingGlassTabBar.swift; sourceTree = "<group>"; };
 		B10000000000000000000007 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
-		B10000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		B10000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
-		B1000000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompanionView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MeView.swift; sourceTree = "<group>"; };
 		B1000000000000000000000B = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		B1000000000000000000000C = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = XuechengNative.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1000000000000000000000D /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XuechengTypography.swift; sourceTree = "<group>"; };
+		B1000000000000000000000F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreviewFixtures.swift; sourceTree = "<group>"; };
+		B10000000000000000000010 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PathView.swift; sourceTree = "<group>"; };
+		B10000000000000000000011 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapabilityDetailView.swift; sourceTree = "<group>"; };
+		B10000000000000000000012 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySessionView.swift; sourceTree = "<group>"; };
+		B10000000000000000000013 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionResultView.swift; sourceTree = "<group>"; };
+		B10000000000000000000014 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScheduleView.swift; sourceTree = "<group>"; };
+		B10000000000000000000015 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XuechengComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000016 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XuechengNavigation.swift; sourceTree = "<group>"; };
+		B10000000000000000000017 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationModels.swift; sourceTree = "<group>"; };
+		B10000000000000000000018 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -42,11 +64,14 @@
 
 /* Begin PBXGroup section */
 		D10000000000000000000001 = {isa = PBXGroup; children = (D10000000000000000000002, D10000000000000000000006); sourceTree = "<group>"; };
-		D10000000000000000000002 = {isa = PBXGroup; children = (D10000000000000000000003, D10000000000000000000004, D10000000000000000000005, B1000000000000000000000B); path = XuechengNative; sourceTree = "<group>"; };
+		D10000000000000000000002 = {isa = PBXGroup; children = (D10000000000000000000003, D10000000000000000000004, D10000000000000000000005, D10000000000000000000007, D10000000000000000000008, D10000000000000000000009, B1000000000000000000000B); path = XuechengNative; sourceTree = "<group>"; };
 		D10000000000000000000003 = {isa = PBXGroup; children = (B10000000000000000000001, B10000000000000000000002); path = App; sourceTree = "<group>"; };
-		D10000000000000000000004 = {isa = PBXGroup; children = (B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, B10000000000000000000006); path = DesignSystem; sourceTree = "<group>"; };
-		D10000000000000000000005 = {isa = PBXGroup; children = (B10000000000000000000007, B10000000000000000000008, B10000000000000000000009, B1000000000000000000000A, B1000000000000000000000D); path = Screens; sourceTree = "<group>"; };
+		D10000000000000000000004 = {isa = PBXGroup; children = (B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, B1000000000000000000000E); path = DesignSystem; sourceTree = "<group>"; };
+		D10000000000000000000005 = {isa = PBXGroup; children = (B10000000000000000000007, B10000000000000000000008, B10000000000000000000009, B1000000000000000000000A, B1000000000000000000000D, B10000000000000000000010, B10000000000000000000011, B10000000000000000000012, B10000000000000000000013, B10000000000000000000014); path = Screens; sourceTree = "<group>"; };
 		D10000000000000000000006 = {isa = PBXGroup; children = (B1000000000000000000000C); name = Products; sourceTree = "<group>"; };
+		D10000000000000000000007 = {isa = PBXGroup; children = (B10000000000000000000006, B10000000000000000000015, B10000000000000000000016, B10000000000000000000018); path = Components; sourceTree = "<group>"; };
+		D10000000000000000000008 = {isa = PBXGroup; children = (B10000000000000000000017); path = Models; sourceTree = "<group>"; };
+		D10000000000000000000009 = {isa = PBXGroup; children = (B1000000000000000000000F); path = Preview; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -62,7 +87,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		C10000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000C); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E, A1000000000000000000000F, A10000000000000000000010, A10000000000000000000011, A10000000000000000000012, A10000000000000000000013, A10000000000000000000014, A10000000000000000000015, A10000000000000000000016, A10000000000000000000017); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */

@@ -1,6 +1,6 @@
 import SwiftUI
 
-struct ProfileView: View {
+struct MeView: View {
     @Environment(\.colorScheme) private var scheme
 
     var body: some View {
@@ -11,7 +11,7 @@ struct ProfileView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     VStack(spacing: 10) {
                         Image(systemName: "person.fill")
-                            .font(.system(size: 25, weight: .light))
+                            .font(.title2.weight(.light))
                             .foregroundStyle(XuechengTheme.secondaryText(scheme))
                             .frame(width: 72, height: 72)
                             .background(
@@ -23,30 +23,30 @@ struct ProfileView: View {
                                 in: Circle()
                             )
 
-                        Text("小程，正在慢慢了解你。")
-                            .font(XuechengTheme.font(.pageTitle))
+                        Text("我与小程")
+                            .font(XuechengTypography.pageTitle.font)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(XuechengTheme.primaryText(scheme))
 
-                        Text("她会记得重要的方向，也会看见每一次微小的进步。")
-                            .font(XuechengTheme.font(.caption))
-                            .lineSpacing(4)
+                        Text("一段持续了解、一起成长的关系。")
+                            .font(XuechengTypography.caption.font)
                             .multilineTextAlignment(.center)
                             .foregroundStyle(XuechengTheme.secondaryText(scheme))
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.top, 34)
 
-                    NormalSurface(radius: XuechengTheme.radius24) {
+                    FrostedSurface(radius: XuechengTheme.radius20) {
                         VStack(alignment: .leading, spacing: 13) {
-                            Text("你的方向")
-                                .font(XuechengTheme.font(.meta).weight(.semibold))
-                                .tracking(1.3)
+                            Text("当前方向")
+                                .font(XuechengTypography.metadata.font)
                                 .foregroundStyle(XuechengTheme.secondaryText(scheme))
-                            Text("把编程基础学扎实")
-                                .font(XuechengTheme.font(.editorialQuote))
-                                .lineSpacing(4)
+                            Text(PreviewFixtures.direction.summary)
+                                .font(XuechengTypography.capabilityTitle.font)
                                 .foregroundStyle(XuechengTheme.primaryText(scheme))
+                            Text("当前阶段 · \(PreviewFixtures.learner.currentStage)")
+                                .font(XuechengTypography.caption.font)
+                                .foregroundStyle(XuechengTheme.secondaryText(scheme))
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(25)
@@ -54,21 +54,35 @@ struct ProfileView: View {
                     .padding(.top, 31)
 
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("最近，她看见")
-                            .font(XuechengTheme.font(.meta).weight(.semibold))
-                            .tracking(1.2)
+                        Text("最近的变化")
+                            .font(XuechengTypography.metadata.font)
                             .foregroundStyle(XuechengTheme.secondaryText(scheme))
-                        Text("你已经能解释递归终止条件，并完成一道基础练习。")
-                            .font(XuechengTheme.font(.editorialEmphasis))
-                            .lineSpacing(5)
+                        Text(PreviewFixtures.learner.recentChange)
+                            .font(XuechengTypography.sectionTitle.font)
                             .foregroundStyle(XuechengTheme.primaryText(scheme))
                         Text("一次小小的进步，也会留在成长的路上。")
-                            .font(XuechengTheme.font(.caption))
-                            .lineSpacing(3)
+                            .font(XuechengTypography.caption.font)
                             .foregroundStyle(XuechengTheme.secondaryText(scheme))
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.vertical, 25)
+
+                    Rectangle()
+                        .fill(XuechengTheme.border(scheme))
+                        .frame(height: 1)
+
+                    VStack(alignment: .leading, spacing: XuechengTheme.space12) {
+                        Text("小程目前了解的我")
+                            .font(XuechengTypography.sectionTitle.font)
+                        Text(PreviewFixtures.learner.companionUnderstanding)
+                            .font(XuechengTypography.body.font)
+                            .foregroundStyle(XuechengTheme.secondaryText(scheme))
+                        Text("学习中的自己 · \(PreviewFixtures.learningSelfSummary)")
+                            .font(XuechengTypography.caption.font)
+                            .foregroundStyle(XuechengTheme.secondaryText(scheme))
+                    }
+                    .foregroundStyle(XuechengTheme.primaryText(scheme))
+                    .padding(.vertical, XuechengTheme.space24)
 
                     Rectangle()
                         .fill(XuechengTheme.border(scheme))
@@ -83,27 +97,39 @@ struct ProfileView: View {
                             .accessibilityHidden(true)
                         VStack(alignment: .leading, spacing: 7) {
                             Text("一起成长")
-                                .font(XuechengTheme.font(.editorialEmphasis))
+                                .font(XuechengTypography.sectionTitle.font)
                                 .foregroundStyle(XuechengTheme.primaryText(scheme))
                             Text("清晰地引路，在需要时陪伴。相处方式会随着你的反馈慢慢调整。")
-                                .font(XuechengTheme.font(.caption))
-                                .lineSpacing(4)
+                                .font(XuechengTypography.caption.font)
                                 .foregroundStyle(XuechengTheme.secondaryText(scheme))
                         }
                     }
                     .padding(.top, 23)
 
-                    NavigationLink(value: ProfileDestination.settings) {
+                    NavigationLink(value: MeDestination.schedule) {
+                        HStack {
+                            Image(systemName: "calendar")
+                            Text("日程")
+                                .font(XuechengTypography.body.font)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+                        .foregroundStyle(XuechengTheme.primaryText(scheme))
+                        .padding(.vertical, XuechengTheme.space16)
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink(value: MeDestination.settings) {
                         HStack(spacing: XuechengTheme.space12) {
                             Image(systemName: "gearshape")
-                                .font(.system(size: 17, weight: .regular))
+                                .font(.body)
                                 .foregroundStyle(XuechengTheme.secondaryText(scheme))
                             Text("设置")
-                                .font(XuechengTheme.font(.body))
+                                .font(XuechengTypography.body.font)
                                 .foregroundStyle(XuechengTheme.primaryText(scheme))
                             Spacer()
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .medium))
+                                .font(.caption.weight(.medium))
                                 .foregroundStyle(XuechengTheme.secondaryText(scheme))
                         }
                         .padding(.vertical, 16)
@@ -120,23 +146,23 @@ struct ProfileView: View {
             }
             .scrollIndicators(.hidden)
         }
-        .safeAreaInset(edge: .top, spacing: 0) { NativeHeader(title: "我与小程") }
+        .safeAreaInset(edge: .top, spacing: 0) { NativeHeader(title: "我的") }
         .toolbar(.hidden, for: .navigationBar)
     }
 }
 
-#Preview("Profile · Light") {
+#Preview("我的 · 浅色") {
     NavigationStack {
-        ProfileView()
-            .navigationDestination(for: ProfileDestination.self) { _ in SettingsView() }
+        MeView()
+            .navigationDestination(for: MeDestination.self) { _ in SettingsView() }
     }
     .preferredColorScheme(.light)
 }
 
-#Preview("Profile · Dark") {
+#Preview("我的 · 深色") {
     NavigationStack {
-        ProfileView()
-            .navigationDestination(for: ProfileDestination.self) { _ in SettingsView() }
+        MeView()
+            .navigationDestination(for: MeDestination.self) { _ in SettingsView() }
     }
     .preferredColorScheme(.dark)
 }
