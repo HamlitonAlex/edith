@@ -35,5 +35,6 @@ with (output / "xctest.log").open("w", encoding="utf-8", errors="replace") as lo
         print(line, end="", flush=True)
         log.write(line)
     status = process.wait()
+    (output / "xctest-exit-code.txt").write_text(f"{status}\n", encoding="utf-8")
 if status:
     raise SystemExit(status)

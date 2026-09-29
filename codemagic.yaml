@@ -54,6 +54,7 @@ workflows:
           #!/usr/bin/env bash
           set -euo pipefail
           python3 -u "$CM_BUILD_DIR/XuechengNative/ci/run_domain_tests.py"
+        ignore_failure: true
       - name: Parse native XCTest report
         script: |
           #!/usr/bin/env bash
@@ -62,6 +63,10 @@ workflows:
           output="$CM_BUILD_DIR/build/test-results"
           if [[ ! -d "$results" ]]; then
             echo "ERROR: XCTest result bundle is missing: $results"
+            exit 1
+          fi
+          if [[ ! -f "$output/xctest-exit-code.txt" ]]; then
+            echo "ERROR: XCTest exit code report is missing"
             exit 1
           fi
           xcrun xcresulttool get --path "$results" --format json > "$output/XuechengNativeTests.json"
@@ -74,6 +79,7 @@ workflows:
 
           output = Path(sys.argv[1])
           summary = json.loads((output / "XuechengNativeTests-summary.json").read_text())
+          xctest_exit_code = int((output / "xctest-exit-code.txt").read_text().strip())
           tests_path = output / "XuechengNativeTests-tests.json"
           tests_json = tests_path.read_text()
           tests_tree = json.loads(tests_json)
@@ -113,6 +119,7 @@ workflows:
           print(f"skippedCount={skipped}")
           print("Test Suites=" + (", ".join(sorted(suites)) if suites else "(none identified)"))
           print(f"contains LearningDomainTests={has_learning_domain_tests}")
+          print(f"xcodebuild test exit code={xctest_exit_code}")
 
           if test_count <= 0:
               raise SystemExit("ERROR: xcresult contains no executed tests")
@@ -120,6 +127,8 @@ workflows:
               raise SystemExit("ERROR: LearningDomainTests was not found in xcresult")
           if failed > 0:
               raise SystemExit("ERROR: XCTest reported failures")
+          if xctest_exit_code != 0:
+              raise SystemExit("ERROR: xcodebuild test exited unsuccessfully")
           PY
       - name: Simulator smoke launch and screenshot
         script: |
@@ -142,6 +151,8 @@ workflows:
       - build/test-results/**/*.xcresult
       - build/test-results/**/*.xml
       - build/test-results/**/*.json
+      - build/test-results/**/*.log
+      - build/test-results/xctest-exit-code.txt
       - /tmp/xcodebuild_logs/*.log
   xuechengnative-device-archive:
     name: XuechengNative signed development IPA (manual run)
