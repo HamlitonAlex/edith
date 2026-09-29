@@ -21,7 +21,9 @@ command = [
     "xcodebuild", "test", "-project", str(root / "XuechengNative/XuechengNative.xcodeproj"),
     "-scheme", "XuechengNative", "-configuration", "Debug",
     "-destination", f"platform=iOS Simulator,id={udid}",
-    "-derivedDataPath", str(root / "build/codemagic/XuechengNative"),
+    # Keep XCTest's test-enabled app build separate from the preceding unsigned
+    # smoke artifact build, which uses build/codemagic/XuechengNative.
+    "-derivedDataPath", str(root / "build/codemagic/DomainTestsDerivedData"),
     "-resultBundlePath", str(output / "DomainTests.xcresult"),
     "-parallel-testing-enabled", "NO", "CODE_SIGNING_ALLOWED=NO",
 ]
