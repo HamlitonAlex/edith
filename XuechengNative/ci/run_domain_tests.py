@@ -9,7 +9,7 @@ from simulator_smoke import run, select_device
 
 
 root = Path(os.environ["CM_BUILD_DIR"])
-output = root / "build" / "codemagic" / "tests"
+output = root / "build" / "test-results"
 output.mkdir(parents=True, exist_ok=True)
 inventory = json.loads(run("xcrun", "simctl", "list", "devices", "available", "--json"))
 _, device = select_device(inventory, "17.0")
@@ -24,7 +24,7 @@ command = [
     # Keep XCTest's test-enabled app build separate from the preceding unsigned
     # smoke artifact build, which uses build/codemagic/XuechengNative.
     "-derivedDataPath", str(root / "build/codemagic/DomainTestsDerivedData"),
-    "-resultBundlePath", str(output / "DomainTests.xcresult"),
+    "-resultBundlePath", str(output / "XuechengNativeTests.xcresult"),
     "-parallel-testing-enabled", "NO", "CODE_SIGNING_ALLOWED=NO",
 ]
 print("Running XCTest on", device["name"], udid, flush=True)

@@ -54,6 +54,73 @@ workflows:
           #!/usr/bin/env bash
           set -euo pipefail
           python3 -u "$CM_BUILD_DIR/XuechengNative/ci/run_domain_tests.py"
+      - name: Parse native XCTest report
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          results="$CM_BUILD_DIR/build/test-results/XuechengNativeTests.xcresult"
+          output="$CM_BUILD_DIR/build/test-results"
+          if [[ ! -d "$results" ]]; then
+            echo "ERROR: XCTest result bundle is missing: $results"
+            exit 1
+          fi
+          xcrun xcresulttool get --path "$results" --format json > "$output/XuechengNativeTests.json"
+          xcrun xcresulttool get test-results summary --path "$results" --format json > "$output/XuechengNativeTests-summary.json"
+          xcrun xcresulttool get test-results tests --path "$results" --format json > "$output/XuechengNativeTests-tests.json"
+          python3 - "$output" <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          output = Path(sys.argv[1])
+          summary = json.loads((output / "XuechengNativeTests-summary.json").read_text())
+          tests_path = output / "XuechengNativeTests-tests.json"
+          tests_json = tests_path.read_text()
+          tests_tree = json.loads(tests_json)
+
+          def first_count(*keys):
+              for key in keys:
+                  value = summary.get(key)
+                  if isinstance(value, int):
+                      return value
+              return None
+
+          test_count = first_count("totalTestCount", "testCount", "testsCount")
+          passed = first_count("passedTests", "passedCount", "passedTestCount")
+          failed = first_count("failedTests", "failedCount", "failedTestCount")
+          skipped = first_count("skippedTests", "skippedCount", "skippedTestCount")
+          if None in (test_count, passed, failed, skipped):
+              raise SystemExit(f"ERROR: unrecognized xcresult summary schema: {summary}")
+
+          suites = set()
+          def collect_suites(value):
+              if isinstance(value, dict):
+                  for key, child in value.items():
+                      if isinstance(child, str) and key.lower() in {
+                          "name", "nodename", "testname", "suite", "suitename", "testidentifier"
+                      } and (child.endswith("Tests") or "Test Suite" in child):
+                          suites.add(child)
+                      collect_suites(child)
+              elif isinstance(value, list):
+                  for child in value:
+                      collect_suites(child)
+          collect_suites(tests_tree)
+          has_learning_domain_tests = "LearningDomainTests" in tests_json
+
+          print(f"testCount={test_count}")
+          print(f"passedCount={passed}")
+          print(f"failedCount={failed}")
+          print(f"skippedCount={skipped}")
+          print("Test Suites=" + (", ".join(sorted(suites)) if suites else "(none identified)"))
+          print(f"contains LearningDomainTests={has_learning_domain_tests}")
+
+          if test_count <= 0:
+              raise SystemExit("ERROR: xcresult contains no executed tests")
+          if not has_learning_domain_tests:
+              raise SystemExit("ERROR: LearningDomainTests was not found in xcresult")
+          if failed > 0:
+              raise SystemExit("ERROR: XCTest reported failures")
+          PY
       - name: Simulator smoke launch and screenshot
         script: |
           #!/usr/bin/env bash
@@ -71,6 +138,10 @@ workflows:
       - build/codemagic/package-resolve.log
       - build/codemagic/smoke/**
       - build/codemagic/tests/**
+      - build/test-results/XuechengNativeTests.xcresult
+      - build/test-results/**/*.xcresult
+      - build/test-results/**/*.xml
+      - build/test-results/**/*.json
       - /tmp/xcodebuild_logs/*.log
   xuechengnative-device-archive:
     name: XuechengNative signed development IPA (manual run)
