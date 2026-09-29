@@ -43,6 +43,11 @@ workflows:
             echo "APP_ARTIFACT=$app"
           fi
           exit "$build_status"
+      - name: Run native domain XCTest
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          python3 -u "$CM_BUILD_DIR/XuechengNative/ci/run_domain_tests.py"
       - name: Simulator smoke launch and screenshot
         script: |
           #!/usr/bin/env bash
@@ -59,4 +64,54 @@ workflows:
       - build/codemagic/schemes.log
       - build/codemagic/package-resolve.log
       - build/codemagic/smoke/**
+      - build/codemagic/tests/**
+      - /tmp/xcodebuild_logs/*.log
+  xuechengnative-device-archive:
+    name: XuechengNative signed development IPA (manual run)
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    triggering:
+      events: []
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: development
+        bundle_identifier: app.xuecheng.nativeui
+    scripts:
+      - name: Confirm signing inputs
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          echo "This workflow requires an Apple Development certificate and an iPhone-eligible Development provisioning profile in Codemagic Code signing identities."
+          test -d "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+          xcodebuild -version
+          xcodebuild -list -project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+      - name: Apply Codemagic signing profiles
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          xcode-project use-profiles --project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+          test -s "$HOME/export_options.plist"
+      - name: Archive and export signed IPA
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          output="$CM_BUILD_DIR/build/codemagic/device"
+          mkdir -p "$output/ipa"
+          xcodebuild archive \
+            -project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj" \
+            -scheme XuechengNative -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$output/XuechengNative.xcarchive" \
+            2>&1 | tee "$output/archive.log"
+          xcodebuild -exportArchive \
+            -archivePath "$output/XuechengNative.xcarchive" \
+            -exportOptionsPlist "$HOME/export_options.plist" \
+            -exportPath "$output/ipa" \
+            2>&1 | tee "$output/export.log"
+          test -n "$(find "$output/ipa" -maxdepth 1 -name '*.ipa' -print -quit)"
+    artifacts:
+      - build/codemagic/device/ipa/*.ipa
+      - build/codemagic/device/archive.log
+      - build/codemagic/device/export.log
       - /tmp/xcodebuild_logs/*.log

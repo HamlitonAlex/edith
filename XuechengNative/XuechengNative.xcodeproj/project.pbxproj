@@ -29,6 +29,12 @@
 		A10000000000000000000015 /* XuechengNavigation.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000016; };
 		A10000000000000000000016 /* PresentationModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000017; };
 		A10000000000000000000017 /* SharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000018; };
+		A10000000000000000000018 /* LearningModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000019; };
+		A10000000000000000000019 /* LearningPolicies.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001A; };
+		A1000000000000000000001A /* LearningRepositories.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001B; };
+		A1000000000000000000001B /* StudySessionCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001C; };
+		A1000000000000000000001C /* PythonListsFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001D; };
+		A1000000000000000000001D /* LearningDomainTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000001E; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -56,30 +62,47 @@
 		B10000000000000000000016 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XuechengNavigation.swift; sourceTree = "<group>"; };
 		B10000000000000000000017 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresentationModels.swift; sourceTree = "<group>"; };
 		B10000000000000000000018 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SharedComponents.swift; sourceTree = "<group>"; };
+		B10000000000000000000019 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningModels.swift; sourceTree = "<group>"; };
+		B1000000000000000000001A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningPolicies.swift; sourceTree = "<group>"; };
+		B1000000000000000000001B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningRepositories.swift; sourceTree = "<group>"; };
+		B1000000000000000000001C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StudySessionCoordinator.swift; sourceTree = "<group>"; };
+		B1000000000000000000001D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonListsFixture.swift; sourceTree = "<group>"; };
+		B1000000000000000000001E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LearningDomainTests.swift; sourceTree = "<group>"; };
+		B1000000000000000000001F = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = XuechengNativeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C10000000000000000000001 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000004 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		D10000000000000000000001 = {isa = PBXGroup; children = (D10000000000000000000002, D10000000000000000000006); sourceTree = "<group>"; };
-		D10000000000000000000002 = {isa = PBXGroup; children = (D10000000000000000000003, D10000000000000000000004, D10000000000000000000005, D10000000000000000000007, D10000000000000000000008, D10000000000000000000009, B1000000000000000000000B); path = XuechengNative; sourceTree = "<group>"; };
+		D10000000000000000000001 = {isa = PBXGroup; children = (D10000000000000000000002, D1000000000000000000000E, D10000000000000000000006); sourceTree = "<group>"; };
+		D10000000000000000000002 = {isa = PBXGroup; children = (D10000000000000000000003, D10000000000000000000004, D10000000000000000000005, D10000000000000000000007, D10000000000000000000008, D10000000000000000000009, D1000000000000000000000A, D1000000000000000000000C, D10000000000000000000010, B1000000000000000000000B); path = XuechengNative; sourceTree = "<group>"; };
 		D10000000000000000000003 = {isa = PBXGroup; children = (B10000000000000000000001, B10000000000000000000002); path = App; sourceTree = "<group>"; };
 		D10000000000000000000004 = {isa = PBXGroup; children = (B10000000000000000000003, B10000000000000000000004, B10000000000000000000005, B1000000000000000000000E); path = DesignSystem; sourceTree = "<group>"; };
 		D10000000000000000000005 = {isa = PBXGroup; children = (B10000000000000000000007, B10000000000000000000008, B10000000000000000000009, B1000000000000000000000A, B1000000000000000000000D, B10000000000000000000010, B10000000000000000000011, B10000000000000000000012, B10000000000000000000013, B10000000000000000000014); path = Screens; sourceTree = "<group>"; };
-		D10000000000000000000006 = {isa = PBXGroup; children = (B1000000000000000000000C); name = Products; sourceTree = "<group>"; };
+		D10000000000000000000006 = {isa = PBXGroup; children = (B1000000000000000000000C, B1000000000000000000001F); name = Products; sourceTree = "<group>"; };
 		D10000000000000000000007 = {isa = PBXGroup; children = (B10000000000000000000006, B10000000000000000000015, B10000000000000000000016, B10000000000000000000018); path = Components; sourceTree = "<group>"; };
 		D10000000000000000000008 = {isa = PBXGroup; children = (B10000000000000000000017); path = Models; sourceTree = "<group>"; };
 		D10000000000000000000009 = {isa = PBXGroup; children = (B1000000000000000000000F); path = Preview; sourceTree = "<group>"; };
+		D1000000000000000000000A = {isa = PBXGroup; children = (D1000000000000000000000B, D1000000000000000000000D, D1000000000000000000000F); path = Domain; sourceTree = "<group>"; };
+		D1000000000000000000000B = {isa = PBXGroup; children = (B10000000000000000000019); path = Models; sourceTree = "<group>"; };
+		D1000000000000000000000C = {isa = PBXGroup; children = (B1000000000000000000001C); path = Application; sourceTree = "<group>"; };
+		D1000000000000000000000D = {isa = PBXGroup; children = (B1000000000000000000001A); path = Policies; sourceTree = "<group>"; };
+		D1000000000000000000000E = {isa = PBXGroup; children = (B1000000000000000000001E); path = XuechengNativeTests; sourceTree = "<group>"; };
+		D1000000000000000000000F = {isa = PBXGroup; children = (B1000000000000000000001B); path = Repositories; sourceTree = "<group>"; };
+		D10000000000000000000010 = {isa = PBXGroup; children = (D10000000000000000000011); path = Data; sourceTree = "<group>"; };
+		D10000000000000000000011 = {isa = PBXGroup; children = (B1000000000000000000001D); path = Mock; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		E10000000000000000000001 = {isa = PBXNativeTarget; buildConfigurationList = H10000000000000000000002; buildPhases = (C10000000000000000000002, C10000000000000000000001, C10000000000000000000003); buildRules = (); dependencies = (); name = XuechengNative; productName = XuechengNative; productReference = B1000000000000000000000C; productType = "com.apple.product-type.application"; };
+		E10000000000000000000002 = {isa = PBXNativeTarget; buildConfigurationList = H10000000000000000000003; buildPhases = (C10000000000000000000005, C10000000000000000000004); buildRules = (); dependencies = (J10000000000000000000001); name = XuechengNativeTests; productName = XuechengNativeTests; productReference = B1000000000000000000001F; productType = "com.apple.product-type.bundle.unit-test"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		F10000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1600; TargetAttributes = {E10000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; }; }; buildConfigurationList = H10000000000000000000001; compatibilityVersion = "Xcode 14.0"; developmentRegion = zh; hasScannedForEncodings = 0; knownRegions = (zh, en, Base); mainGroup = D10000000000000000000001; productRefGroup = D10000000000000000000006; projectDirPath = ""; projectRoot = ""; targets = (E10000000000000000000001); };
+		F10000000000000000000001 = {isa = PBXProject; attributes = {BuildIndependentTargetsInParallel = 1; LastUpgradeCheck = 1600; TargetAttributes = {E10000000000000000000001 = {CreatedOnToolsVersion = 16.0; }; E10000000000000000000002 = {CreatedOnToolsVersion = 16.0; TestTargetID = E10000000000000000000001; }; }; }; buildConfigurationList = H10000000000000000000001; compatibilityVersion = "Xcode 14.0"; developmentRegion = zh; hasScannedForEncodings = 0; knownRegions = (zh, en, Base); mainGroup = D10000000000000000000001; productRefGroup = D10000000000000000000006; projectDirPath = ""; projectRoot = ""; targets = (E10000000000000000000001, E10000000000000000000002); };
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
@@ -87,7 +110,8 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		C10000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E, A1000000000000000000000F, A10000000000000000000010, A10000000000000000000011, A10000000000000000000012, A10000000000000000000013, A10000000000000000000014, A10000000000000000000015, A10000000000000000000016, A10000000000000000000017); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A10000000000000000000001, A10000000000000000000002, A10000000000000000000003, A10000000000000000000004, A10000000000000000000005, A10000000000000000000006, A10000000000000000000007, A10000000000000000000008, A10000000000000000000009, A1000000000000000000000A, A1000000000000000000000C, A1000000000000000000000D, A1000000000000000000000E, A1000000000000000000000F, A10000000000000000000010, A10000000000000000000011, A10000000000000000000012, A10000000000000000000013, A10000000000000000000014, A10000000000000000000015, A10000000000000000000016, A10000000000000000000017, A10000000000000000000018, A10000000000000000000019, A1000000000000000000001A, A1000000000000000000001B, A1000000000000000000001C); runOnlyForDeploymentPostprocessing = 0; };
+		C10000000000000000000005 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (A1000000000000000000001D); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -95,12 +119,21 @@
 		G10000000000000000000002 = {isa = XCBuildConfiguration; buildSettings = {ALWAYS_SEARCH_USER_PATHS = NO; CLANG_ENABLE_MODULES = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; SDKROOT = iphoneos; SWIFT_VERSION = 5.0; }; name = Release; };
 		G10000000000000000000003 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "学程"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = app.xuecheng.nativeui; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Debug; };
 		G10000000000000000000004 = {isa = XCBuildConfiguration; buildSettings = {ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES; CURRENT_PROJECT_VERSION = 1; GENERATE_INFOPLIST_FILE = YES; INFOPLIST_KEY_CFBundleDisplayName = "学程"; INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES; INFOPLIST_KEY_UILaunchScreen_Generation = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; MARKETING_VERSION = 0.1.0; PRODUCT_BUNDLE_IDENTIFIER = app.xuecheng.nativeui; PRODUCT_NAME = "$(TARGET_NAME)"; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TARGETED_DEVICE_FAMILY = 1; }; name = Release; };
+		G10000000000000000000005 = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = app.xuecheng.nativeui.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XuechengNative.app/XuechengNative"; }; name = Debug; };
+		G10000000000000000000006 = {isa = XCBuildConfiguration; buildSettings = {BUNDLE_LOADER = "$(TEST_HOST)"; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 17.0; PRODUCT_BUNDLE_IDENTIFIER = app.xuecheng.nativeui.tests; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SUPPORTED_PLATFORMS = "iphoneos iphonesimulator"; SWIFT_VERSION = 5.0; TEST_HOST = "$(BUILT_PRODUCTS_DIR)/XuechengNative.app/XuechengNative"; }; name = Release; };
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
 		H10000000000000000000001 = {isa = XCConfigurationList; buildConfigurations = (G10000000000000000000001, G10000000000000000000002); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 		H10000000000000000000002 = {isa = XCConfigurationList; buildConfigurations = (G10000000000000000000003, G10000000000000000000004); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		H10000000000000000000003 = {isa = XCConfigurationList; buildConfigurations = (G10000000000000000000005, G10000000000000000000006); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
+/* Begin PBXContainerItemProxy section */
+		K10000000000000000000001 = {isa = PBXContainerItemProxy; containerPortal = F10000000000000000000001; proxyType = 1; remoteGlobalIDString = E10000000000000000000001; remoteInfo = XuechengNative; };
+/* End PBXContainerItemProxy section */
+/* Begin PBXTargetDependency section */
+		J10000000000000000000001 = {isa = PBXTargetDependency; target = E10000000000000000000001; targetProxy = K10000000000000000000001; };
+/* End PBXTargetDependency section */
 	};
 	rootObject = F10000000000000000000001;
 }

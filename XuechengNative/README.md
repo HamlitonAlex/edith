@@ -13,6 +13,14 @@
 
 当前没有 `Services/` 实现：这轮不接后端，不增加虚假的服务层。以后接入时在此边界做数据映射，页面不直接处理 API。
 
+## Core V2 Domain Foundation（开发中）
+
+`XuechengNative/Domain/` 新增不依赖 SwiftUI 的 Codable 学习模型、确定性 Evidence/SkillState/NextStep 策略及 Repository 协议。`Application/StudySessionCoordinator.swift` 串联 Attempt → Evidence → SkillState → 下一步，`Data/Mock/PythonListsFixture.swift` 仅提供内存中的 Python Lists 窄领域任务。它不写数据库、不调用模型或正式 API。内存状态会在应用退出后消失。
+
+本阶段正式页面仍使用 `PreviewFixtures`：新增 Domain 尚未注入 Today/Path/Study Session，因此不能把当前 App 称为已完成学习闭环。未来接入时，页面只读取 Presentation Model，由 Application 层映射 Domain 状态；不要让 View 直接调用 Repository 或决定掌握状态。
+
+Xcode Scheme 已列出 `XuechengNativeTests`。Codemagic Simulator workflow 增加原生 XCTest 步骤；只有远端实际运行并返回成功后才能报告这些测试通过。Windows 上的文件/配置核对不是 Swift 编译或 XCTest。
+
 底部导航由 `Components/XuechengNavigation.swift` 在 `TabView` 外围的安全区域管理，不在页面 `ScrollView` 中；二级路径非空时隐藏。设置使用原生 `NavigationStack` 的返回栏，学习过程也不显示底部导航。
 
 ## 本地运行
@@ -39,3 +47,9 @@
 - App Store Connect API Key
 - 确认后的 Bundle ID
 - Codemagic 中配置的签名证书与 Provisioning Profile
+
+## Device / IPA Readiness
+
+另有手动触发的 `xuechengnative-device-archive` workflow，目标是 Development 签名的设备 IPA；它与既有无签名 Simulator workflow 分开。Codemagic 需先具有与 `app.xuecheng.nativeui` 匹配的 Apple Development 证书及包含目标 iPhone 的 Development provisioning profile。凭证只在 Codemagic Code signing identities / Secure Environment 中配置，不放进仓库。该流程尚未在 Codemagic 执行，不能声称已生成 IPA。
+
+静态审计：Bundle ID `app.xuecheng.nativeui`，显示名“学程”，版本 `0.1.0 (1)`，最低 iOS 17，iPhone target，Debug/Release 配置和共享 Archive Scheme 已存在。Asset catalog 只有 BrandMark，**没有完整 AppIcon.appiconset**；启动屏使用 Xcode 生成的默认配置，没有专用 Launch 资产。当前 Native 代码未调用麦克风、相机、相册或定位 API，因此尚无相应隐私用途文案；未来加入这些权限前必须补对应 Info.plist 使用说明。设备签名、安装、真机安全区/键盘/性能均未验证。当前版本只可称为 Mock Native Experience 候选，尚不是可验收的 RC。
