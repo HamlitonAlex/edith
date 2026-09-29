@@ -43,10 +43,20 @@ workflows:
             echo "APP_ARTIFACT=$app"
           fi
           exit "$build_status"
+      - name: Simulator smoke launch and screenshot
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          output="$CM_BUILD_DIR/build/codemagic"
+          mkdir -p "$output/smoke"
+          python3 -u "$CM_BUILD_DIR/XuechengNative/ci/simulator_smoke.py" \
+            --app "$output/XuechengNative/Build/Products/Debug-iphonesimulator/XuechengNative.app" \
+            --output "$output/smoke" 2>&1 | tee "$output/smoke/simctl.log"
     artifacts:
       - build/codemagic/XuechengNative/Build/Products/Debug-iphonesimulator/XuechengNative.app
       - build/codemagic/XuechengNative-simulator.app.zip
       - build/codemagic/xcodebuild.log
       - build/codemagic/schemes.log
       - build/codemagic/package-resolve.log
+      - build/codemagic/smoke/**
       - /tmp/xcodebuild_logs/*.log
