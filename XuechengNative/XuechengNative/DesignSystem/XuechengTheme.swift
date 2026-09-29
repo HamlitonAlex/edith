@@ -195,15 +195,15 @@ enum XuechengTheme {
     static func shadow(_ level: ShadowLevel, scheme: ColorScheme) -> ShadowToken {
         if scheme == .dark {
             switch level {
-            case .small: ShadowToken(color: .black.opacity(0.16), radius: 10, x: 0, y: 7)
-            case .medium: ShadowToken(color: .black.opacity(0.21), radius: 23, x: 0, y: 18)
-            case .large: ShadowToken(color: .black.opacity(0.26), radius: 38, x: 0, y: 30)
+            case .small: return ShadowToken(color: .black.opacity(0.16), radius: 10, x: 0, y: 7)
+            case .medium: return ShadowToken(color: .black.opacity(0.21), radius: 23, x: 0, y: 18)
+            case .large: return ShadowToken(color: .black.opacity(0.26), radius: 38, x: 0, y: 30)
             }
         }
         switch level {
-        case .small: ShadowToken(color: shadowWarm.opacity(0.055), radius: 11, x: 0, y: 7)
-        case .medium: ShadowToken(color: shadowWarm.opacity(0.075), radius: 24, x: 0, y: 18)
-        case .large: ShadowToken(color: shadowWarm.opacity(0.095), radius: 34, x: 0, y: 26)
+        case .small: return ShadowToken(color: shadowWarm.opacity(0.055), radius: 11, x: 0, y: 7)
+        case .medium: return ShadowToken(color: shadowWarm.opacity(0.075), radius: 24, x: 0, y: 18)
+        case .large: return ShadowToken(color: shadowWarm.opacity(0.095), radius: 34, x: 0, y: 26)
         }
     }
 
