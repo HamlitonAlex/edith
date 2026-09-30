@@ -2,6 +2,9 @@ import SwiftUI
 
 struct TodayView: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasEntered = false
+    var presenceIsActive: Bool = true
 
     var body: some View {
         ZStack {
@@ -45,10 +48,16 @@ struct TodayView: View {
                         .buttonStyle(PrimaryButtonStyle())
                     }
                     .overlay(alignment: .topTrailing) {
-                        CompanionPresence(size: 52)
+                        CompanionPresence(
+                            size: 52,
+                            state: .resting,
+                            isActive: presenceIsActive
+                        )
                             .padding(.trailing, 26)
                             .offset(y: -24)
                     }
+                    .opacity(hasEntered ? 1 : 0)
+                    .offset(y: reduceMotion || hasEntered ? 0 : 20)
                     .padding(.top, 45)
 
                     XuechengSection("路径状态", spacing: XuechengTheme.compactSectionGap) {
@@ -90,7 +99,7 @@ struct TodayView: View {
                                 .foregroundStyle(XuechengTheme.secondaryText(scheme))
                             }
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(XuechengQuietButtonStyle())
                         .padding(.top, 4)
                     }
                     .padding(.top, 30)
@@ -103,6 +112,12 @@ struct TodayView: View {
         }
         .safeAreaInset(edge: .top, spacing: 0) { NativeHeader(title: "今天") }
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            guard !hasEntered else { return }
+            withAnimation(reduceMotion ? nil : XuechengMotion.nextStepEntrance) {
+                hasEntered = true
+            }
+        }
     }
 }
 

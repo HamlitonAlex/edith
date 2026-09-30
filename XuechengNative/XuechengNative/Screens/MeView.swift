@@ -117,7 +117,7 @@ struct MeView: View {
                         .foregroundStyle(XuechengTheme.primaryText(scheme))
                         .padding(.vertical, XuechengTheme.space16)
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(XuechengQuietButtonStyle())
 
                     NavigationLink(value: MeDestination.settings) {
                         HStack(spacing: XuechengTheme.space12) {
@@ -135,7 +135,7 @@ struct MeView: View {
                         .padding(.vertical, 16)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(XuechengQuietButtonStyle())
                     .padding(.top, 25)
                     .overlay(alignment: .top) {
                         Rectangle().fill(XuechengTheme.border(scheme)).frame(height: 1).padding(.top, 12)

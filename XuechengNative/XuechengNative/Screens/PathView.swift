@@ -33,7 +33,7 @@ struct PathView: View {
                             NavigationLink(value: PathDestination.capability(capability.id)) {
                                 CapabilityCard(capability: capability)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(XuechengQuietButtonStyle())
                         }
                     }
                 }

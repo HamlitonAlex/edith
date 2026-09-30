@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CompanionView: View {
     @Environment(\.colorScheme) private var scheme
+    var presenceIsActive: Bool = true
     @State private var draft = ""
 
     var body: some View {
@@ -10,7 +11,7 @@ struct CompanionView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    CompanionPresence(size: 82)
+                    CompanionPresence(size: 82, state: .resting, isActive: presenceIsActive)
                         .frame(maxWidth: .infinity)
                         .padding(.top, 35)
                         .padding(.bottom, 20)
@@ -79,7 +80,7 @@ struct CompanionView: View {
                                 .foregroundStyle(XuechengTheme.primaryText(scheme))
                                 .padding(.vertical, XuechengTheme.space12)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(XuechengQuietButtonStyle())
                             Divider()
                         }
                     }

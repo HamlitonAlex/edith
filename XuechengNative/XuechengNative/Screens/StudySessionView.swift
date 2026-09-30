@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct StudySessionView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private let scheme: ColorScheme = .dark
     @State private var phase: StudySession.Phase = .understand
     @State private var answer = ""
@@ -24,6 +25,12 @@ struct StudySessionView: View {
                         .lineSpacing(XuechengTypography.body.lineSpacing)
                         .foregroundStyle(XuechengTheme.primaryText(scheme))
                         .fixedSize(horizontal: false, vertical: true)
+                        .id(phase)
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .move(edge: .trailing).combined(with: .opacity)
+                        )
 
                     if phase == .attempt || phase == .retry {
                         TextField("写下你的判断和理由", text: $answer, axis: .vertical)
@@ -34,6 +41,11 @@ struct StudySessionView: View {
                                 FrostedSurface(radius: XuechengTheme.radius20) { Color.clear }
                             }
                             .accessibilityLabel("本次尝试")
+                            .transition(
+                                reduceMotion
+                                    ? .opacity
+                                    : .move(edge: .bottom).combined(with: .opacity)
+                            )
                     }
 
                     if phase == .hint {
@@ -45,6 +57,11 @@ struct StudySessionView: View {
                                 .padding(XuechengTheme.space24)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
+                        .transition(
+                            reduceMotion
+                                ? .opacity
+                                : .move(edge: .bottom).combined(with: .opacity)
+                        )
                     }
 
                     if phase == .evidence {
@@ -52,6 +69,7 @@ struct StudySessionView: View {
                             .font(XuechengTypography.secondaryBody.font)
                             .lineSpacing(XuechengTypography.secondaryBody.lineSpacing)
                             .foregroundStyle(XuechengTheme.secondaryText(scheme))
+                            .transition(.opacity)
                     }
 
                     Button(action: advance) {
@@ -75,14 +93,19 @@ struct StudySessionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+        .animation(reduceMotion ? nil : XuechengMotion.standardTransition, value: phase)
     }
 
     private func advance() {
         if phase == .evidence {
-            onFinish()
+            withAnimation(reduceMotion ? nil : XuechengMotion.standardTransition) {
+                onFinish()
+            }
         } else if let next = StudySession.Phase(rawValue: phase.rawValue + 1) {
-            phase = next
-            answer = ""
+            withAnimation(reduceMotion ? nil : XuechengMotion.standardTransition) {
+                phase = next
+                answer = ""
+            }
         }
     }
 }

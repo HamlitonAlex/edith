@@ -2,6 +2,8 @@ import SwiftUI
 
 struct SessionResultView: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var hasEntered = false
     let onReturn: () -> Void
 
     var body: some View {
@@ -38,12 +40,21 @@ struct SessionResultView: View {
                 .padding(.horizontal, XuechengTheme.pagePadding)
                 .padding(.top, XuechengTheme.space32)
                 .padding(.bottom, XuechengTheme.space32)
+                .opacity(hasEntered ? 1 : 0)
+                .offset(y: reduceMotion || hasEntered ? 0 : 12)
+                .animation(reduceMotion ? nil : XuechengMotion.standardTransition, value: hasEntered)
             }
             .scrollIndicators(.hidden)
         }
         .navigationTitle("学习结果")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .onAppear {
+            guard !hasEntered else { return }
+            withAnimation(reduceMotion ? nil : XuechengMotion.standardTransition) {
+                hasEntered = true
+            }
+        }
     }
 
 }

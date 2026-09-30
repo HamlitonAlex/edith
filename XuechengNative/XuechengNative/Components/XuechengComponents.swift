@@ -3,15 +3,22 @@ import SwiftUI
 struct XuechengGlassSurface<Content: View>: View {
     let level: SurfaceLevel
     let radius: CGFloat
+    var interaction: XuechengInteractionState = .normal
     let content: Content
 
-    init(level: SurfaceLevel = .frosted, radius: CGFloat = XuechengTheme.radius28, @ViewBuilder content: () -> Content) {
+    init(
+        level: SurfaceLevel = .frosted,
+        radius: CGFloat = XuechengTheme.radius28,
+        interaction: XuechengInteractionState = .normal,
+        @ViewBuilder content: () -> Content
+    ) {
         self.level = level
         self.radius = radius
+        self.interaction = interaction
         self.content = content()
     }
 
-    var body: some View { GlassCard(level: level, radius: radius) { content } }
+    var body: some View { GlassCard(level: level, radius: radius, interaction: interaction) { content } }
 }
 
 struct XuechengCard<Content: View>: View {
@@ -41,7 +48,7 @@ struct XuechengButton: View {
             case .secondary:
                 button.buttonStyle(SecondaryButtonStyle())
             case .quiet:
-                button.buttonStyle(.plain)
+                button.buttonStyle(XuechengQuietButtonStyle())
             }
         }
         .disabled(isDisabled || isLoading)

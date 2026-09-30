@@ -1,21 +1,28 @@
 import SwiftUI
 
 struct AppRootView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var showsSplash = true
 
     var body: some View {
         Group {
             if showsSplash {
                 SplashView()
-                    .transition(.opacity)
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .opacity.combined(with: .scale(scale: 0.985))
+                    )
             } else {
                 XuechengNavigation()
             }
         }
         .task {
             guard showsSplash else { return }
-            try? await Task.sleep(for: .seconds(1.2))
-            withAnimation(.easeInOut(duration: 0.3)) { showsSplash = false }
+            try? await Task.sleep(for: .seconds(XuechengMotion.splashDisplaySeconds))
+            withAnimation(reduceMotion ? nil : XuechengMotion.standardTransition) {
+                showsSplash = false
+            }
         }
     }
 }

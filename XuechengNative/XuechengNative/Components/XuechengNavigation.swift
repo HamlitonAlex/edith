@@ -7,6 +7,7 @@ enum MeDestination: Hashable { case settings, schedule }
 
 // The floating navigation belongs to the shell, never to a page ScrollView.
 struct XuechengNavigation: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedTab: AppTab = .today
     @State private var todayPath: [TodayDestination] = []
     @State private var pathPath: [PathDestination] = []
@@ -25,7 +26,7 @@ struct XuechengNavigation: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             NavigationStack(path: $todayPath) {
-                TodayView()
+                TodayView(presenceIsActive: selectedTab == .today && todayPath.isEmpty)
                     .navigationDestination(for: TodayDestination.self) { destination in
                         switch destination {
                         case .study: StudySessionView(onFinish: { todayPath.append(.result) })
@@ -47,7 +48,7 @@ struct XuechengNavigation: View {
             .tag(AppTab.path)
 
             NavigationStack(path: $companionPath) {
-                CompanionView()
+                CompanionView(presenceIsActive: selectedTab == .companion && companionPath.isEmpty)
                     .navigationDestination(for: CompanionDestination.self) { destination in
                         switch destination {
                         case .schedule: ScheduleView()
@@ -73,9 +74,13 @@ struct XuechengNavigation: View {
                 FloatingGlassTabBar(selection: $selectedTab)
                     .padding(.horizontal, XuechengTheme.navigationHorizontalInset)
                     .padding(.bottom, XuechengTheme.navigationBottomInset)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .transition(
+                        reduceMotion
+                            ? .opacity
+                            : .move(edge: .bottom).combined(with: .opacity)
+                    )
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showsFloatingNavigation)
+        .animation(reduceMotion ? nil : XuechengMotion.standardTransition, value: showsFloatingNavigation)
     }
 }

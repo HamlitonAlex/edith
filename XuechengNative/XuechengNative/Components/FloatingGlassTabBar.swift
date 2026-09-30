@@ -29,18 +29,23 @@ enum AppTab: String, CaseIterable, Identifiable, Hashable {
 
 struct FloatingGlassTabBar: View {
     @Environment(\.colorScheme) private var scheme
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var selection: AppTab
+    @Namespace private var selectionNamespace
 
     var body: some View {
         HStack(spacing: 0) {
             ForEach(AppTab.allCases) { tab in
                 Button {
-                    withAnimation(.easeInOut(duration: 0.2)) { selection = tab }
+                    withAnimation(reduceMotion ? nil : XuechengMotion.selectionSpring) { selection = tab }
                 } label: {
                     VStack(spacing: XuechengTheme.navigationIconLabelGap) {
                         Image(systemName: tab.symbol)
                             .font(.system(size: XuechengTheme.navigationIconSize, weight: .regular, design: .default))
                             .frame(height: 22)
+                            .scaleEffect(selection == tab && !reduceMotion ? XuechengMotion.tabSelectedScale : 1)
+                            .opacity(selection == tab ? 1 : 0.82)
+                            .animation(reduceMotion ? nil : XuechengMotion.fastInteraction, value: selection == tab)
                         Text(tab.title)
                             .font(XuechengTypography.metadata.font)
                             .tracking(XuechengTypography.metadata.letterSpacing)
@@ -53,6 +58,7 @@ struct FloatingGlassTabBar: View {
                         if selection == tab {
                             RoundedRectangle(cornerRadius: XuechengTheme.navigationItemRadius, style: .continuous)
                                 .fill(XuechengTheme.navigationActive(scheme))
+                                .matchedGeometryEffect(id: "selected-tab-indicator", in: selectionNamespace)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: XuechengTheme.navigationItemRadius, style: .continuous)
                                         .strokeBorder(XuechengTheme.glassEdge(scheme), lineWidth: 0.7)
@@ -62,7 +68,7 @@ struct FloatingGlassTabBar: View {
                     .padding(.horizontal, 5)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(XuechengTabButtonStyle())
                 .accessibilityLabel(tab.title)
                 .accessibilityAddTraits(selection == tab ? .isSelected : [])
             }
@@ -83,6 +89,19 @@ struct FloatingGlassTabBar: View {
         }
         .shadow(color: XuechengTheme.shadow(.small, scheme: scheme).color, radius: 19, x: 0, y: 14)
         .sensoryFeedback(.selection, trigger: selection)
+    }
+}
+
+private struct XuechengTabButtonStyle: ButtonStyle {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed && !reduceMotion ? XuechengMotion.buttonPressedScale : 1)
+            .animation(
+                reduceMotion ? nil : (configuration.isPressed ? XuechengMotion.fastInteraction : XuechengMotion.releaseSpring),
+                value: configuration.isPressed
+            )
     }
 }
 
