@@ -203,3 +203,82 @@ workflows:
       - build/codemagic/device/archive.log
       - build/codemagic/device/export.log
       - /tmp/xcodebuild_logs/*.log
+  xuechengnative-testflight-internal:
+    name: XuechengNative TestFlight Internal Only
+    max_build_duration: 90
+    instance_type: mac_mini_m2
+    triggering:
+      events: []
+    integrations:
+      app_store_connect: Xuecheng App Store Connect
+    environment:
+      xcode: latest
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: app.xuecheng.nativeui
+    scripts:
+      - name: Verify App Store signing setup
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          project="$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+          test -d "$project"
+          xcodebuild -version
+          xcodebuild -list -project "$project"
+          echo "Expected signing: App Store distribution for app.xuecheng.nativeui"
+      - name: Apply App Store signing and internal-only export options
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          xcode-project use-profiles \
+            --project "$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj" \
+            --archive-method app-store \
+            --custom-export-options='{"testFlightInternalTestingOnly": true}'
+          test -s "$HOME/export_options.plist"
+      - name: Archive and export TestFlight IPA
+        script: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+          project="$CM_BUILD_DIR/XuechengNative/XuechengNative.xcodeproj"
+          output="$CM_BUILD_DIR/build/codemagic/testflight"
+          mkdir -p "$output/ipa"
+          # Use the app-wide Codemagic counter so simulator and release workflow
+          # runs share one increasing sequence. Keep marketing version at 0.1.0.
+          project_build_number="${PROJECT_BUILD_NUMBER:?Codemagic PROJECT_BUILD_NUMBER is required}"
+          if [[ ! "$project_build_number" =~ ^[0-9]+$ ]]; then
+            echo "ERROR: PROJECT_BUILD_NUMBER must be an integer"
+            exit 1
+          fi
+          next_build_number=$((project_build_number + 1))
+          if (( next_build_number <= 1 )); then
+            next_build_number=2
+          fi
+          echo "MARKETING_VERSION=$(grep -o 'MARKETING_VERSION = [^;]*' "$project/project.pbxproj" | head -1 | cut -d' ' -f3)"
+          echo "CURRENT_PROJECT_VERSION=$next_build_number"
+          xcodebuild archive \
+            -project "$project" \
+            -scheme XuechengNative \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$output/XuechengNative.xcarchive" \
+            CURRENT_PROJECT_VERSION="$next_build_number" \
+            2>&1 | tee "$output/archive.log"
+          xcodebuild -exportArchive \
+            -archivePath "$output/XuechengNative.xcarchive" \
+            -exportOptionsPlist "$HOME/export_options.plist" \
+            -exportPath "$output/ipa" \
+            2>&1 | tee "$output/export.log"
+          ipa=$(find "$output/ipa" -maxdepth 1 -name '*.ipa' -print -quit)
+          test -n "$ipa"
+          echo "IPA_ARTIFACT=$ipa"
+    artifacts:
+      - build/codemagic/testflight/ipa/*.ipa
+      - build/codemagic/testflight/archive.log
+      - build/codemagic/testflight/export.log
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
