@@ -34,6 +34,7 @@ struct XuechengNavigation: View {
                         case .schedule: ScheduleView()
                         }
                     }
+                    .toolbar(.hidden, for: .tabBar)
             }
             .tag(AppTab.today)
 
@@ -44,6 +45,7 @@ struct XuechengNavigation: View {
                         case let .capability(id): CapabilityDetailView(capabilityID: id)
                         }
                     }
+                    .toolbar(.hidden, for: .tabBar)
             }
             .tag(AppTab.path)
 
@@ -54,6 +56,7 @@ struct XuechengNavigation: View {
                         case .schedule: ScheduleView()
                         }
                     }
+                    .toolbar(.hidden, for: .tabBar)
             }
             .tag(AppTab.companion)
 
@@ -65,10 +68,10 @@ struct XuechengNavigation: View {
                         case .schedule: ScheduleView()
                         }
                     }
+                    .toolbar(.hidden, for: .tabBar)
             }
             .tag(AppTab.me)
         }
-        .toolbar(.hidden, for: .tabBar)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if showsFloatingNavigation {
                 FloatingGlassTabBar(selection: $selectedTab)
