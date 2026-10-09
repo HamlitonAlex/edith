@@ -1,0 +1,86 @@
+diff --git a/XuechengNative/XuechengNativeTests/LearningDomainTests.swift b/XuechengNative/XuechengNativeTests/LearningDomainTests.swift
+index 05a7e39..0fe039f 100644
+--- a/XuechengNative/XuechengNativeTests/LearningDomainTests.swift
++++ b/XuechengNative/XuechengNativeTests/LearningDomainTests.swift
+@@ -8,8 +8,9 @@ final class LearningDomainTests: XCTestCase {
+     private func attempt(_ id: String, task: XuechengDomain.PracticeTask,
+                          response: String, hints: Int = 0,
+                          independence: XuechengDomain.Independence = .independent,
+-                         learnerID: String = "learner-a") -> XuechengDomain.Attempt {
++                         learnerID: String = "learner-a",
++                         submittedAt: Date = Date(timeIntervalSince1970: 1_800_000_000)) -> XuechengDomain.Attempt {
+         .init(id: id, learnerID: learnerID, taskID: task.id, taskVersion: task.version,
+               response: response, hintCount: hints, independence: independence,
+-              retryCount: 0, submittedAt: Date(timeIntervalSince1970: 1_800_000_000))
++              retryCount: 0, submittedAt: submittedAt)
+     }
+@@ -146,4 +147,69 @@ final class LearningDomainTests: XCTestCase {
+         XCTAssertEqual(store.evidence(learnerID: learner, capabilityID: task.capabilityID).count, 1)
+         XCTAssertEqual(store.evidence(learnerID: "learner-b", capabilityID: task.capabilityID).count, 1)
+     }
++
++    // Regression specifications: run on macOS before changing production rules.
++    func testSequentialFailuresAfterStableBecomeWeak() async throws {
++        let store = PythonListsFixture.repository()
++        let coordinator = StudySessionCoordinator(repository: store)
++        let baseline = Date(timeIntervalSince1970: 1_800_000_000)
++        let basics = PythonListsFixture.practices.filter { $0.capabilityID == "python.list.basics" }
++        for (index, task) in basics.enumerated() {
++            _ = try await coordinator.submit(attempt("stable-\(index)", task: task,
++                response: task.expectedAnswer,
++                submittedAt: baseline.addingTimeInterval(Double(index))), goal: PythonListsFixture.goal)
++        }
++        let task = try XCTUnwrap(basics.first)
++        XCTAssertEqual(store.state(learnerID: learner, capabilityID: task.capabilityID)?.level, .stable)
++
++        let first = try await coordinator.submit(attempt("sequential-failure-1", task: task,
++            response: "wrong", submittedAt: baseline.addingTimeInterval(100)), goal: PythonListsFixture.goal)
++        XCTAssertEqual(first.skillState.level, .stable, "One failure must not immediately demote stable")
++
++        let second = try await coordinator.submit(attempt("sequential-failure-2", task: task,
++            response: "wrong", submittedAt: baseline.addingTimeInterval(101)), goal: PythonListsFixture.goal)
++        XCTAssertEqual(second.skillState.level, .weak,
++            "Two consecutive failures must be considered across separate submissions")
++        XCTAssertEqual(store.state(learnerID: learner, capabilityID: task.capabilityID), second.skillState)
++        XCTAssertEqual(store.evidence(learnerID: learner, capabilityID: task.capabilityID).count, basics.count + 2)
++    }
++
++    func testDueReviewOfStableCapabilityPrecedesNewCapability() throws {
++        let basicsID = "python.list.basics"
++        let stable = XuechengDomain.SkillState(learnerID: learner, capabilityID: basicsID,
++            level: .stable, evidenceCount: 3, updatedAt: Date(timeIntervalSince1970: 1_800_000_000))
++        let completed = Set(PythonListsFixture.practices.filter { $0.capabilityID == basicsID }.map(\.id))
++        let candidate = try NextStepSelectionPolicy().candidate(goal: PythonListsFixture.goal,
++            capabilities: PythonListsFixture.capabilities, states: [stable], tasks: PythonListsFixture.practices,
++            reviewDueIDs: [basicsID], completedTaskIDs: completed)
++        let review = try XCTUnwrap(candidate)
++        XCTAssertEqual(review.capabilityID, basicsID, "Due review must remain eligible even when stable")
++        XCTAssertTrue(completed.contains(review.taskID), "Review may revisit a previously completed task")
++        XCTAssertFalse(review.reason.isEmpty)
++    }
++
++    func testStableCapabilityWithoutDueReviewDoesNotBlockNextCapability() throws {
++        let stable = XuechengDomain.SkillState(learnerID: learner, capabilityID: "python.list.basics",
++            level: .stable, evidenceCount: 3, updatedAt: Date(timeIntervalSince1970: 1_800_000_000))
++        let candidate = try NextStepSelectionPolicy().candidate(goal: PythonListsFixture.goal,
++            capabilities: PythonListsFixture.capabilities, states: [stable], tasks: PythonListsFixture.practices)
++        XCTAssertEqual(candidate?.capabilityID, "python.list.traversal")
++    }
++
++    func testEveryGoalCapabilityHasEnoughTasksToReachStable() throws {
++        // Use the actual policy rather than duplicating its numeric threshold in a catalog test.
++        for capabilityID in PythonListsFixture.goal.capabilityIDs {
++            let tasks = PythonListsFixture.practices.filter { $0.capabilityID == capabilityID }
++            XCTAssertFalse(tasks.isEmpty, "Missing practice catalog for \(capabilityID)")
++            let evidence = try tasks.enumerated().map { index, task in
++                try EvidencePolicy().evaluate(attempt("catalog-\(task.id)", task: task,
++                    response: task.expectedAnswer,
++                    submittedAt: Date(timeIntervalSince1970: 1_800_000_000 + Double(index))), for: task)
++            }
++            let state = SkillStateAggregator().aggregate(learnerID: learner,
++                capabilityID: capabilityID, evidence: evidence)
++            XCTAssertEqual(state.level, .stable,
++                "Perfect independent performance on the entire catalog cannot complete \(capabilityID)")
++        }
++    }
+ }
